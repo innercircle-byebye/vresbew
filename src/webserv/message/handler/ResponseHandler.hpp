@@ -26,7 +26,7 @@ enum requestMethodForEnum {
 };
 
 class ResponseHandler {
-  HttpConfig *&http_config_;
+  HttpConfig *http_config_;
   ServerConfig *server_config_;
   Response &response_;
   Request &request_;

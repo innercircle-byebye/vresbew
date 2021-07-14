@@ -16,6 +16,8 @@ SRC_FILE	=	webserv/main.cpp \
 				webserv/message/handler/RequestHandler.cpp \
 				webserv/message/handler/ResponseHandler.cpp
 
+LOGFILE		=	./error.log
+
 SRCS		=	$(SRC_FILE:%.cpp=$(SRC_PATH)%.cpp)
 OBJS		=	$(SRCS:.cpp=.o)
 
@@ -36,11 +38,11 @@ clean:
 				$(RM) $(OBJS)
 
 fclean:			clean
-				$(RM) $(NAME)
+				$(RM) $(NAME) $(LOGFILE)
 
 debug:			fclean $(OBJS)
 				$(CXX) $(CXXFLAGS) $(LEAKS)  $(OBJS) -o $(NAME)
 
 re:				fclean all
 
-.PHONY:		all clean fclean debug re
+.PHONY:			all clean fclean debug re

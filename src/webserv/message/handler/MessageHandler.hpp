@@ -28,7 +28,7 @@ class MessageHandler {
  private:
   Request &request_;
   Response &response_;
-  HttpConfig *http_config_;
+//   HttpConfig *http_config_;
 
   RequestHandler request_handler_;
   ResponseHandler response_handler_;
@@ -50,7 +50,7 @@ class MessageHandler {
   ~MessageHandler();
 
   // setter
-  void setHttpConfig(HttpConfig *http_config);
+//   void setHttpConfig(HttpConfig *http_config);
   void setSockAddr(struct sockaddr_in *addr);
   void setContentLengthToZero();
   // setter done
@@ -67,7 +67,7 @@ class MessageHandler {
   // with RequestHandler done
 
   // with ResponseHandler
-  void createResponse();
+  void createResponse(HttpConfig *http_config);
   void createResponseForResponseHandler();
   void clearMsgBodyBuf(void);
   void clearMsgHeaderBuf(void);

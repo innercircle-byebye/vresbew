@@ -5,11 +5,13 @@ MessageHandler::MessageHandler(Request &request, Response &response)
     : request_(request),
       response_(response),
       recv_phase(0),
-      http_config_(NULL),
+    //   http_config_(NULL),
       sockaddr_to_connect_(NULL),
       request_handler_(request_),
-      response_handler_(request_, response_, http_config_) {
-  this->response_header_buf_ = NULL;
+	  response_handler_(request_, response_)
+    //   response_handler_(request_, response_, http_config_)
+{
+  	this->response_header_buf_ = NULL;
 }
 
 MessageHandler::~MessageHandler() {
@@ -84,9 +86,9 @@ void MessageHandler::checkRemainderBufferForHeader(char *buffer) {
   this->recv_phase = MESSAGE_HEADER_INCOMPLETE;
 }
 
-void MessageHandler::setHttpConfig(HttpConfig *http_config) {
-  this->http_config_ = http_config;
-}
+// void MessageHandler::setHttpConfig(HttpConfig *http_config) {
+//   this->http_config_ = http_config;
+// }
 
 void MessageHandler::setSockAddr(struct sockaddr_in *addr) {
   this->sockaddr_to_connect_ = addr;
@@ -113,8 +115,8 @@ void MessageHandler::createRequest(void) {
   this->request_handler_.setRequest(this->msg_header_buf_);
 }
 
-void MessageHandler::createResponse(void) {
-  this->response_handler_.setServerConfig(this->sockaddr_to_connect_);
+void MessageHandler::createResponse(HttpConfig *http_config) {
+  this->response_handler_.setServerConfig(http_config, this->sockaddr_to_connect_);
   this->response_handler_.setResponse();
   if (this->request_.method == "PUT" &&
       (this->response_.status_code_ == "201" || this->response_.status_code_ == "204")) {

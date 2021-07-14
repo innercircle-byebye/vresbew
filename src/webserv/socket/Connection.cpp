@@ -62,9 +62,9 @@ void Connection::setSockaddrToConnectIP(in_addr_t ipaddr) { sockaddr_to_connect_
 
 void Connection::setHttpConfig(HttpConfig *httpconfig) { httpconfig_ = httpconfig; }
 
-void Connection::passHttpConfigToMessageHandler(HttpConfig *http_config) {
-  this->message_handler_.setHttpConfig(http_config);
-}
+// void Connection::passHttpConfigToMessageHandler(HttpConfig *http_config) {
+//   this->message_handler_.setHttpConfig(http_config);
+// }
 
 /* GETTER */
 bool Connection::getListen() const { return listen_; }

@@ -2,7 +2,7 @@
 
 namespace ft {
 RequestHandler::RequestHandler(Request &request)
-    : request_(request){};
+    : request_(request){}
 
 void RequestHandler::setRequest(std::string msg_header_buffer) {
   std::istringstream is(msg_header_buffer);
@@ -19,7 +19,7 @@ void RequestHandler::setRequest(std::string msg_header_buffer) {
     if (this->parseHeaderLine(line) != 0)  // TODO: 반환값(0) 확인 필요
       this->clearRequest();
   }
-};
+}
 
 int RequestHandler::parseStartLine(std::string const &start_line) {
   this->delimiter_count_ = this->getCountOfDelimiter(start_line,

@@ -4,8 +4,8 @@
 #include "webserv/logger/Logger.hpp"
 #include "webserv/message/handler/MessageHandler.hpp"
 #include "webserv/socket/Listening.hpp"
-#include "webserv/webserv.hpp"
 #include "webserv/socket/SocketManager.hpp"
+#include "webserv/webserv.hpp"
 
 namespace ft {
 
@@ -27,9 +27,9 @@ class Connection {
  public:
   char buffer_[BUF_SIZE];
 
+  Request request_;
+  Response response_;
   MessageHandler message_handler_;
-  Response	response_;
-  Request	request_;
 
   Connection();
   ~Connection();
@@ -44,7 +44,7 @@ class Connection {
   void setSockaddrToConnectPort(in_port_t port);
   void setSockaddrToConnectIP(in_addr_t ipaddr);
   void setHttpConfig(HttpConfig *httpconfig);
-//   void passHttpConfigToMessageHandler(HttpConfig *http_config);
+  //   void passHttpConfigToMessageHandler(HttpConfig *http_config);
 
   bool getListen() const;
   Connection *getNext() const;

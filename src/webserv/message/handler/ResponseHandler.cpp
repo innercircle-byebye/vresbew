@@ -14,7 +14,7 @@ ResponseHandler::ResponseHandler(Request &request, Response &response)
   this->error409 = "<html>\n<head><title>409 Conflict</title></head>\n<body>\n<center><h1>409 Confilct</h1></center>\n<hr><center>vresbew</center>\n</body>\n</html>\n";
   this->error409 = "<html>\n<head><title>409 Conflict</title></head>\n<body>\n<center><h1>409 Confilct</h1></center>\n<hr><center>vresbew</center>\n</body>\n</html>\n";
   this->error500 = "<html>\n<head><title>500 Internal Server Error</title></head>\n<body>\n<center><h1>500 Internal Server Error</h1></center>\n<hr><center>vresbew</center>\n</body>\n</html>\n";
-};
+}
 
 //TODO: setLocationConfig로 바꿔도 될지 확인해보기
 void ResponseHandler::setServerConfig(HttpConfig *http_config, struct sockaddr_in *addr) {
@@ -64,6 +64,13 @@ void ResponseHandler::setResponse() {
     case METHOD_PUT: {
       if (isUriOnlySlash()) {
         setResponse409();
+        break;
+      }
+
+      if (this->request_.headers["Content-Length"] == "")
+      {
+        //content-type에 대한 처리도 필요하지 않을까 합니다.
+        setResponse500();
         break;
       }
       if (!isPathAccessable(location->getRoot())) {
@@ -140,7 +147,6 @@ bool ResponseHandler::isUriOnlySlash() {
 }
 
 bool ResponseHandler::isFileExist(std::string host_path) {
-  LocationConfig *location = this->server_config_->getLocationConfig(this->request_.uri);
 
   if (stat(host_path.c_str(), &this->stat_buffer_) < 0) {
     std::cout << "this ain't work" << std::endl;
@@ -150,7 +156,6 @@ bool ResponseHandler::isFileExist(std::string host_path) {
 }
 
 bool ResponseHandler::isPathAccessable(std::string path) {
-  LocationConfig *location = this->server_config_->getLocationConfig(this->request_.uri);
   path.insert(0, ".");
   std::cout << path << std::endl;
   if (stat(path.c_str(), &this->stat_buffer_) < 0) {
@@ -163,7 +168,6 @@ bool ResponseHandler::isPathAccessable(std::string path) {
 }
 
 void ResponseHandler::setResponseBodyFromFile(std::string path) {
-  LocationConfig *location = this->server_config_->getLocationConfig(this->request_.uri);  // 없으면 not found
 
   std::ifstream file(path.c_str());
   file.seekg(0, std::ios::end);

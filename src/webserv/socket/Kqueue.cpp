@@ -90,7 +90,6 @@ void Kqueue::kqueueProcessEvents(SocketManager *sm) {
         Logger::logError(LOG_ALERT, "%d kevent() reported about an %d reader disconnects", events, (int)event_list_[i].ident);
         sm->closeConnection(c);
       } else {
-        if (c->request_.uri.size() > 0) {
           std::cout << c->getFd() << " can write!" << std::endl;
           c->message_handler_.createResponse(c->getHttpConfig());
           send(c->getFd(), (*c->message_handler_.response_header_buf_).c_str(),
@@ -100,7 +99,7 @@ void Kqueue::kqueueProcessEvents(SocketManager *sm) {
           c->request_.uri.clear();
           c->request_.method.clear();
           std::cout << c->getFd() << " write end." << std::endl;
-          if (c->message_handler_.getResponseStatus() == "404" || c->request_.version == "HTTP/1.0")
+          if (c->request_.headers["Connection"] == "close" || c->request_.version == "HTTP/1.0")
             sm->closeConnection(c);
           else {
             c->message_handler_.clearMsgHeaderBuf();
@@ -109,7 +108,6 @@ void Kqueue::kqueueProcessEvents(SocketManager *sm) {
             c->message_handler_.recv_phase = MESSAGE_HEADER_INCOMPLETE;
             kqueueSetEvent(c, EVFILT_READ, EV_ADD);
           }
-        }
       }
     }
   }

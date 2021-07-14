@@ -26,10 +26,9 @@ enum requestMethodForEnum {
 };
 
 class ResponseHandler {
-  HttpConfig *http_config_;
   ServerConfig *server_config_;
-  Response &response_;
   Request &request_;
+  Response &response_;
   std::string rootpath_;
   std::string error400;
   std::string error404;
@@ -65,7 +64,6 @@ ResponseHandler(Request &request, Response &response);
   void setResponse409();
   void setResponse500();
   std::string getCurrentDate();
-  ;
 };
 }  // namespace ft
 #endif

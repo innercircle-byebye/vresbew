@@ -5,6 +5,9 @@ RequestHandler::RequestHandler(Request &request)
     : request_(request){}
 
 void RequestHandler::setRequest(std::string msg_header_buffer) {
+  std::cout << "============buffer testing========" << std::endl;
+  std::cout << msg_header_buffer << std::endl;
+  std::cout << "============buffer testing========" << std::endl;
   std::istringstream is(msg_header_buffer);
   std::string line;
   if (getline(is, line)) {

@@ -7,7 +7,7 @@ namespace ft {
 ResponseHandler::ResponseHandler(Request &request, Response &response)
     : request_(request),
       response_(response) {
-    //   http_config_(http_config) {
+  //   http_config_(http_config) {
   this->error400 = "<html>\n<head><title>400 Bad Request</title></head>\n<body>\n<center><h1>400 Bad Request</h1></center>\n<hr><center>vresbew</center>\n</body>\n</html>\n";
   this->error404 = "<html>\n<head><title>404 Not Found</title></head>\n<body>\n<center><h1>404 Not Found</h1></center>\n<hr><center>vresbew</center>\n</body>\n</html>\n";
   this->error405 = "<html>\n<head><title>404 Method Not Allowed</title></head>\n<body>\n<center><h1>405 Method Not Allowed</h1></center>\n<hr><center>vresbew</center>\n</body>\n</html>\n";
@@ -19,13 +19,14 @@ ResponseHandler::ResponseHandler(Request &request, Response &response)
 //TODO: setLocationConfig로 바꿔도 될지 확인해보기
 void ResponseHandler::setServerConfig(HttpConfig *http_config, struct sockaddr_in *addr) {
   this->server_config_ = http_config->getServerConfig(addr->sin_port,
-                                                             addr->sin_addr.s_addr, this->request_.headers["Host"]);
+                                                      addr->sin_addr.s_addr, this->request_.headers["Host"]);
 }
 
 void ResponseHandler::setResponse() {
   this->response_.header_["Date"] = this->getCurrentDate();
   LocationConfig *location = this->server_config_->getLocationConfig(this->request_.uri);
 
+  std::cout << "version: " << this->request_.version << std::endl;
   if (!this->isValidRequestMethod()) {
     setResponse400();
     return;
@@ -48,7 +49,7 @@ void ResponseHandler::setResponse() {
         this->request_.uri += location->getIndex().at(0);
       }
       if (!isFileExist(getAccessPath(this->request_.uri))) {
-      // 403 Forbidden 케이스도 있음
+        // 403 Forbidden 케이스도 있음
         setResponse404();
         break;
       } else {
@@ -66,9 +67,7 @@ void ResponseHandler::setResponse() {
         setResponse409();
         break;
       }
-
-      if (this->request_.headers["Content-Length"] == "")
-      {
+      if (this->request_.headers["Content-Length"] == "") {
         //content-type에 대한 처리도 필요하지 않을까 합니다.
         setResponse500();
         break;
@@ -87,13 +86,11 @@ void ResponseHandler::setResponse() {
       break;
     }
     case METHOD_POST:
-    case METHOD_DELETE:
-    {
+    case METHOD_DELETE: {
       // if isUriOnlyOrSlash -> delete everything in there and 403 forbidden
       // if path is directory -> 409 Conflict and do nothing
       // if file is missing -> 404 not found
       // if file is available -> 204 No Content and delete the file
-
     }
     default:
       break;
@@ -112,6 +109,7 @@ bool ResponseHandler::isValidRequestMethod() {
 }
 
 bool ResponseHandler::isValidRequestVersion() {
+
   if (this->request_.version == "HTTP/1.1") {
     if (this->request_.headers.count("Host"))
       return (true);
@@ -147,7 +145,6 @@ bool ResponseHandler::isUriOnlySlash() {
 }
 
 bool ResponseHandler::isFileExist(std::string host_path) {
-
   if (stat(host_path.c_str(), &this->stat_buffer_) < 0) {
     std::cout << "this ain't work" << std::endl;
     return (false);
@@ -168,7 +165,6 @@ bool ResponseHandler::isPathAccessable(std::string path) {
 }
 
 void ResponseHandler::setResponseBodyFromFile(std::string path) {
-
   std::ifstream file(path.c_str());
   file.seekg(0, std::ios::end);
   this->response_.response_body_.reserve(file.tellg());
@@ -231,7 +227,6 @@ void ResponseHandler::setResponse204() {
   this->response_.status_message_ = "No Content";
   this->response_.header_["Connection"] = "keep-alive";
 }
-
 
 std::string ResponseHandler::getCurrentDate() {
   //TODO: 개선이 필요함

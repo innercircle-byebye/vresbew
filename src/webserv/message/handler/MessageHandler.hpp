@@ -41,7 +41,7 @@ class MessageHandler {
   int recv_phase;
   std::string msg_header_buf_;
   std::string msg_body_buf_;
-  std::string *response_header_buf_;
+  std::string *response_buf_;
 
   // 테스트용
   struct sockaddr_in *sockaddr_to_connect_;
@@ -69,6 +69,7 @@ class MessageHandler {
   // with ResponseHandler
   void createResponse(HttpConfig *http_config);
   void createResponseForResponseHandler();
+  void clearBufferStrings(void);
   void clearMsgBodyBuf(void);
   void clearMsgHeaderBuf(void);
   void clearResponseHeaderBuf(void);

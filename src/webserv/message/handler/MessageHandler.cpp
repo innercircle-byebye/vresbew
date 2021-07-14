@@ -7,9 +7,8 @@ MessageHandler::MessageHandler(Request &request, Response &response)
       request_handler_(request_),
       response_handler_(request_, response_),
       recv_phase(0),
-      sockaddr_to_connect_(NULL)
-{
-  this->response_header_buf_ = NULL;
+      sockaddr_to_connect_(NULL) {
+  this->response_buf_ = NULL;
 }
 
 MessageHandler::~MessageHandler() {
@@ -92,6 +91,12 @@ void MessageHandler::setContentLengthToZero(void) {
   this->content_length_ = 0;
 }
 
+void MessageHandler::clearBufferStrings(void) {
+  this->clearMsgHeaderBuf();
+  this->clearMsgBodyBuf();
+  this->clearResponseHeaderBuf();
+}
+
 void MessageHandler::clearMsgBodyBuf(void) {
   this->msg_body_buf_.clear();
 }
@@ -101,8 +106,8 @@ void MessageHandler::clearMsgHeaderBuf(void) {
 }
 
 void MessageHandler::clearResponseHeaderBuf(void) {
-  if (this->response_header_buf_ != NULL)
-    delete response_header_buf_;
+  if (this->response_buf_ != NULL)
+    delete response_buf_;
 }
 
 void MessageHandler::createRequest(void) {
@@ -117,7 +122,7 @@ void MessageHandler::createResponse(HttpConfig *http_config) {
     std::cout << "in message handler it catched " << std::endl;
     executePutMethod(this->response_handler_.getAccessPath(this->request_.uri));
   }
-  this->response_header_buf_ = createResponseHeaderBuf();
+  this->response_buf_ = createResponseHeaderBuf();
 }
 
 void MessageHandler::executePutMethod(std::string path) {

@@ -8,3 +8,4 @@
 *.out
 *.o
 error.log
+webserv.dSYM

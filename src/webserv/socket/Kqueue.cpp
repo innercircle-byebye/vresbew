@@ -44,6 +44,7 @@ void Kqueue::kqueueSetEvent(Connection *c, u_short filter, u_int flags) {
 void Kqueue::kqueueProcessEvents(SocketManager *sm) {
   int events;
   size_t recv_len;
+//   MeesageHandler mh;
 
   events = kevent(kq_, change_list_, nchanges_, event_list_, nevents_, &ts_);
   nchanges_ = 0;
@@ -91,7 +92,7 @@ void Kqueue::kqueueProcessEvents(SocketManager *sm) {
       } else {
         if (c->request_.uri.size() > 0) {
           std::cout << c->getFd() << " can write!" << std::endl;
-          c->message_handler_.createResponse();
+          c->message_handler_.createResponse(c->getHttpConfig());
           send(c->getFd(), (*c->message_handler_.response_header_buf_).c_str(),
                static_cast<size_t>((*c->message_handler_.response_header_buf_).size()), 0);
           // TODO: 언제 삭제해야하는지 적절한 시기를 확인해야함

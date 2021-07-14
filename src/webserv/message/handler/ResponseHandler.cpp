@@ -2,11 +2,12 @@
 
 namespace ft {
 
-ResponseHandler::ResponseHandler(Request &request, Response &response,
-                                 HttpConfig *&http_config)
+// ResponseHandler::ResponseHandler(Request &request, Response &response,
+//                                  HttpConfig *&http_config)
+ResponseHandler::ResponseHandler(Request &request, Response &response)
     : request_(request),
-      response_(response),
-      http_config_(http_config) {
+      response_(response) {
+    //   http_config_(http_config) {
   this->error400 = "<html>\n<head><title>400 Bad Request</title></head>\n<body>\n<center><h1>400 Bad Request</h1></center>\n<hr><center>vresbew</center>\n</body>\n</html>\n";
   this->error404 = "<html>\n<head><title>404 Not Found</title></head>\n<body>\n<center><h1>404 Not Found</h1></center>\n<hr><center>vresbew</center>\n</body>\n</html>\n";
   this->error405 = "<html>\n<head><title>404 Method Not Allowed</title></head>\n<body>\n<center><h1>405 Method Not Allowed</h1></center>\n<hr><center>vresbew</center>\n</body>\n</html>\n";
@@ -16,8 +17,8 @@ ResponseHandler::ResponseHandler(Request &request, Response &response,
 };
 
 //TODO: setLocationConfig로 바꿔도 될지 확인해보기
-void ResponseHandler::setServerConfig(struct sockaddr_in *addr) {
-  this->server_config_ = this->http_config_->getServerConfig(addr->sin_port,
+void ResponseHandler::setServerConfig(HttpConfig *http_config, struct sockaddr_in *addr) {
+  this->server_config_ = http_config->getServerConfig(addr->sin_port,
                                                              addr->sin_addr.s_addr, this->request_.headers["Host"]);
 }
 

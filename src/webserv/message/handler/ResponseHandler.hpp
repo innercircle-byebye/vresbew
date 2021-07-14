@@ -39,10 +39,11 @@ class ResponseHandler {
   struct stat stat_buffer_;
 
  public:
-  ResponseHandler(Request &request, Response &response,
-                  HttpConfig *&http_config);
+//   ResponseHandler(Request &request, Response &response,
+//                   HttpConfig *&http_config);
+ResponseHandler(Request &request, Response &response);
 
-  void setServerConfig(struct sockaddr_in *addr);
+  void setServerConfig(HttpConfig *http_config, struct sockaddr_in *addr);
   void setResponse();
   std::string getAccessPath(std::string uri);
 

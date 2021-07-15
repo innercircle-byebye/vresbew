@@ -35,9 +35,6 @@ void MessageHandler::handle_response(Connection *c) {
     executePutMethod(this->response_handler_.getAccessPath(c->getRequest().getUri()), c->getRequest().getEntityBody());
   }
 
-  std::cout << "test" << std::endl;
-  std::cout << c->getResponse().getMsg() << std::endl;
-  std::cout << "test" << std::endl;
   send(c->getFd(), c->getResponse().getMsg().c_str(), c->getResponse().getMsg().size(), 0);
   // TODO: 언제 삭제해야하는지 적절한 시기를 확인해야함
   c->getRequest().clear();

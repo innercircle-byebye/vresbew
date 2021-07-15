@@ -43,8 +43,7 @@ void Kqueue::kqueueSetEvent(Connection *c, u_short filter, u_int flags) {
 
 void Kqueue::kqueueProcessEvents(SocketManager *sm) {
   int events;
-  size_t recv_len;
-//   MeesageHandler mh;
+  MessageHandler message_handler;
 
   events = kevent(kq_, change_list_, nchanges_, event_list_, nevents_, &ts_);
   nchanges_ = 0;
@@ -66,49 +65,21 @@ void Kqueue::kqueueProcessEvents(SocketManager *sm) {
         Logger::logError(LOG_ALERT, "%d kevent() reported about an closed connection %d", events, (int)event_list_[i].ident);
         sm->closeConnection(c);
       } else {
-        recv_len = recv(event_list_[i].ident, c->buffer_, BUF_SIZE, 0);
-
-        if (c->message_handler_.recv_phase == MESSAGE_HEADER_INCOMPLETE) {
-          c->message_handler_.checkBufferForHeader(c->buffer_);
-        }
-        if (c->message_handler_.recv_phase == MESSAGE_HEADER_COMPLETE ||
-            c->message_handler_.recv_phase == MESSAGE_BODY_INCOMING) {
-          std::cout << c->buffer_ << std::endl;
-          c->message_handler_.handleBody(c->buffer_);
-        }
-        if (c->message_handler_.recv_phase == MESSAGE_BODY_NO_NEED)
-          kqueueSetEvent(c, EVFILT_WRITE, EV_ADD | EV_ONESHOT);
-        if (c->message_handler_.recv_phase == MESSAGE_BODY_COMPLETE) {
-          c->message_handler_.setContentLengthToZero();
-          c->message_handler_.checkRemainderBufferForHeader(c->buffer_);
+        message_handler.handle_request(c);
+        if ((c->getRequest().getRecvPhase() == MESSAGE_BODY_NO_NEED) || 
+            (c->getRequest().getRecvPhase() == MESSAGE_BODY_COMPLETE)) {
           kqueueSetEvent(c, EVFILT_WRITE, EV_ADD | EV_ONESHOT);
         }
-        memset(c->buffer_, 0, BUF_SIZE);
       }
     } else if (event_list_[i].filter == EVFILT_WRITE) {
       if (event_list_[i].flags & EV_EOF) {
         Logger::logError(LOG_ALERT, "%d kevent() reported about an %d reader disconnects", events, (int)event_list_[i].ident);
         sm->closeConnection(c);
       } else {
-        if (c->request_.uri.size() > 0) {
-          std::cout << c->getFd() << " can write!" << std::endl;
-          c->message_handler_.createResponse(c->getHttpConfig());
-          send(c->getFd(), (*c->message_handler_.response_header_buf_).c_str(),
-               static_cast<size_t>((*c->message_handler_.response_header_buf_).size()), 0);
-          // TODO: 언제 삭제해야하는지 적절한 시기를 확인해야함
-          c->request_.headers.clear();
-          c->request_.uri.clear();
-          c->request_.method.clear();
-          std::cout << c->getFd() << " write end." << std::endl;
-          if (c->message_handler_.getResponseStatus() == "404" || c->request_.version == "HTTP/1.0")
+        if (c->getRequest().getUri().size() > 0) {
+          message_handler.handle_response(c);
+          if (!c->getResponse().getStatusCode().compare("404") || !c->getRequest().getHttpVersion().compare("HTTP/1.0"))
             sm->closeConnection(c);
-          else {
-            c->message_handler_.clearMsgHeaderBuf();
-            c->message_handler_.clearMsgBodyBuf();
-            c->message_handler_.clearResponseHeaderBuf();
-            c->message_handler_.recv_phase = MESSAGE_HEADER_INCOMPLETE;
-            kqueueSetEvent(c, EVFILT_READ, EV_ADD);
-          }
         }
       }
     }

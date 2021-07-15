@@ -3,8 +3,7 @@
 namespace ft {
 
 Connection::Connection()
-    : listen_(false), fd_(-1), type_(SOCK_STREAM), listening_(NULL),
-    request_(), response_(), message_handler_(request_, response_) {
+: listen_(false), fd_(-1), type_(SOCK_STREAM), listening_(NULL), request_(), response_() {
   sockaddr_to_connect_.sin_family = AF_INET;
   memset(buffer_, 0, BUF_SIZE);
 }
@@ -41,7 +40,6 @@ Connection *Connection::eventAccept(SocketManager *sm) {
   c->setListening(listening_);
   c->setSockaddrToConnectPort(sockaddr_to_connect_.sin_port);
   c->setSockaddrToConnectIP(sockaddr.sin_addr.s_addr);
-  c->message_handler_.setSockAddr(&c->sockaddr_to_connect_);
   return c;
 }
 
@@ -77,9 +75,15 @@ const RequestMessage		&Connection::getRequestMessage() const
 { return req_msg; }
 */
 
+Request   &Connection::getRequest()
+{ return request_; }
+
+Response   &Connection::getResponse()
+{ return response_; }
+
 HttpConfig *Connection::getHttpConfig() { return httpconfig_; }
 
-struct sockaddr_in Connection::getSockaddrToConnect() {
+struct sockaddr_in &Connection::getSockaddrToConnect() {
   return sockaddr_to_connect_;
 }
 

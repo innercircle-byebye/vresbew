@@ -11,7 +11,7 @@ ResponseHandler::ResponseHandler(Request &request, Response &response)
   this->error400 = "<html>\n<head><title>400 Bad Request</title></head>\n<body>\n<center><h1>400 Bad Request</h1></center>\n<hr><center>vresbew</center>\n</body>\n</html>\n";
   this->error403 = "<html>\n<head><title>403 Forbidden</title></head>\n<body>\n<center><h1>403 Forbidden</h1></center>\n<hr><center>vresbew</center>\n</body>\n</html>\n";
   this->error404 = "<html>\n<head><title>404 Not Found</title></head>\n<body>\n<center><h1>404 Not Found</h1></center>\n<hr><center>vresbew</center>\n</body>\n</html>\n";
-  this->error405 = "<html>\n<head><title>404 Method Not Allowed</title></head>\n<body>\n<center><h1>405 Method Not Allowed</h1></center>\n<hr><center>vresbew</center>\n</body>\n</html>\n";
+  this->error405 = "<html>\n<head><title>405 Method Not Allowed</title></head>\n<body>\n<center><h1>405 Method Not Allowed</h1></center>\n<hr><center>vresbew</center>\n</body>\n</html>\n";
   this->error409 = "<html>\n<head><title>409 Conflict</title></head>\n<body>\n<center><h1>409 Confilct</h1></center>\n<hr><center>vresbew</center>\n</body>\n</html>\n";
   this->error409 = "<html>\n<head><title>409 Conflict</title></head>\n<body>\n<center><h1>409 Confilct</h1></center>\n<hr><center>vresbew</center>\n</body>\n</html>\n";
   this->error500 = "<html>\n<head><title>500 Internal Server Error</title></head>\n<body>\n<center><h1>500 Internal Server Error</h1></center>\n<hr><center>vresbew</center>\n</body>\n</html>\n";
@@ -88,15 +88,38 @@ void ResponseHandler::setResponse() {
     }
     case METHOD_POST:
     case METHOD_DELETE: {
-      if (isUriOnlySlash()) {
+      std::cout << "in delete" << std::endl;
+      if (isUriOnlySlash()) {  // URI 에 "/" 만 있는 경우
         std::string url = getAccessPath(this->request_.uri);
-        // all delete
+        // stat 으로 하위에 존재하는 모든것을 탐색해야합니다.
+        std::cout << "uri : " << this->request_.uri << " url : " << url << std::endl;
+        if ((dir = opendir(url.c_str())) == NULL) {
+          std::cout << "Error opendir" << std::endl;
+        } else {  // error handling 이 잘되면 else 안하고 쌉가능하다.
+          std::cout << "directory open success" << std::endl;
+          while ((entry = readdir(dir)) != NULL) {
+            std::cout << "entry d_name : " << entry->d_name << std::endl;
+            // 전부 지우자...
+            /*
+            if (remove(entry->d_name) != 0) {
+              std::cout << "Error remove " << entry->d_name << std::endl;
+              setResponse405();  // 실패하면 무슨 error 를 주어야하는거지?!
+              break;  // while 꺠면 closedir() 만날듯?!
+            }
+            */
+          }
+          setResponse204();  // 여튼 성공!
+        }
+        closedir(dir);
+
+        /*
         if (remove(url.c_str()) != 0)
-          std::cout << "Error remove" << url << std::endl;
+          std::cout << "Error remove " << url << std::endl;
         else {
           std::cout << "remove success" << std::endl;
           setResponse403();
         }
+        */
       }
       else {  // "/" 가 아닌 경우
         std::string url = getAccessPath(this->request_.uri);
@@ -117,7 +140,8 @@ void ResponseHandler::setResponse() {
           // file 이 존재합니다. 존재하지 않으면 stat() 이 -1 을 반환합니다.
           // file 을 지웁니다. remove()
           if (remove(url.c_str()) != 0)
-            std::cout << "Error remove" << url << std::endl;
+            std::cout << "Error remove " << url << std::endl;
+            // 궁금한 점 수정에 대한 접근 권한이 없으면 remove 는 실패할까?
           else
             std::cout << "remove success" << std::endl;
           setResponse204();

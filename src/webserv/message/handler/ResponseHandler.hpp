@@ -9,6 +9,7 @@
 #include <sstream>  // std::istringstream
 #include <string>
 #include <stdio.h>  // remove()
+#include <dirent.h>  // opendir()
 
 #include "webserv/config/HttpConfig.hpp"
 #include "webserv/message/Request.hpp"
@@ -38,6 +39,8 @@ class ResponseHandler {
   std::string error409;
   std::string error500;
   struct stat stat_buffer_;
+  struct dirent *entry;
+  DIR *dir;
 
  public:
 //   ResponseHandler(Request &request, Response &response,

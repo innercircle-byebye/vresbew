@@ -4,14 +4,11 @@ namespace ft {
 MessageHandler::MessageHandler(Request &request, Response &response)
     : request_(request),
       response_(response),
-      recv_phase(0),
-    //   http_config_(NULL),
-      sockaddr_to_connect_(NULL),
       request_handler_(request_),
-	  response_handler_(request_, response_)
-    //   response_handler_(request_, response_, http_config_)
-{
-  	this->response_header_buf_ = NULL;
+      response_handler_(request_, response_),
+      recv_phase(0),
+      sockaddr_to_connect_(NULL) {
+  this->response_buf_ = NULL;
 }
 
 MessageHandler::~MessageHandler() {
@@ -39,7 +36,12 @@ void MessageHandler::checkBufferForHeader(char *buffer) {
       std::cout << "content-length not available" << std::endl;
       this->request_.headers.erase("Content-Length");
       this->recv_phase = MESSAGE_BODY_NO_NEED;
+      this->msg_body_buf_.clear();
     }
+    if (this->recv_phase == MESSAGE_BODY_NO_NEED)
+      std::cout << "no need" << std::endl;
+    if (this->recv_phase == MESSAGE_HEADER_COMPLETE)
+      std::cout << "header complete" << std::endl;
   }
 }
 
@@ -47,28 +49,23 @@ void MessageHandler::checkBufferForHeader(char *buffer) {
 // handlebody 로직을 나누어야 함
 // nc와 telnet의 동작이 다르고 content_length를 활용 못하고있음
 void MessageHandler::handleBody(char *buffer) {
-;
-  size_t buffer_size_;
+  int buffer_size_;
   if (this->recv_phase == MESSAGE_HEADER_COMPLETE) {
-    // std::cout << "msg_body_buf_size: " << this->msg_body_buf_.size() << std::endl;
-    // std::cout << "content_lenght 2: " << this->content_length_ << std::endl;
-    // if (this->msg_body_buf_.size() >= this->content_length_) {
-    //   this->msg_body_buf_.substr(0, this->content_length_);
-    //   this->recv_phase = MESSAGE_BODY_COMPLETE;
-    // } else
-    // {
+    std::cout << "msg_body_buf_size: " << this->msg_body_buf_.size() << std::endl;
+    std::cout << "content_lenght 2: " << this->content_length_ << std::endl;
+    if (static_cast<int>(this->msg_body_buf_.size()) >= this->content_length_) {
+      this->msg_body_buf_.substr(0, this->content_length_);
+      this->recv_phase = MESSAGE_BODY_COMPLETE;
+    } else {
       this->recv_phase = MESSAGE_BODY_INCOMING;
-    // }
-    // return ;
+    }
   } else {
-    buffer_size_ = strlen(buffer);
-    std::cout << "buffer_size_: "<< buffer_size_ << std::endl;
-    if (content_length_ < buffer_size_)
-    {
+    buffer_size_ = static_cast<int>(strlen(buffer));
+    std::cout << "buffer_size_: " << buffer_size_ << std::endl;
+    if (content_length_ < buffer_size_) {
       this->msg_body_buf_.append(buffer, content_length_);
       this->recv_phase = MESSAGE_BODY_COMPLETE;
-    }
-    else if (content_length_ >= buffer_size_) {
+    } else if (content_length_ >= buffer_size_) {
       this->msg_body_buf_.append(buffer);
       this->content_length_ -= buffer_size_;
     } else {
@@ -82,13 +79,9 @@ void MessageHandler::handleBody(char *buffer) {
 }
 
 void MessageHandler::checkRemainderBufferForHeader(char *buffer) {
-  // this->msg_header_buf_.append("GET / HTTP/1.1");
+  (void)buffer;
   this->recv_phase = MESSAGE_HEADER_INCOMPLETE;
 }
-
-// void MessageHandler::setHttpConfig(HttpConfig *http_config) {
-//   this->http_config_ = http_config;
-// }
 
 void MessageHandler::setSockAddr(struct sockaddr_in *addr) {
   this->sockaddr_to_connect_ = addr;
@@ -96,6 +89,12 @@ void MessageHandler::setSockAddr(struct sockaddr_in *addr) {
 
 void MessageHandler::setContentLengthToZero(void) {
   this->content_length_ = 0;
+}
+
+void MessageHandler::clearBufferStrings(void) {
+  this->clearMsgHeaderBuf();
+  this->clearMsgBodyBuf();
+  this->clearResponseHeaderBuf();
 }
 
 void MessageHandler::clearMsgBodyBuf(void) {
@@ -107,8 +106,8 @@ void MessageHandler::clearMsgHeaderBuf(void) {
 }
 
 void MessageHandler::clearResponseHeaderBuf(void) {
-  if (this->response_header_buf_ != NULL)
-    delete response_header_buf_;
+  if (this->response_buf_ != NULL)
+    delete response_buf_;
 }
 
 void MessageHandler::createRequest(void) {
@@ -123,7 +122,7 @@ void MessageHandler::createResponse(HttpConfig *http_config) {
     std::cout << "in message handler it catched " << std::endl;
     executePutMethod(this->response_handler_.getAccessPath(this->request_.uri));
   }
-  this->response_header_buf_ = createResponseHeaderBuf();
+  this->response_buf_ = createResponseHeaderBuf();
 }
 
 void MessageHandler::executePutMethod(std::string path) {
@@ -155,6 +154,7 @@ std::string *MessageHandler::createResponseHeaderBuf() {
   if (response_.response_body_.size()) {
     *result += response_.response_body_;
   }
+  *result += '\0';
   return (result);
 }
 

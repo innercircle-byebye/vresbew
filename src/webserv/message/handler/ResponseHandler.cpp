@@ -9,6 +9,7 @@ ResponseHandler::ResponseHandler(Request &request, Response &response)
       response_(response) {
   //   http_config_(http_config) {
   this->error400 = "<html>\n<head><title>400 Bad Request</title></head>\n<body>\n<center><h1>400 Bad Request</h1></center>\n<hr><center>vresbew</center>\n</body>\n</html>\n";
+  this->error403 = "<html>\n<head><title>403 Forbidden</title></head>\n<body>\n<center><h1>403 Forbidden</h1></center>\n<hr><center>vresbew</center>\n</body>\n</html>\n";
   this->error404 = "<html>\n<head><title>404 Not Found</title></head>\n<body>\n<center><h1>404 Not Found</h1></center>\n<hr><center>vresbew</center>\n</body>\n</html>\n";
   this->error405 = "<html>\n<head><title>404 Method Not Allowed</title></head>\n<body>\n<center><h1>405 Method Not Allowed</h1></center>\n<hr><center>vresbew</center>\n</body>\n</html>\n";
   this->error409 = "<html>\n<head><title>409 Conflict</title></head>\n<body>\n<center><h1>409 Confilct</h1></center>\n<hr><center>vresbew</center>\n</body>\n</html>\n";
@@ -87,6 +88,41 @@ void ResponseHandler::setResponse() {
     }
     case METHOD_POST:
     case METHOD_DELETE: {
+      if (isUriOnlySlash()) {
+        std::string url = getAccessPath(this->request_.uri);
+        // all delete
+        if (remove(url.c_str()) != 0)
+          std::cout << "Error remove" << url << std::endl;
+        else {
+          std::cout << "remove success" << std::endl;
+          setResponse403();
+        }
+      }
+      else {  // "/" 가 아닌 경우
+        std::string url = getAccessPath(this->request_.uri);
+        std::cout << "url : " << url << std::endl;
+        if (stat(url.c_str(), &this->stat_buffer_) < 0) {
+          std::cout <<  "stat ain't work" << std::endl;
+          // if file is missing -> 404 not found
+          setResponse404();
+          break;
+        }
+        // file or directory
+        if (S_ISDIR(this->stat_buffer_.st_mode)) {  // is directory
+          // if path is directory -> 409 Conflict and do nothing
+          std::cout << "is directory" << std::endl;
+          setResponse409();
+        } else {  // is not directory == file ?!
+          std::cout << "is not directory" << std::endl;
+          // file 이 존재합니다. 존재하지 않으면 stat() 이 -1 을 반환합니다.
+          // file 을 지웁니다. remove()
+          if (remove(url.c_str()) != 0)
+            std::cout << "Error remove" << url << std::endl;
+          else
+            std::cout << "remove success" << std::endl;
+          setResponse204();
+        }
+      }
       // if isUriOnlyOrSlash -> delete everything in there and 403 forbidden
       // if path is directory -> 409 Conflict and do nothing
       // if file is missing -> 404 not found
@@ -180,6 +216,15 @@ void ResponseHandler::setResponse400() {
   this->response_.response_body_ = this->error400;
   this->response_.header_["Connection"] = "close";
 }
+
+// kycho 님 이 부분도 추가해서 구현 부탁드립니다!
+void ResponseHandler::setResponse403() {
+  this->response_.status_code_ = "403";
+  this->response_.status_message_ = "Forbidden";
+  this->response_.response_body_ = this->error403;
+  this->response_.header_["Connection"] = "keep-alive";
+}
+
 void ResponseHandler::setResponse404() {
   this->response_.status_code_ = "404";
   this->response_.status_message_ = "Not Found";

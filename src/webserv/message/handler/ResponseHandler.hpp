@@ -8,6 +8,7 @@
 #include <istream>
 #include <sstream>  // std::istringstream
 #include <string>
+#include <stdio.h>  // remove()
 
 #include "webserv/config/HttpConfig.hpp"
 #include "webserv/message/Request.hpp"
@@ -31,6 +32,7 @@ class ResponseHandler {
   Response &response_;
   std::string rootpath_;
   std::string error400;
+  std::string error403;
   std::string error404;
   std::string error405;
   std::string error409;
@@ -59,6 +61,7 @@ ResponseHandler(Request &request, Response &response);
   void setResponse201();
   void setResponse204();
   void setResponse400();
+  void setResponse403();
   void setResponse404();
   void setResponse405();
   void setResponse409();

@@ -89,7 +89,7 @@ void ResponseHandler::setResponseFields(const std::string &method, std::string &
   }
 }
 
-void ResponseHandler::setResponseMsg() {
+void ResponseHandler::makeResponseMsg() {
   setResponseStatusLine();
   setResponseHeader();
   setResponseBody();

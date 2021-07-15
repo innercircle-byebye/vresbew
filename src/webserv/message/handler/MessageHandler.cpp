@@ -27,7 +27,7 @@ void MessageHandler::handle_response(Connection *c) {
   else
     response_handler_.setResponseFields(c->getRequest().getMethod(), c->getRequest().getUri(), c->getRequest().getHttpVersion());
 
-  response_handler_.setResponseMsg();
+  response_handler_.makeResponseMsg();
   
   if (c->getRequest().getMethod() == "PUT" &&
       (c->getResponse().getStatusCode() == "201" || (c->getResponse().getStatusCode() == "204"))) {

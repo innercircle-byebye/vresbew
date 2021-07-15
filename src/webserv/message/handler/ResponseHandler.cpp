@@ -9,7 +9,7 @@ ResponseHandler::ResponseHandler() {
   this->error409 = "<html>\n<head><title>409 Conflict</title></head>\n<body>\n<center><h1>409 Confilct</h1></center>\n<hr><center>vresbew</center>\n</body>\n</html>\n";
   this->error409 = "<html>\n<head><title>409 Conflict</title></head>\n<body>\n<center><h1>409 Confilct</h1></center>\n<hr><center>vresbew</center>\n</body>\n</html>\n";
   this->error500 = "<html>\n<head><title>500 Internal Server Error</title></head>\n<body>\n<center><h1>500 Internal Server Error</h1></center>\n<hr><center>vresbew</center>\n</body>\n</html>\n";
-};
+}
 
 ResponseHandler::~ResponseHandler() {}
 
@@ -22,7 +22,7 @@ void ResponseHandler::setServerConfig(HttpConfig *http_config, struct sockaddr_i
   this->server_config_ = http_config->getServerConfig(addr.sin_port, addr.sin_addr.s_addr, host);
 }
 
-void ResponseHandler::setResponseFields(const std::string &method, std::string &uri, const std::string &version) {
+void ResponseHandler::setResponseFields(const std::string &method, std::string &uri) {
   this->response_->setHeader("Date", Time::getCurrentDate());
   LocationConfig *location = this->server_config_->getLocationConfig(uri);
 
@@ -148,7 +148,7 @@ std::string ResponseHandler::getAccessPath(std::string uri) {
 // }
 
 bool ResponseHandler::isFileExist(std::string &uri) {
-  LocationConfig *location = this->server_config_->getLocationConfig(uri);
+  // LocationConfig *location = this->server_config_->getLocationConfig(uri);
 
   if (stat(getAccessPath(uri).c_str(), &this->stat_buffer_) < 0) {
     std::cout << "this ain't work" << std::endl;
@@ -159,6 +159,8 @@ bool ResponseHandler::isFileExist(std::string &uri) {
 
 bool ResponseHandler::isPathAccessable(std::string path, std::string &uri) {
   LocationConfig *location = this->server_config_->getLocationConfig(uri);
+  (void)location;
+
   path.insert(0, ".");
   std::cout << path << std::endl;
   if (stat(path.c_str(), &this->stat_buffer_) < 0) {
@@ -172,6 +174,7 @@ bool ResponseHandler::isPathAccessable(std::string path, std::string &uri) {
 
 void ResponseHandler::setResponseBodyFromFile(std::string &uri) {
   LocationConfig *location = this->server_config_->getLocationConfig(uri);  // 없으면 not found
+  (void)location;
 
   std::ifstream file(getAccessPath(uri).c_str());
   file.seekg(0, std::ios::end);

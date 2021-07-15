@@ -19,13 +19,17 @@ void MessageHandler::handle_request(Connection *c) {
 }
 
 void MessageHandler::handle_response(Connection *c) {
+  // std::cout << c->getRequest().getMethod() << std::endl;
+  // std::cout << c->getRequest().getUri() << std::endl;
+  // std::cout << c->getRequest().getHttpVersion() << std::endl;
+
   response_handler_.setResponse(&c->getResponse());
   response_handler_.setServerConfig(c->getHttpConfig(), c->getSockaddrToConnect(), c->getRequest().getHeaderValue("Host"));
 
   if (!request_handler_.isValidRequestMethod() || !request_handler_.isValidRequestVersion())
     response_handler_.setResponse400();
   else
-    response_handler_.setResponseFields(c->getRequest().getMethod(), c->getRequest().getUri(), c->getRequest().getHttpVersion());
+    response_handler_.setResponseFields(c->getRequest().getMethod(), c->getRequest().getUri());
 
   response_handler_.makeResponseMsg();
   

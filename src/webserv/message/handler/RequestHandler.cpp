@@ -14,12 +14,29 @@ void RequestHandler::appendMsg(const char *buffer) {
 }
 
 void RequestHandler::processByRecvPhase() {
+    if (request_->getRecvPhase() == MESSAGE_HEADER_INCOMPLETE)
+      checkMsgForHeader();
+    if (request_->getRecvPhase() == MESSAGE_HEADER_COMPLETE) {
+      parseStartLine();
+      parseHeaderLines(); // 내부에서 body 필요한지 체크한 후 content_length랑 recv_phase 변경
+    }
+    if (request_->getRecvPhase() == MESSAGE_BODY_NO_NEED)
+      return ;
+    if (request_->getRecvPhase() == MESSAGE_BODY_INCOMING)
+      checkMsgForEntityBody();
+    if (request_->getRecvPhase() == MESSAGE_BODY_COMPLETE) {  // content_length 초기화하는 부분도 추가하기
+      parseEntityBody();
+      // request_->recv_phase = MESSAGE_HEADER_INCOMPLETE;  // ?????
+    }
+  /*
   switch (request_->getRecvPhase()) {
     case MESSAGE_HEADER_INCOMPLETE:
       checkMsgForHeader();
     case MESSAGE_HEADER_COMPLETE:
+      std::cout << MESSAGE_HEADER_COMPLETE << request_->getRecvPhase() << std::endl;
       parseStartLine();
       parseHeaderLines(); // 내부에서 body 필요한지 체크한 후 content_length랑 recv_phase 변경
+      std::cout << "parse header lines end" << std::endl;
     case MESSAGE_BODY_NO_NEED:
       break ;
     case MESSAGE_BODY_INCOMING:
@@ -28,6 +45,7 @@ void RequestHandler::processByRecvPhase() {
       parseEntityBody();
       // request_->recv_phase = MESSAGE_HEADER_INCOMPLETE;  // ?????
   }
+  */
 }
 
 /* CHECK FUNCTIONS */
@@ -36,12 +54,13 @@ void RequestHandler::checkMsgForHeader() {
   // check \r\n\r\n
   size_t pos;
   if ((pos = request_->getMsg().find("\r\n\r\n")) != std::string::npos) {
+    std::cout << "find header" << std::endl;
     request_->setRecvPhase(MESSAGE_HEADER_COMPLETE);
   }
 }
 
 void RequestHandler::checkMsgForEntityBody() {
-  if (request_->getContentLength() <= request_->getMsg().size()) {
+  if ((size_t)request_->getContentLength() <= request_->getMsg().size()) {
     request_->setRecvPhase(MESSAGE_BODY_COMPLETE);
   }
 }
@@ -86,7 +105,7 @@ void RequestHandler::parseHeaderLines() {
   // 추가할 부분!!!
   request_->setRecvPhase(MESSAGE_BODY_NO_NEED);
   // request_->recv_phase = MESSAGE_BODY_INCOMING;
-};
+}
 
 int RequestHandler::parseHeaderLine(std::string &one_header_line) {
   std::string key;

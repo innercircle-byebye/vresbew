@@ -43,7 +43,7 @@ class ResponseHandler {
 
   void setResponse(Response *response);
   void setServerConfig(HttpConfig *http_config, struct sockaddr_in &addr, const std::string &host);
-  void setResponseFields(const std::string &method, std::string &uri, const std::string &version);
+  void setResponseFields(const std::string &method, std::string &uri);
   void makeResponseMsg();
 
   void setResponse400();

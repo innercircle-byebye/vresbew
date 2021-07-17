@@ -14,38 +14,20 @@ void RequestHandler::appendMsg(const char *buffer) {
 }
 
 void RequestHandler::processByRecvPhase() {
-    if (request_->getRecvPhase() == MESSAGE_HEADER_INCOMPLETE)
-      checkMsgForHeader();
-    if (request_->getRecvPhase() == MESSAGE_HEADER_COMPLETE) {
-      parseStartLine();
-      parseHeaderLines(); // 내부에서 body 필요한지 체크한 후 content_length랑 recv_phase 변경
-    }
-    if (request_->getRecvPhase() == MESSAGE_BODY_NO_NEED)
-      return ;
-    if (request_->getRecvPhase() == MESSAGE_BODY_INCOMING)
-      checkMsgForEntityBody();
-    if (request_->getRecvPhase() == MESSAGE_BODY_COMPLETE) {  // content_length 초기화하는 부분도 추가하기
-      parseEntityBody();
-      // request_->recv_phase = MESSAGE_HEADER_INCOMPLETE;  // ?????
-    }
-  /*
-  switch (request_->getRecvPhase()) {
-    case MESSAGE_HEADER_INCOMPLETE:
-      checkMsgForHeader();
-    case MESSAGE_HEADER_COMPLETE:
-      std::cout << MESSAGE_HEADER_COMPLETE << request_->getRecvPhase() << std::endl;
-      parseStartLine();
-      parseHeaderLines(); // 내부에서 body 필요한지 체크한 후 content_length랑 recv_phase 변경
-      std::cout << "parse header lines end" << std::endl;
-    case MESSAGE_BODY_NO_NEED:
-      break ;
-    case MESSAGE_BODY_INCOMING:
-      checkMsgForEntityBody();
-    case MESSAGE_BODY_COMPLETE: // content_length 초기화하는 부분도 추가하기
-      parseEntityBody();
-      // request_->recv_phase = MESSAGE_HEADER_INCOMPLETE;  // ?????
+  if (request_->getRecvPhase() == MESSAGE_HEADER_INCOMPLETE)
+    checkMsgForHeader();
+  if (request_->getRecvPhase() == MESSAGE_HEADER_COMPLETE) {
+    parseStartLine();
+    parseHeaderLines(); // 내부에서 body 필요한지 체크한 후 content_length랑 recv_phase 변경
   }
-  */
+  if (request_->getRecvPhase() == MESSAGE_BODY_NO_NEED)
+    return ;
+  if (request_->getRecvPhase() == MESSAGE_BODY_INCOMING)
+    checkMsgForEntityBody();
+  if (request_->getRecvPhase() == MESSAGE_BODY_COMPLETE) {  // content_length 초기화하는 부분도 추가하기
+    parseEntityBody();
+    // request_->recv_phase = MESSAGE_HEADER_INCOMPLETE;  // ?????
+  }
 }
 
 /* CHECK FUNCTIONS */
@@ -54,7 +36,7 @@ void RequestHandler::checkMsgForHeader() {
   // check \r\n\r\n
   size_t pos;
   if ((pos = request_->getMsg().find("\r\n\r\n")) != std::string::npos) {
-    std::cout << "find header" << std::endl;
+    // std::cout << "find header" << std::endl;
     request_->setRecvPhase(MESSAGE_HEADER_COMPLETE);
   }
 }
@@ -104,6 +86,19 @@ void RequestHandler::parseHeaderLines() {
   }
   // 추가할 부분!!!
   request_->setRecvPhase(MESSAGE_BODY_NO_NEED);
+  // if (request_->getHeaderValue("Content-Length").size() != 0) {
+  //   try {
+  //     request_->setHeaderValue("header", stoi(this->request_.headers["Content-Length"]));
+  //   } catch (const std::exception &e) {
+  //     std::cout << "content-length not available" << std::endl;
+  //     this->request_.headers.erase("Content-Length");
+  //     this->msg_body_buf_.clear();
+  //   }
+  //   if (this->recv_phase == MESSAGE_BODY_NO_NEED)
+  //     std::cout << "no need" << std::endl;
+  //   if (this->recv_phase == MESSAGE_HEADER_COMPLETE)
+  //     std::cout << "header complete" << std::endl;
+  // }
   // request_->recv_phase = MESSAGE_BODY_INCOMING;
 }
 
@@ -165,27 +160,6 @@ bool RequestHandler::isValidStartLine(int item_ident,
       break;
   }
   return (true);
-}
-
-bool RequestHandler::isValidRequestMethod() {
-  const std::string &method = request_->getMethod();
-  if (method.compare("GET") && method.compare("POST") &&
-      method.compare("DELETE") && method.compare("PUT") && method.compare("HEAD"))
-    return (false);
-  return (true);
-}
-
-bool RequestHandler::isValidRequestVersion() {
-  if (!request_->getHttpVersion().compare("HTTP/1.1")) {
-    if (request_->getHeaders().count("Host"))
-      return (true);
-    return (false);
-  } else if (!request_->getHttpVersion().compare("HTTP/1.0")) {
-    if (!request_->getHeaders().count("Host"))
-      request_->setHeader("Host", "");
-    return (true);
-  }
-  return (false);
 }
 
 int RequestHandler::getCountOfDelimiter(std::string const &str, char delimiter) {

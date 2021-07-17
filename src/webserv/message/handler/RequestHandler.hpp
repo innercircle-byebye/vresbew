@@ -34,10 +34,6 @@ private:
 
   void appendMsg(const char *buffer);
   void processByRecvPhase();
-
-  bool isValidRequestMethod();
-  bool isValidRequestVersion();
-
 private:
   void checkMsgForHeader();
   void checkMsgForEntityBody();

@@ -42,10 +42,8 @@ void Kqueue::kqueueSetEvent(Connection *c, u_short filter, u_int flags) {
 }
 
 void Kqueue::kqueueProcessEvents(SocketManager *sm) {
-  int events;
-  MessageHandler message_handler;
-
-  events = kevent(kq_, change_list_, nchanges_, event_list_, nevents_, &ts_);
+  int events = kevent(kq_, change_list_, nchanges_, event_list_, nevents_, &ts_);
+  
   nchanges_ = 0;
   if (events == -1) {
     Logger::logError(LOG_ALERT, "kevent() failed");
@@ -65,9 +63,8 @@ void Kqueue::kqueueProcessEvents(SocketManager *sm) {
         Logger::logError(LOG_ALERT, "%d kevent() reported about an closed connection %d", events, (int)event_list_[i].ident);
         sm->closeConnection(c);
       } else {
-        message_handler.handle_request(c);
-        if ((c->getRequest().getRecvPhase() == MESSAGE_BODY_NO_NEED) || 
-            (c->getRequest().getRecvPhase() == MESSAGE_BODY_COMPLETE)) {
+        MessageHandler::handle_request(c);
+        if ((c->getRequest().getRecvPhase() == MESSAGE_BODY_NO_NEED) || (c->getRequest().getRecvPhase() == MESSAGE_BODY_COMPLETE)) {
           kqueueSetEvent(c, EVFILT_WRITE, EV_ADD | EV_ONESHOT);
         }
       }
@@ -77,7 +74,7 @@ void Kqueue::kqueueProcessEvents(SocketManager *sm) {
         sm->closeConnection(c);
       } else {
         if (c->getRequest().getUri().size() > 0) {
-          message_handler.handle_response(c);
+          MessageHandler::handle_response(c);
           if (!c->getResponse().getStatusCode().compare("404") || !c->getRequest().getHttpVersion().compare("HTTP/1.0"))
             sm->closeConnection(c);
         }

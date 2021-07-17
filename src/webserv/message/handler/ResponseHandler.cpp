@@ -26,6 +26,10 @@ void ResponseHandler::setResponseFields(const std::string &method, std::string &
   this->response_->setHeader("Date", Time::getCurrentDate());
   LocationConfig *location = this->server_config_->getLocationConfig(uri);
 
+  if (!this->isRequestMethodAllowed(uri, method)) {
+    setResponse405();
+    return;
+  }
   // TODO: 수정 필요
   // switch case 쓰려고 굳이 이렇게 까지 할 필요가 있을까...
   switch (getMethodByEnum(method)) {

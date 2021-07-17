@@ -16,7 +16,6 @@
 
 namespace ft {
 
-// class LocationConfig;
 
 enum requestMethodForEnum {
   METHOD_GET = 0,
@@ -27,8 +26,10 @@ enum requestMethodForEnum {
 };
 
 class ResponseHandler {
+
   Response      *response_;
   ServerConfig  *server_config_;
+
   std::string rootpath_;
   std::string error400;
   std::string error404;
@@ -67,7 +68,7 @@ class ResponseHandler {
   void setResponse405();
   void setResponse409();
   void setResponse500();
-  // std::string getCurrentDate();
+
 };
 }  // namespace ft
 #endif

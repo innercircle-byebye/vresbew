@@ -17,11 +17,13 @@ namespace ft {
 
 class MessageHandler {
  public:
+
   MessageHandler();
   ~MessageHandler();
 
   static void handle_request(Connection *c);
   static void handle_response(Connection *c);
+
 
  private:
   static void executePutMethod(std::string path, std::string content);

@@ -19,6 +19,7 @@ void RequestHandler::processByRecvPhase() {
   if (request_->getRecvPhase() == MESSAGE_HEADER_COMPLETE) {
     parseStartLine();
     parseHeaderLines(); // 내부에서 body 필요한지 체크한 후 content_length랑 recv_phase 변경
+
   }
   if (request_->getRecvPhase() == MESSAGE_BODY_NO_NEED)
     return ;

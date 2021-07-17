@@ -12,10 +12,10 @@
 #include "webserv/config/HttpConfig.hpp"
 #include "webserv/message/Request.hpp"
 #include "webserv/message/Response.hpp"
+#include "webserv/logger/Time.hpp"
 
 namespace ft {
 
-// class LocationConfig;
 
 enum requestMethodForEnum {
   METHOD_GET = 0,
@@ -26,9 +26,10 @@ enum requestMethodForEnum {
 };
 
 class ResponseHandler {
-  ServerConfig *server_config_;
-  Request &request_;
-  Response &response_;
+
+  Response      *response_;
+  ServerConfig  *server_config_;
+
   std::string rootpath_;
   std::string error400;
   std::string error404;
@@ -38,32 +39,36 @@ class ResponseHandler {
   struct stat stat_buffer_;
 
  public:
-//   ResponseHandler(Request &request, Response &response,
-//                   HttpConfig *&http_config);
-ResponseHandler(Request &request, Response &response);
+  ResponseHandler();
+  ~ResponseHandler();
 
-  void setServerConfig(HttpConfig *http_config, struct sockaddr_in *addr);
-  void setResponse();
+  void setResponse(Response *response);
+  void setServerConfig(HttpConfig *http_config, struct sockaddr_in &addr, const std::string &host);
+  void setResponseFields(const std::string &method, std::string &uri);
+  void makeResponseMsg();
+
+  void setResponse400();
   std::string getAccessPath(std::string uri);
 
  private:
+  void setResponseStatusLine();
+  void setResponseHeader();
+  void setResponseBody();
+
+  bool isRequestMethodAllowed(const std::string &uri, const std::string &method);
   int getMethodByEnum(std::string request_method);
-  bool isValidRequestMethod();
-  bool isValidRequestVersion();
-  bool isRequestMethodAllowed();
-  bool isUriOnlySlash();
-  bool isFileExist(std::string host_path);
-  bool isPathAccessable(std::string path);
-  void setResponseBodyFromFile(std::string filepath);
+  // static bool isUriOnlySlash(std::string &uri);
+  bool isFileExist(std::string &uri);
+  bool isPathAccessable(std::string path, std::string &uri);
+  void setResponseBodyFromFile(std::string &uri);
   void setResponse200();
   void setResponse201();
   void setResponse204();
-  void setResponse400();
   void setResponse404();
   void setResponse405();
   void setResponse409();
   void setResponse500();
-  std::string getCurrentDate();
+
 };
 }  // namespace ft
 #endif

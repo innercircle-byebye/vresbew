@@ -2,12 +2,9 @@
 
 namespace ft {
 
-// ResponseHandler::ResponseHandler(Request &request, Response &response,
-//                                  HttpConfig *&http_config)
-ResponseHandler::ResponseHandler(Request &request, Response &response)
-    : request_(request),
-      response_(response) {
-  //   http_config_(http_config) {
+
+ResponseHandler::ResponseHandler() {
+
   this->error400 = "<html>\n<head><title>400 Bad Request</title></head>\n<body>\n<center><h1>400 Bad Request</h1></center>\n<hr><center>vresbew</center>\n</body>\n</html>\n";
   this->error404 = "<html>\n<head><title>404 Not Found</title></head>\n<body>\n<center><h1>404 Not Found</h1></center>\n<hr><center>vresbew</center>\n</body>\n</html>\n";
   this->error405 = "<html>\n<head><title>404 Method Not Allowed</title></head>\n<body>\n<center><h1>405 Method Not Allowed</h1></center>\n<hr><center>vresbew</center>\n</body>\n</html>\n";
@@ -16,69 +13,63 @@ ResponseHandler::ResponseHandler(Request &request, Response &response)
   this->error500 = "<html>\n<head><title>500 Internal Server Error</title></head>\n<body>\n<center><h1>500 Internal Server Error</h1></center>\n<hr><center>vresbew</center>\n</body>\n</html>\n";
 }
 
-//TODO: setLocationConfig로 바꿔도 될지 확인해보기
-void ResponseHandler::setServerConfig(HttpConfig *http_config, struct sockaddr_in *addr) {
-  this->server_config_ = http_config->getServerConfig(addr->sin_port,
-                                                      addr->sin_addr.s_addr, this->request_.headers["Host"]);
+
+ResponseHandler::~ResponseHandler() {}
+
+void ResponseHandler::setResponse(Response *response) {
+  response_ = response;
 }
 
-void ResponseHandler::setResponse() {
-  this->response_.header_["Date"] = this->getCurrentDate();
-  LocationConfig *location = this->server_config_->getLocationConfig(this->request_.uri);
+//TODO: setLocationConfig로 바꿔도 될지 확인해보기
+void ResponseHandler::setServerConfig(HttpConfig *http_config, struct sockaddr_in &addr, const std::string &host) {
+  this->server_config_ = http_config->getServerConfig(addr.sin_port, addr.sin_addr.s_addr, host);
 
-  std::cout << "version: " << this->request_.version << std::endl;
-  if (!this->isValidRequestMethod()) {
-    setResponse400();
-    return;
-  }
-  if (!this->isValidRequestVersion()) {
-    setResponse400();
-    return;
-  }
-  if (!this->isRequestMethodAllowed()) {
-    setResponse405();
-    return;
-  }
+}
+
+void ResponseHandler::setResponseFields(const std::string &method, std::string &uri) {
+  this->response_->setHeader("Date", Time::getCurrentDate());
+  LocationConfig *location = this->server_config_->getLocationConfig(uri);
+
+
   // TODO: 수정 필요
   // switch case 쓰려고 굳이 이렇게 까지 할 필요가 있을까...
-  switch (getMethodByEnum(this->request_.method)) {
+  switch (getMethodByEnum(method)) {
     //need last modified header
     case METHOD_GET:
     case METHOD_HEAD: {
-      if (isUriOnlySlash()) {
-        this->request_.uri += location->getIndex().at(0);
+      if (!uri.compare("/")) {
+        uri += location->getIndex().at(0);
       }
-      if (!isFileExist(getAccessPath(this->request_.uri))) {
-        // 403 Forbidden 케이스도 있음
+
+      if (!isFileExist(uri)) {
+      // 403 Forbidden 케이스도 있음
+
         setResponse404();
         break;
       } else {
         setResponse200();
-        if (getMethodByEnum(this->request_.method) == METHOD_HEAD)
+        if (getMethodByEnum(method) == METHOD_HEAD)
           break;
         else {
-          setResponseBodyFromFile(getAccessPath(this->request_.uri));
+          setResponseBodyFromFile(uri);
           break;
         }
       }
     }
     case METHOD_PUT: {
-      if (isUriOnlySlash()) {
+      if (!uri.compare("/")) {
         setResponse409();
         break;
       }
-      if (this->request_.headers["Content-Length"] == "") {
-        //content-type에 대한 처리도 필요하지 않을까 합니다.
-        setResponse500();
-        break;
-      }
-      if (!isPathAccessable(location->getRoot())) {
+
+      if (!isPathAccessable(location->getRoot(), uri)) {
+
         std::cout << "here" << std::endl;
         setResponse500();
         break;
       }
       /// file writing not working yet!!!!!
-      if (!isFileExist(getAccessPath(this->request_.uri))) {
+      if (!isFileExist(uri)) {
         setResponse201();
       } else {
         setResponse204();
@@ -96,63 +87,88 @@ void ResponseHandler::setResponse() {
       break;
   }
 
-  if (this->response_.response_body_.size() > 0) {
-    this->response_.header_["Content-Length"] = std::to_string(this->response_.response_body_.size());
+  if (this->response_->getResponseBody().size() > 0) {
+    this->response_->setHeader("Content-Length", std::to_string(this->response_->getResponseBody().size()));
   }
 }
 
-bool ResponseHandler::isValidRequestMethod() {
-  if (!(this->request_.method == "GET" || this->request_.method == "POST" ||
-        this->request_.method == "DELETE" || this->request_.method == "PUT" || this->request_.method == "HEAD"))
-    return (false);
-  return (true);
+void ResponseHandler::makeResponseMsg() {
+  setResponseStatusLine();
+  setResponseHeader();
+  setResponseBody();
 }
 
-bool ResponseHandler::isValidRequestVersion() {
 
-  if (this->request_.version == "HTTP/1.1") {
-    if (this->request_.headers.count("Host"))
-      return (true);
-    return (false);
-  } else if (this->request_.version == "HTTP/1.0") {
-    if (!this->request_.headers.count("Host"))
-      this->request_.headers["Host"] = "";
-    return (true);
+void ResponseHandler::setResponseStatusLine() {
+  response_->getMsg() += this->response_->getHttpVersion();
+  response_->getMsg() += " ";
+  response_->getMsg() += this->response_->getStatusCode();
+  response_->getMsg() += " ";
+  response_->getMsg() += this->response_->getStatusMessage();
+  response_->getMsg() += "\r\n";
+}
+
+void ResponseHandler::setResponseHeader() {
+  std::map<std::string, std::string> headers = response_->getHeaders();
+  std::map<std::string, std::string>::iterator it;
+  // 순서에 맞아야하는지 확인해야함
+  for (it = headers.begin(); it != headers.end(); it++) {
+    if (it->second != "") {
+      response_->getMsg() += it->first;
+      response_->getMsg() += ": ";
+      response_->getMsg() += it->second;
+      response_->getMsg() += "\r\n";
+    }
   }
-  return (false);
+  response_->getMsg() += "\r\n";
 }
 
-bool ResponseHandler::isRequestMethodAllowed() {
-  LocationConfig *location = this->server_config_->getLocationConfig(this->request_.uri);
+void ResponseHandler::setResponseBody() {
+  if (response_->getResponseBody().size()) {
+    response_->getMsg() += response_->getResponseBody();
 
-  if (!location->checkAcceptedMethod(this->request_.method))
+  }
+}
+
+bool ResponseHandler::isRequestMethodAllowed(const std::string &uri, const std::string &method) {
+  LocationConfig *location = this->server_config_->getLocationConfig(uri);
+
+  if (!location->checkAcceptedMethod(method))
     return (false);
   return (true);
 }
 
 std::string ResponseHandler::getAccessPath(std::string uri) {
-  LocationConfig *location = this->server_config_->getLocationConfig(this->request_.uri);
+  LocationConfig *location = this->server_config_->getLocationConfig(uri);
 
   std::string path;
   path = "." + location->getRoot() + uri;
   return (path);
 }
 
-bool ResponseHandler::isUriOnlySlash() {
-  if (this->request_.uri == "/")
-    return (true);
-  return (false);
-}
+// bool ResponseHandler::isUriOnlySlash(std::string &uri) {
+//   if (!uri.compare("/"))
+//     return (true);
+//   return (false);
+// }
 
-bool ResponseHandler::isFileExist(std::string host_path) {
-  if (stat(host_path.c_str(), &this->stat_buffer_) < 0) {
+bool ResponseHandler::isFileExist(std::string &uri) {
+  // LocationConfig *location = this->server_config_->getLocationConfig(uri);
+
+  if (stat(getAccessPath(uri).c_str(), &this->stat_buffer_) < 0) {
+
     std::cout << "this ain't work" << std::endl;
     return (false);
   }
   return (true);
 }
 
-bool ResponseHandler::isPathAccessable(std::string path) {
+
+bool ResponseHandler::isPathAccessable(std::string path, std::string &uri) {
+  LocationConfig *location = this->server_config_->getLocationConfig(uri);
+  (void)location;
+
+
   path.insert(0, ".");
   std::cout << path << std::endl;
   if (stat(path.c_str(), &this->stat_buffer_) < 0) {
@@ -164,82 +180,90 @@ bool ResponseHandler::isPathAccessable(std::string path) {
   return (false);
 }
 
-void ResponseHandler::setResponseBodyFromFile(std::string path) {
-  std::ifstream file(path.c_str());
+
+void ResponseHandler::setResponseBodyFromFile(std::string &uri) {
+  LocationConfig *location = this->server_config_->getLocationConfig(uri);  // 없으면 not found
+  (void)location;
+
+  std::ifstream file(getAccessPath(uri).c_str());
+
   file.seekg(0, std::ios::end);
-  this->response_.response_body_.reserve(file.tellg());
+  this->response_->getResponseBody().reserve(file.tellg());
   file.seekg(0, std::ios::beg);
 
-  this->response_.response_body_.assign((std::istreambuf_iterator<char>(file)),
+  this->response_->getResponseBody().assign((std::istreambuf_iterator<char>(file)),
                                         std::istreambuf_iterator<char>());
 }
 
 void ResponseHandler::setResponse400() {
-  this->response_.status_code_ = "400";
-  this->response_.status_message_ = "Bad Request";
-  this->response_.response_body_ = this->error400;
-  this->response_.header_["Connection"] = "close";
+  this->response_->setStatusCode("400");
+  this->response_->setStatusMessage("Bad Request");
+  this->response_->setResponseBody(this->error400);
+  this->response_->setHeader("Connection", "close");
 }
 void ResponseHandler::setResponse404() {
-  this->response_.status_code_ = "404";
-  this->response_.status_message_ = "Not Found";
-  this->response_.response_body_ = this->error404;
-  this->response_.header_["Connection"] = "keep-alive";
+  this->response_->setStatusCode("404");
+  this->response_->setStatusMessage("Not Found");
+  this->response_->setResponseBody(this->error404);
+  this->response_->setHeader("Connection", "keep-alive");
 }
 
 void ResponseHandler::setResponse405() {
-  this->response_.status_code_ = "405";
-  this->response_.status_message_ = "Method Not Allowed";
-  this->response_.response_body_ = this->error405;
+  this->response_->setStatusCode("405");
+  this->response_->setStatusMessage("Method Not Allowed");
+  this->response_->setResponseBody(this->error405);
   //확인안됨
-  this->response_.header_["Connection"] = "keep-alive";
+  this->response_->setHeader("Connection", "keep-alive");
 }
 
 void ResponseHandler::setResponse409() {
-  this->response_.status_code_ = "409";
-  this->response_.status_message_ = "Conflict";
-  this->response_.response_body_ = this->error409;
+  this->response_->setStatusCode("409");
+  this->response_->setStatusMessage("Conflict");
+  this->response_->setResponseBody(this->error409);
   //확인안됨
-  this->response_.header_["Connection"] = "keep-alive";
+  this->response_->setHeader("Connection", "keep-alive");
 }
 
 void ResponseHandler::setResponse500() {
-  this->response_.status_code_ = "500";
-  this->response_.status_message_ = "Internal Server Error";
-  this->response_.response_body_ = this->error500;
-  this->response_.header_["Connection"] = "close";
+  this->response_->setStatusCode("500");
+  this->response_->setStatusMessage("Internal Server Error");
+  this->response_->setResponseBody(this->error500);
+  this->response_->setHeader("Connection", "close");
 }
 
 void ResponseHandler::setResponse200() {
-  this->response_.status_code_ = "200";
-  this->response_.status_message_ = "OK";
-  this->response_.header_["Connection"] = "keep-alive";
+  this->response_->setStatusCode("200");
+  this->response_->setStatusMessage("OK");
+  this->response_->setHeader("Connection", "keep-alive");
 }
 
 void ResponseHandler::setResponse201() {
-  this->response_.status_code_ = "201";
-  this->response_.status_message_ = "Created";
-  this->response_.header_["Connection"] = "keep-alive";
+  this->response_->setStatusCode("201");
+  this->response_->setStatusMessage("Created");
+  this->response_->setHeader("Connection", "keep-alive");
 }
 
 void ResponseHandler::setResponse204() {
-  this->response_.status_code_ = "204";
-  this->response_.status_message_ = "No Content";
-  this->response_.header_["Connection"] = "keep-alive";
+  this->response_->setStatusCode("204");
+  this->response_->setStatusMessage("No Content");
+  this->response_->setHeader("Connection", "keep-alive");
 }
 
-std::string ResponseHandler::getCurrentDate() {
-  //TODO: 개선이 필요함
-  std::string current_time;
-  time_t t;       // t passed as argument in function time()
-  struct tm *tt;  // decalring variable for localtime()
-  time(&t);       //passing argument to time()
-  tt = gmtime(&t);
-  current_time.append(asctime(tt), strlen(asctime(tt)) - 1);
-  current_time.append(" GMT");
 
-  return (current_time);
-}
+
+// std::string ResponseHandler::getCurrentDate() {
+//   //TODO: 개선이 필요함
+//   std::string current_time;
+//   time_t t;       // t passed as argument in function time()
+//   struct tm *tt;  // decalring variable for localtime()
+//   time(&t);       //passing argument to time()
+//   tt = gmtime(&t);
+//   current_time.append(asctime(tt), strlen(asctime(tt)) - 1);
+//   current_time.append(" GMT");
+
+
+//   return (current_time);
+// }
 
 int ResponseHandler::getMethodByEnum(std::string request_method) {
   if (request_method == "GET")

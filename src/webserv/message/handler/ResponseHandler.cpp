@@ -30,67 +30,48 @@ void ResponseHandler::setResponseFields(const std::string &method, std::string &
   this->response_->setHeader("Date", Time::getCurrentDate());
   LocationConfig *location = this->server_config_->getLocationConfig(uri);
 
-  if (!this->isRequestMethodAllowed(uri, method)) {
+  if (!location->checkAcceptedMethod(method)) {
     setResponse405();
     return;
   }
+
+  ///////////////////////////////////////////////////////////////////////////////////////////////////
   
   // TODO: 수정 필요
-  // switch case 쓰려고 굳이 이렇게 까지 할 필요가 있을까...
-  switch (getMethodByEnum(method)) {
+  if (method == "GET" || method == "HEAD") {
     //need last modified header
-    case METHOD_GET:
-    case METHOD_HEAD: {
-      if (!uri.compare("/")) {
-        uri += location->getIndex().at(0);
-      }
-
-      if (!isFileExist(uri)) {
+    if (!uri.compare("/")) {
+      uri += location->getIndex().at(0);
+    }
+    if (!isFileExist(uri)) {
       // 403 Forbidden 케이스도 있음
-
-        setResponse404();
-        break;
-      } else {
-        setResponse200();
-        if (getMethodByEnum(method) == METHOD_HEAD)
-          break;
-        else {
-          setResponseBodyFromFile(uri);
-          break;
-        }
-      }
+      setResponse404();
+    } else {
+      setResponse200();
+      if (method == "GET")
+        setResponseBodyFromFile(uri);
     }
-    case METHOD_PUT: {
-      if (!uri.compare("/")) {
-        setResponse409();
-        break;
-      }
-
-      if (!isPathAccessable(location->getRoot(), uri)) {
-
-        std::cout << "here" << std::endl;
-        setResponse500();
-        break;
-      }
-      /// file writing not working yet!!!!!
-      if (!isFileExist(uri)) {
-        setResponse201();
-      } else {
-        setResponse204();
-      }
-      break;
+  } else if (method == "PUT") {
+    if (!uri.compare("/")) {
+      setResponse409();
+    } else if (!isPathAccessable(location->getRoot(), uri)) {
+      std::cout << "here" << std::endl;
+      setResponse500();
+    } else if (!isFileExist(uri)) { /// file writing not working yet!!!!!
+      setResponse201();
+    } else {
+      setResponse204();
     }
-    case METHOD_POST:
-    case METHOD_DELETE: {
-      // if isUriOnlyOrSlash -> delete everything in there and 403 forbidden
-      // if path is directory -> 409 Conflict and do nothing
-      // if file is missing -> 404 not found
-      // if file is available -> 204 No Content and delete the file
-    }
-    default:
-      break;
+  } else if (method == "POST") {
+    // write code!!!!
+  } else if (method == "DELETE") {
+    // if isUriOnlyOrSlash -> delete everything in there and 403 forbidden
+    // if path is directory -> 409 Conflict and do nothing
+    // if file is missing -> 404 not found
+    // if file is available -> 204 No Content and delete the file
   }
-
+    
+  ///////////////////////////////////////////////////////////////////////////////////////////////////
   if (this->response_->getResponseBody().size() > 0) {
     this->response_->setHeader("Content-Length", std::to_string(this->response_->getResponseBody().size()));
   }
@@ -132,14 +113,6 @@ void ResponseHandler::setResponseBody() {
     response_->getMsg() += response_->getResponseBody();
 
   }
-}
-
-bool ResponseHandler::isRequestMethodAllowed(const std::string &uri, const std::string &method) {
-  LocationConfig *location = this->server_config_->getLocationConfig(uri);
-
-  if (!location->checkAcceptedMethod(method))
-    return (false);
-  return (true);
 }
 
 std::string ResponseHandler::getAccessPath(std::string uri) {
@@ -268,19 +241,5 @@ void ResponseHandler::setResponse204() {
 
 //   return (current_time);
 // }
-
-int ResponseHandler::getMethodByEnum(std::string request_method) {
-  if (request_method == "GET")
-    return (METHOD_GET);
-  else if (request_method == "HEAD")
-    return (METHOD_HEAD);
-  else if (request_method == "PUT")
-    return (METHOD_PUT);
-  else if (request_method == "POST")
-    return (METHOD_POST);
-  else if (request_method == "DELETE")
-    return (METHOD_DELETE);
-  return (-1);
-}
 
 }  // namespace ft

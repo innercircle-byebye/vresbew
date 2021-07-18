@@ -16,15 +16,6 @@
 
 namespace ft {
 
-
-enum requestMethodForEnum {
-  METHOD_GET = 0,
-  METHOD_HEAD,
-  METHOD_PUT,
-  METHOD_POST,
-  METHOD_DELETE
-};
-
 class ResponseHandler {
 
   Response      *response_;
@@ -55,8 +46,6 @@ class ResponseHandler {
   void setResponseHeader();
   void setResponseBody();
 
-  bool isRequestMethodAllowed(const std::string &uri, const std::string &method);
-  int getMethodByEnum(std::string request_method);
   // static bool isUriOnlySlash(std::string &uri);
   bool isFileExist(std::string &uri);
   bool isPathAccessable(std::string path, std::string &uri);

@@ -10,24 +10,15 @@
 #include <string>
 
 #include "webserv/config/HttpConfig.hpp"
+#include "webserv/logger/Time.hpp"
 #include "webserv/message/Request.hpp"
 #include "webserv/message/Response.hpp"
-#include "webserv/logger/Time.hpp"
 
 namespace ft {
 
 class ResponseHandler {
-
-  Response      *response_;
-  ServerConfig  *server_config_;
-
-  std::string rootpath_;
-  std::string error400;
-  std::string error404;
-  std::string error405;
-  std::string error409;
-  std::string error500;
-  struct stat stat_buffer_;
+  Response *response_;
+  ServerConfig *server_config_;
 
  public:
   ResponseHandler();
@@ -58,6 +49,7 @@ class ResponseHandler {
   void setResponse409();
   void setResponse500();
 
+  std::string getDefaultErrorBody(std::string status_code, std::string status_message);
 };
 }  // namespace ft
 #endif

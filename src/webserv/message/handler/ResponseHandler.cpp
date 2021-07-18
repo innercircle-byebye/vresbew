@@ -2,28 +2,15 @@
 
 namespace ft {
 
-
-ResponseHandler::ResponseHandler() {
-
-  this->error400 = "<html>\n<head><title>400 Bad Request</title></head>\n<body>\n<center><h1>400 Bad Request</h1></center>\n<hr><center>vresbew</center>\n</body>\n</html>\n";
-  this->error404 = "<html>\n<head><title>404 Not Found</title></head>\n<body>\n<center><h1>404 Not Found</h1></center>\n<hr><center>vresbew</center>\n</body>\n</html>\n";
-  this->error405 = "<html>\n<head><title>404 Method Not Allowed</title></head>\n<body>\n<center><h1>405 Method Not Allowed</h1></center>\n<hr><center>vresbew</center>\n</body>\n</html>\n";
-  this->error409 = "<html>\n<head><title>409 Conflict</title></head>\n<body>\n<center><h1>409 Confilct</h1></center>\n<hr><center>vresbew</center>\n</body>\n</html>\n";
-  this->error409 = "<html>\n<head><title>409 Conflict</title></head>\n<body>\n<center><h1>409 Confilct</h1></center>\n<hr><center>vresbew</center>\n</body>\n</html>\n";
-  this->error500 = "<html>\n<head><title>500 Internal Server Error</title></head>\n<body>\n<center><h1>500 Internal Server Error</h1></center>\n<hr><center>vresbew</center>\n</body>\n</html>\n";
-}
-
+ResponseHandler::ResponseHandler() {}
 
 ResponseHandler::~ResponseHandler() {}
 
-void ResponseHandler::setResponse(Response *response) {
-  response_ = response;
-}
+void ResponseHandler::setResponse(Response *response) { response_ = response; }
 
 //TODO: setLocationConfig로 바꿔도 될지 확인해보기
 void ResponseHandler::setServerConfig(HttpConfig *http_config, struct sockaddr_in &addr, const std::string &host) {
   this->server_config_ = http_config->getServerConfig(addr.sin_port, addr.sin_addr.s_addr, host);
-
 }
 
 void ResponseHandler::setResponseFields(const std::string &method, std::string &uri) {
@@ -36,7 +23,7 @@ void ResponseHandler::setResponseFields(const std::string &method, std::string &
   }
 
   ///////////////////////////////////////////////////////////////////////////////////////////////////
-  
+
   // TODO: 수정 필요
   if (method == "GET" || method == "HEAD") {
     //need last modified header
@@ -57,7 +44,7 @@ void ResponseHandler::setResponseFields(const std::string &method, std::string &
     } else if (!isPathAccessable(location->getRoot(), uri)) {
       std::cout << "here" << std::endl;
       setResponse500();
-    } else if (!isFileExist(uri)) { /// file writing not working yet!!!!!
+    } else if (!isFileExist(uri)) {  /// file writing not working yet!!!!!
       setResponse201();
     } else {
       setResponse204();
@@ -70,7 +57,7 @@ void ResponseHandler::setResponseFields(const std::string &method, std::string &
     // if file is missing -> 404 not found
     // if file is available -> 204 No Content and delete the file
   }
-    
+
   ///////////////////////////////////////////////////////////////////////////////////////////////////
   if (this->response_->getResponseBody().size() > 0) {
     this->response_->setHeader("Content-Length", std::to_string(this->response_->getResponseBody().size()));
@@ -82,7 +69,6 @@ void ResponseHandler::makeResponseMsg() {
   setResponseHeader();
   setResponseBody();
 }
-
 
 void ResponseHandler::setResponseStatusLine() {
   response_->getMsg() += this->response_->getHttpVersion();
@@ -111,7 +97,6 @@ void ResponseHandler::setResponseHeader() {
 void ResponseHandler::setResponseBody() {
   if (response_->getResponseBody().size()) {
     response_->getMsg() += response_->getResponseBody();
-
   }
 }
 
@@ -131,32 +116,30 @@ std::string ResponseHandler::getAccessPath(std::string uri) {
 
 bool ResponseHandler::isFileExist(std::string &uri) {
   // LocationConfig *location = this->server_config_->getLocationConfig(uri);
+  struct stat stat_buffer;
 
-  if (stat(getAccessPath(uri).c_str(), &this->stat_buffer_) < 0) {
-
+  if (stat(getAccessPath(uri).c_str(), &stat_buffer) < 0) {
     std::cout << "this ain't work" << std::endl;
     return (false);
   }
   return (true);
 }
 
-
 bool ResponseHandler::isPathAccessable(std::string path, std::string &uri) {
+  struct stat stat_buffer;
   LocationConfig *location = this->server_config_->getLocationConfig(uri);
   (void)location;
 
-
   path.insert(0, ".");
   std::cout << path << std::endl;
-  if (stat(path.c_str(), &this->stat_buffer_) < 0) {
+  if (stat(path.c_str(), &stat_buffer) < 0) {
     return (false);
   }
-  std::cout << this->stat_buffer_.st_mode << std::endl;
-  if (this->stat_buffer_.st_mode & S_IRWXU)
+  std::cout << stat_buffer.st_mode << std::endl;
+  if (stat_buffer.st_mode & S_IRWXU)
     return (true);
   return (false);
 }
-
 
 void ResponseHandler::setResponseBodyFromFile(std::string &uri) {
   LocationConfig *location = this->server_config_->getLocationConfig(uri);  // 없으면 not found
@@ -169,26 +152,35 @@ void ResponseHandler::setResponseBodyFromFile(std::string &uri) {
   file.seekg(0, std::ios::beg);
 
   this->response_->getResponseBody().assign((std::istreambuf_iterator<char>(file)),
-                                        std::istreambuf_iterator<char>());
+                                            std::istreambuf_iterator<char>());
 }
 
 void ResponseHandler::setResponse400() {
   this->response_->setStatusCode("400");
   this->response_->setStatusMessage("Bad Request");
-  this->response_->setResponseBody(this->error400);
+
+  std::string error_body = getDefaultErrorBody(this->response_->getStatusCode(), this->response_->getStatusMessage());
+  this->response_->setResponseBody(error_body);
+
   this->response_->setHeader("Connection", "close");
 }
 void ResponseHandler::setResponse404() {
   this->response_->setStatusCode("404");
   this->response_->setStatusMessage("Not Found");
-  this->response_->setResponseBody(this->error404);
+
+  std::string error_body = getDefaultErrorBody(this->response_->getStatusCode(), this->response_->getStatusMessage());
+  this->response_->setResponseBody(error_body);
+
   this->response_->setHeader("Connection", "keep-alive");
 }
 
 void ResponseHandler::setResponse405() {
   this->response_->setStatusCode("405");
   this->response_->setStatusMessage("Method Not Allowed");
-  this->response_->setResponseBody(this->error405);
+
+  std::string error_body = getDefaultErrorBody(this->response_->getStatusCode(), this->response_->getStatusMessage());
+  this->response_->setResponseBody(error_body);
+
   //확인안됨
   this->response_->setHeader("Connection", "keep-alive");
 }
@@ -196,7 +188,10 @@ void ResponseHandler::setResponse405() {
 void ResponseHandler::setResponse409() {
   this->response_->setStatusCode("409");
   this->response_->setStatusMessage("Conflict");
-  this->response_->setResponseBody(this->error409);
+
+  std::string error_body = getDefaultErrorBody(this->response_->getStatusCode(), this->response_->getStatusMessage());
+  this->response_->setResponseBody(error_body);
+
   //확인안됨
   this->response_->setHeader("Connection", "keep-alive");
 }
@@ -204,7 +199,10 @@ void ResponseHandler::setResponse409() {
 void ResponseHandler::setResponse500() {
   this->response_->setStatusCode("500");
   this->response_->setStatusMessage("Internal Server Error");
-  this->response_->setResponseBody(this->error500);
+
+  std::string error_body = getDefaultErrorBody(this->response_->getStatusCode(), this->response_->getStatusMessage());
+  this->response_->setResponseBody(error_body);
+
   this->response_->setHeader("Connection", "close");
 }
 
@@ -226,20 +224,18 @@ void ResponseHandler::setResponse204() {
   this->response_->setHeader("Connection", "keep-alive");
 }
 
+std::string ResponseHandler::getDefaultErrorBody(std::string status_code, std::string status_message) {
+  std::string body;
 
+  body += "<html>\n";
+  body += "<head><title>" + status_code + " " + status_message + "</title></head>\n";
+  body += "<body>\n";
+  body += "<center><h1>" + status_code + " " + status_message + "</h1></center>\n";
+  body += "<hr><center>" + response_->getHeaderValue("Server") + "</center>\n";
+  body += "</body>\n";
+  body += "</html>\n";
 
-// std::string ResponseHandler::getCurrentDate() {
-//   //TODO: 개선이 필요함
-//   std::string current_time;
-//   time_t t;       // t passed as argument in function time()
-//   struct tm *tt;  // decalring variable for localtime()
-//   time(&t);       //passing argument to time()
-//   tt = gmtime(&t);
-//   current_time.append(asctime(tt), strlen(asctime(tt)) - 1);
-//   current_time.append(" GMT");
-
-
-//   return (current_time);
-// }
+  return body;
+}
 
 }  // namespace ft

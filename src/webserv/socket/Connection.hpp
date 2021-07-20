@@ -1,11 +1,13 @@
 #ifndef CONNECTION_HPP
 #define CONNECTION_HPP
 
-#include "webserv/logger/Logger.hpp"
-#include "webserv/message/handler/MessageHandler.hpp"
+#include "webserv/webserv.hpp"
 #include "webserv/socket/Listening.hpp"
 #include "webserv/socket/SocketManager.hpp"
-#include "webserv/webserv.hpp"
+#include "webserv/message/Request.hpp"
+#include "webserv/message/Response.hpp"
+#include "webserv/logger/Logger.hpp"
+
 
 namespace ft {
 
@@ -21,15 +23,15 @@ class Connection {
   Listening *listening_;
 
   HttpConfig *httpconfig_;
+  
+  Request   request_;
+  Response  response_;
 
   Connection *next_;
 
  public:
   char buffer_[BUF_SIZE];
 
-  Request request_;
-  Response response_;
-  MessageHandler message_handler_;
 
   Connection();
   ~Connection();
@@ -44,7 +46,6 @@ class Connection {
   void setSockaddrToConnectPort(in_port_t port);
   void setSockaddrToConnectIP(in_addr_t ipaddr);
   void setHttpConfig(HttpConfig *httpconfig);
-  //   void passHttpConfigToMessageHandler(HttpConfig *http_config);
 
   bool getListen() const;
   Connection *getNext() const;
@@ -52,8 +53,10 @@ class Connection {
   struct sockaddr_in getServerSockaddr() const;
   // const HttpConfig	*getHttpConfig() const;
   // const RequestMessage		&getRequestMessage() const;
+  Request   &getRequest();
+  Response   &getResponse();
   HttpConfig *getHttpConfig();
-  struct sockaddr_in getSockaddrToConnect();
+  struct sockaddr_in &getSockaddrToConnect();
 };
 }  // namespace ft
 #endif

@@ -23,20 +23,28 @@ enum StartLineItem {
 // class HttpConfig;
 
 class RequestHandler {
-  Request &request_;
-
-  int delimiter_count_;
+private:
+  Request *request_;
 
  public:
-  RequestHandler(Request &request);
-  void setRequest(std::string msg_header_buffer);
-  int parseStartLine(std::string const &start_line);
-  int parseHeaderLine(std::string const &header_line);
-  bool isValidHeaderKey(std::string const &key);
-  int getCountOfDelimiter(std::string const &str, char delimiter) const;
-  void clearRequest();
-  bool isValidStartLine(int item_ident,
-                        std::string const &item);
+  RequestHandler();
+  ~RequestHandler();
+
+  void setRequest(Request *request);
+
+  void appendMsg(const char *buffer);
+  void processByRecvPhase();
+private:
+  void checkMsgForHeader();
+  void checkMsgForEntityBody();
+
+  int parseStartLine();
+  void parseHeaderLines();
+  int parseHeaderLine(std::string &one_header_line);
+  void parseEntityBody();
+  static int getCountOfDelimiter(std::string const &str, char delimiter);
+  static bool isValidHeaderKey(std::string const &key);
+  static bool isValidStartLine(int item_ident, std::string const &item);
 };
 }  // namespace ft
 #endif

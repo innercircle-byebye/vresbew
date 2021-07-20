@@ -11,7 +11,10 @@ SRC_FILE	=	webserv/main.cpp \
 				webserv/socket/Kqueue.cpp \
 				webserv/socket/Listening.cpp \
 				webserv/socket/SocketManager.cpp \
+				webserv/message/Request.cpp \
 				webserv/message/Response.cpp \
+				webserv/message/StatusMessage.cpp \
+				webserv/message/MimeType.cpp \
 				webserv/message/handler/MessageHandler.cpp \
 				webserv/message/handler/RequestHandler.cpp \
 				webserv/message/handler/ResponseHandler.cpp

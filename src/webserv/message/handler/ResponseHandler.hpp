@@ -12,64 +12,52 @@
 #include <dirent.h>  // opendir()
 
 #include "webserv/config/HttpConfig.hpp"
+#include "webserv/logger/Time.hpp"
 #include "webserv/message/Request.hpp"
 #include "webserv/message/Response.hpp"
+#include "webserv/message/StatusMessage.hpp"
 
 namespace ft {
 
-// class LocationConfig;
-
-enum requestMethodForEnum {
-  METHOD_GET = 0,
-  METHOD_HEAD,
-  METHOD_PUT,
-  METHOD_POST,
-  METHOD_DELETE
-};
-
 class ResponseHandler {
+  Response *response_;
   ServerConfig *server_config_;
-  Request &request_;
-  Response &response_;
-  std::string rootpath_;
-  std::string error400;
-  std::string error403;
-  std::string error404;
-  std::string error405;
-  std::string error409;
-  std::string error500;
+
   struct stat stat_buffer_;
-  struct dirent *entry;
-  DIR *dir;
+  struct dirent *entry_; // TODO: 지역변수로 전환 검토
+  DIR *dir_; // TODO: 지역변수로 전환 검토
 
  public:
-//   ResponseHandler(Request &request, Response &response,
-//                   HttpConfig *&http_config);
-ResponseHandler(Request &request, Response &response);
+  ResponseHandler();
+  ~ResponseHandler();
 
-  void setServerConfig(HttpConfig *http_config, struct sockaddr_in *addr);
-  void setResponse();
+  void setResponse(Response *response);
+  void setServerConfig(HttpConfig *http_config, struct sockaddr_in &addr, const std::string &host);
+  void setResponseFields(const std::string &method, std::string &uri);
+  void makeResponseMsg();
+
+  void setResponse400();
   std::string getAccessPath(std::string uri);
 
  private:
-  int getMethodByEnum(std::string request_method);
-  bool isValidRequestMethod();
-  bool isValidRequestVersion();
-  bool isRequestMethodAllowed();
-  bool isUriOnlySlash();
-  bool isFileExist(std::string host_path);
-  bool isPathAccessable(std::string path);
-  void setResponseBodyFromFile(std::string filepath);
+  void setResponseStatusLine();
+  void setResponseHeader();
+  void setResponseBody();
+
+  // static bool isUriOnlySlash(std::string &uri);
+  bool isFileExist(std::string &uri);
+  bool isPathAccessable(std::string path, std::string &uri);
+  void setResponseBodyFromFile(std::string &uri);
   void setResponse200();
   void setResponse201();
   void setResponse204();
-  void setResponse400();
   void setResponse403();
   void setResponse404();
   void setResponse405();
   void setResponse409();
   void setResponse500();
-  std::string getCurrentDate();
+
+  std::string getDefaultErrorBody(std::string status_code, std::string status_message);
 };
 }  // namespace ft
 #endif

@@ -15,7 +15,7 @@ class Logger {
     if (!ofs.is_open())
       std::cerr << "Opening Log file error" << std::endl;
 
-    ss << Time::get_current_time() << " [" << err_levels[level] << "] ";
+    ss << Time::getCurrentTime() << " [" << err_levels[level] << "] ";
     va_list ap;
 
     va_start(ap, fmt);

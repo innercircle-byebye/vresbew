@@ -13,6 +13,7 @@
 #include "webserv/logger/Time.hpp"
 #include "webserv/message/Request.hpp"
 #include "webserv/message/Response.hpp"
+#include "webserv/message/StatusMessage.hpp"
 
 namespace ft {
 

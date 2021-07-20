@@ -156,18 +156,23 @@ void ResponseHandler::setResponseBodyFromFile(std::string &uri) {
 }
 
 void ResponseHandler::setResponse400() {
-  this->response_->setStatusCode("400");
-  this->response_->setStatusMessage("Bad Request");
+  unsigned int status_code = 400;
+  std::string status_code_str = std::to_string(status_code);  // TODO : remove (c++11)
 
+  this->response_->setStatusCode(status_code_str);
+  this->response_->setStatusMessage(StatusMessage::of(status_code));
   std::string error_body = getDefaultErrorBody(this->response_->getStatusCode(), this->response_->getStatusMessage());
   this->response_->setResponseBody(error_body);
 
   this->response_->setHeader("Connection", "close");
 }
-void ResponseHandler::setResponse404() {
-  this->response_->setStatusCode("404");
-  this->response_->setStatusMessage("Not Found");
 
+void ResponseHandler::setResponse404() {
+  unsigned int status_code = 404;
+  std::string status_code_str = std::to_string(status_code);  // TODO : remove (c++11)
+
+  this->response_->setStatusCode(status_code_str);
+  this->response_->setStatusMessage(StatusMessage::of(status_code));
   std::string error_body = getDefaultErrorBody(this->response_->getStatusCode(), this->response_->getStatusMessage());
   this->response_->setResponseBody(error_body);
 
@@ -175,9 +180,11 @@ void ResponseHandler::setResponse404() {
 }
 
 void ResponseHandler::setResponse405() {
-  this->response_->setStatusCode("405");
-  this->response_->setStatusMessage("Method Not Allowed");
+  unsigned int status_code = 405;
+  std::string status_code_str = std::to_string(status_code);  // TODO : remove (c++11)
 
+  this->response_->setStatusCode(status_code_str);
+  this->response_->setStatusMessage(StatusMessage::of(status_code));
   std::string error_body = getDefaultErrorBody(this->response_->getStatusCode(), this->response_->getStatusMessage());
   this->response_->setResponseBody(error_body);
 
@@ -186,9 +193,11 @@ void ResponseHandler::setResponse405() {
 }
 
 void ResponseHandler::setResponse409() {
-  this->response_->setStatusCode("409");
-  this->response_->setStatusMessage("Conflict");
+  unsigned int status_code = 409;
+  std::string status_code_str = std::to_string(status_code);  // TODO : remove (c++11)
 
+  this->response_->setStatusCode(status_code_str);
+  this->response_->setStatusMessage(StatusMessage::of(status_code));
   std::string error_body = getDefaultErrorBody(this->response_->getStatusCode(), this->response_->getStatusMessage());
   this->response_->setResponseBody(error_body);
 
@@ -197,9 +206,11 @@ void ResponseHandler::setResponse409() {
 }
 
 void ResponseHandler::setResponse500() {
-  this->response_->setStatusCode("500");
-  this->response_->setStatusMessage("Internal Server Error");
+  unsigned int status_code = 500;
+  std::string status_code_str = std::to_string(status_code);  // TODO : remove (c++11)
 
+  this->response_->setStatusCode(status_code_str);
+  this->response_->setStatusMessage(StatusMessage::of(status_code));
   std::string error_body = getDefaultErrorBody(this->response_->getStatusCode(), this->response_->getStatusMessage());
   this->response_->setResponseBody(error_body);
 
@@ -207,20 +218,29 @@ void ResponseHandler::setResponse500() {
 }
 
 void ResponseHandler::setResponse200() {
-  this->response_->setStatusCode("200");
-  this->response_->setStatusMessage("OK");
+  unsigned int status_code = 200;
+  std::string status_code_str = std::to_string(status_code);  // TODO : remove (c++11)
+
+  this->response_->setStatusCode(status_code_str);
+  this->response_->setStatusMessage(StatusMessage::of(status_code));
   this->response_->setHeader("Connection", "keep-alive");
 }
 
 void ResponseHandler::setResponse201() {
-  this->response_->setStatusCode("201");
-  this->response_->setStatusMessage("Created");
+  unsigned int status_code = 201;
+  std::string status_code_str = std::to_string(status_code);  // TODO : remove (c++11)
+
+  this->response_->setStatusCode(status_code_str);
+  this->response_->setStatusMessage(StatusMessage::of(status_code));
   this->response_->setHeader("Connection", "keep-alive");
 }
 
 void ResponseHandler::setResponse204() {
-  this->response_->setStatusCode("204");
-  this->response_->setStatusMessage("No Content");
+  unsigned int status_code = 204;
+  std::string status_code_str = std::to_string(status_code);  // TODO : remove (c++11)
+
+  this->response_->setStatusCode(status_code_str);
+  this->response_->setStatusMessage(StatusMessage::of(status_code));
   this->response_->setHeader("Connection", "keep-alive");
 }
 

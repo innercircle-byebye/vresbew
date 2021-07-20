@@ -9,6 +9,7 @@
 #include <sstream>  // std::istringstream
 #include <string>
 #include <stdio.h>  // remove()
+#include <unistd.h>  // rmdir(2)
 #include <dirent.h>  // opendir()
 
 #include "webserv/config/HttpConfig.hpp"

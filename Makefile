@@ -35,7 +35,7 @@ all:			$(NAME)
 				$(CXX) $(CXXFLAGS) -I$(SRC_PATH) -o $@ -c $<
 
 $(NAME):		$(OBJS)
-				$(CXX) $(CXXFLAGS) -I$(SRC_PATH) -o $(NAME) $(OBJS)
+				$(CXX) $(CXXFLAGS) -I$(SRC_PATH) $(OBJS) -o $(NAME)
 
 clean:
 				$(RM) $(OBJS)
@@ -45,7 +45,7 @@ fclean:			clean
 
 debug:			fclean
 				@echo "DEBUG MODE BUILD START...."
-				@$(CXX) $(CXXFLAGS) -I$(SRC_PATH) $(LEAKS) -o $(NAME) $(SRCS)
+				@$(CXX) $(CXXFLAGS) -I$(SRC_PATH) $(LEAKS) $(SRCS) -o $(NAME)
 				@$(RM) -r ./webserv.dSYM
 				@echo "DEBUG MODE BUILD DONE"
 

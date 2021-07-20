@@ -1,8 +1,10 @@
 #include "StatusMessage.hpp"
 
-const std::map<unsigned int, std::string> ft::StatusMessage::status_messages_ = ft::StatusMessage::makeStatusMessages();
+namespace ft {
 
-std::map<unsigned int, std::string> ft::StatusMessage::makeStatusMessages(void) {
+const std::map<unsigned int, std::string> StatusMessage::status_messages_ = StatusMessage::makeStatusMessages();
+
+std::map<unsigned int, std::string> StatusMessage::makeStatusMessages(void) {
   std::map<unsigned int, std::string> messages;
   messages[200] = "OK";
   messages[201] = "Created";
@@ -19,8 +21,10 @@ std::map<unsigned int, std::string> ft::StatusMessage::makeStatusMessages(void) 
   return messages;
 }
 
-ft::StatusMessage::StatusMessage(void) {}
+StatusMessage::StatusMessage(void) {}
 
-const std::string &ft::StatusMessage::of(unsigned int status_code) {
+const std::string &StatusMessage::of(unsigned int status_code) {
   return (status_messages_.find(status_code))->second;
 }
+
+}  // namespace ft

@@ -8,6 +8,8 @@
 #include <istream>
 #include <sstream>  // std::istringstream
 #include <string>
+#include <stdio.h>  // remove()
+#include <dirent.h>  // opendir()
 
 #include "webserv/config/HttpConfig.hpp"
 #include "webserv/logger/Time.hpp"
@@ -20,6 +22,10 @@ namespace ft {
 class ResponseHandler {
   Response *response_;
   ServerConfig *server_config_;
+
+  struct stat stat_buffer_;
+  struct dirent *entry_; // TODO: 지역변수로 전환 검토
+  DIR *dir_; // TODO: 지역변수로 전환 검토
 
  public:
   ResponseHandler();
@@ -45,6 +51,7 @@ class ResponseHandler {
   void setResponse200();
   void setResponse201();
   void setResponse204();
+  void setResponse403();
   void setResponse404();
   void setResponse405();
   void setResponse409();

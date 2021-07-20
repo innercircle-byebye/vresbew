@@ -52,10 +52,75 @@ void ResponseHandler::setResponseFields(const std::string &method, std::string &
   } else if (method == "POST") {
     // write code!!!!
   } else if (method == "DELETE") {
+    // TODO: 경로가 "/"로 시작하지 않는 경우에는 "./"를 붙이도록 수정
     // if isUriOnlyOrSlash -> delete everything in there and 403 forbidden
     // if path is directory -> 409 Conflict and do nothing
     // if file is missing -> 404 not found
     // if file is available -> 204 No Content and delete the file
+    std::cout << "in delete" << std::endl;
+    //!uri.compare("/")
+    //     if (!uri.compare("/")) {
+    //   uri += location->getIndex().at(0);
+    // }
+
+    if (!uri.compare("/")) {  // URI 에 "/" 만 있는 경우
+      std::string url = getAccessPath(uri);
+      // stat 으로 하위에 존재하는 모든것을 탐색해야합니다.
+      std::cout << "uri : " << uri << " url : " << url << std::endl;
+      if ((this->dir_ = opendir(url.c_str())) == NULL) {
+        std::cout << "Error opendir" << std::endl;
+      } else {  // error handling 이 잘되면 else 안하고 쌉가능하다.
+        std::cout << "directory open success" << std::endl;
+        while ((this->entry_ = readdir(this->dir_)) != NULL) {
+          std::cout << "entry d_name : " << entry_->d_name << std::endl;
+          // 전부 지우자...
+          /*
+            if (remove(entry->d_name) != 0) {
+              std::cout << "Error remove " << entry->d_name << std::endl;
+              setResponse405();  // 실패하면 무슨 error 를 주어야하는거지?!
+              break;  // while 꺠면 closedir() 만날듯?!
+            }
+            */
+        }
+        setResponse204();  // 여튼 성공!
+      }
+      closedir(this->dir_);
+
+      /*
+        if (remove(url.c_str()) != 0)
+          std::cout << "Error remove " << url << std::endl;
+        else {
+          std::cout << "remove success" << std::endl;
+          setResponse403();
+        }
+        */
+    } else {  // "/" 가 아닌 경우
+      std::string url = getAccessPath(uri);
+      std::cout << "url : " << url << std::endl;
+      if (stat(url.c_str(), &this->stat_buffer_) < 0) {
+        std::cout << "stat ain't work" << std::endl;
+        // if file is missing -> 404 not found
+        setResponse404();
+      } else {
+        // file or directory
+        if (S_ISDIR(this->stat_buffer_.st_mode)) {
+          // is directory
+          // if path is directory -> 409 Conflict and do nothing
+          std::cout << "is directory" << std::endl;
+          setResponse409();
+        } else {  // is not directory == file ?!
+          std::cout << "is not directory" << std::endl;
+          // file 이 존재합니다. 존재하지 않으면 stat() 이 -1 을 반환합니다.
+          // file 을 지웁니다. remove()
+          if (remove(url.c_str()) != 0)
+            std::cout << "Error remove " << url << std::endl;
+          // 궁금한 점 수정에 대한 접근 권한이 없으면 remove 는 실패할까?
+          else
+            std::cout << "remove success" << std::endl;
+          setResponse204();
+        }
+      }
+    }
   }
 
   ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -116,9 +181,8 @@ std::string ResponseHandler::getAccessPath(std::string uri) {
 
 bool ResponseHandler::isFileExist(std::string &uri) {
   // LocationConfig *location = this->server_config_->getLocationConfig(uri);
-  struct stat stat_buffer;
 
-  if (stat(getAccessPath(uri).c_str(), &stat_buffer) < 0) {
+  if (stat(getAccessPath(uri).c_str(), &this->stat_buffer_) < 0) {
     std::cout << "this ain't work" << std::endl;
     return (false);
   }
@@ -126,17 +190,16 @@ bool ResponseHandler::isFileExist(std::string &uri) {
 }
 
 bool ResponseHandler::isPathAccessable(std::string path, std::string &uri) {
-  struct stat stat_buffer;
   LocationConfig *location = this->server_config_->getLocationConfig(uri);
   (void)location;
 
   path.insert(0, ".");
   std::cout << path << std::endl;
-  if (stat(path.c_str(), &stat_buffer) < 0) {
+  if (stat(path.c_str(), &this->stat_buffer_) < 0) {
     return (false);
   }
-  std::cout << stat_buffer.st_mode << std::endl;
-  if (stat_buffer.st_mode & S_IRWXU)
+  std::cout << stat_buffer_.st_mode << std::endl;
+  if (stat_buffer_.st_mode & S_IRWXU)
     return (true);
   return (false);
 }
@@ -165,6 +228,19 @@ void ResponseHandler::setResponse400() {
   this->response_->setResponseBody(error_body);
 
   this->response_->setHeader("Connection", "close");
+}
+
+// kycho 님 이 부분도 추가해서 구현 부탁드립니다!
+void ResponseHandler::setResponse403() {
+  unsigned int status_code = 403;
+  std::string status_code_str = std::to_string(status_code);  // TODO : remove (c++11)
+
+  this->response_->setStatusCode(status_code_str);
+  this->response_->setStatusMessage(StatusMessage::of(status_code));
+  std::string error_body = getDefaultErrorBody(this->response_->getStatusCode(), this->response_->getStatusMessage());
+  this->response_->setResponseBody(error_body);
+
+  this->response_->setHeader("Connection", "keep-alive");  // TODO: 커넥션 값 확인
 }
 
 void ResponseHandler::setResponse404() {

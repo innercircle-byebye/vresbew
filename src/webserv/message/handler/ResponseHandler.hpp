@@ -78,7 +78,7 @@ class ResponseHandler {
   bool isFileExist(std::string &uri);
   bool isFileExist(std::string &uri, LocationConfig *&location);
   std::string getAccessPath(std::string &uri, LocationConfig *&location);
-  bool isPathAccessable(std::string path, std::string &uri);
+  bool isPathAccessable(std::string &uri, LocationConfig *&location);
   int deletePathRecursive(std::string &path);
 
   void findIndexForGetWhenOnlySlash(std::string &uri, LocationConfig *&location);

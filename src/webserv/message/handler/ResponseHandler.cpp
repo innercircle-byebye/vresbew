@@ -125,17 +125,13 @@ void ResponseHandler::processGetAndHeaderMethod(const std::string &method,
         (location->getIndex().size() == 1 && !location->getIndex().at(0).compare("index.html"))) {
       uri += "index.html";
       if (!isFileExist(uri, location)) {
-        // 403 Forbidden 케이스
         setStatusLineWithCode("403");
         return;
       }
     } else {
-      // 위의 경우로 다시 돌아가지 않습니다. (테스트 해봄)
       findIndexForGetWhenOnlySlash(uri, location);
-      // 위의 경우로 다시 돌아가지 않습니다. (테스트 해봄)
       if (!uri.compare("/"))
       {
-        // either 403 or 404 not sure yet
         setStatusLineWithCode("403");
         return;
       }
@@ -154,7 +150,7 @@ void ResponseHandler::processPutMethod(std::string &uri, LocationConfig *&locati
   if (!uri.compare("/")) {
     setStatusLineWithCode("409");
     return;
-  } else if (!isPathAccessable(location->getRoot(), uri)) {
+  } else if (!isPathAccessable(uri, location)) {
     setStatusLineWithCode("500");
     return;
   }
@@ -250,13 +246,8 @@ bool ResponseHandler::isFileExist(std::string &uri, LocationConfig *&location) {
   return (true);
 }
 
-bool ResponseHandler::isPathAccessable(std::string path, std::string &uri) {
-  LocationConfig *location = this->server_config_->getLocationConfig(uri);
-  (void)location;
-
-  path.insert(0, ".");
-  std::cout << path << std::endl;
-  if (stat(path.c_str(), &this->stat_buffer_) < 0) {
+bool ResponseHandler::isPathAccessable(std::string &uri, LocationConfig *&location) {
+  if (stat(getAccessPath(uri, location).c_str(), &this->stat_buffer_) < 0) {
     return (false);
   }
   std::cout << stat_buffer_.st_mode << std::endl;

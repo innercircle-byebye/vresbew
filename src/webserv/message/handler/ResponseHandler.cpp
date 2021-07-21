@@ -101,7 +101,7 @@ void ResponseHandler::setResponseFields(const std::string &method, std::string &
   ///////////////////////////////////////////////////////////////////////////////////////////////////
   if (this->response_->getResponseBody().size() > 0) {
     this->response_->setHeader("Content-Length",
-      std::to_string(this->response_->getResponseBody().size()));
+                               std::to_string(this->response_->getResponseBody().size()));
   }
 }
 
@@ -149,8 +149,12 @@ void ResponseHandler::setStatusLineWithCode(const std::string &status_code) {
   this->response_->setStatusCode(status_code);
   this->response_->setStatusMessage(StatusMessage::of(stoi(status_code)));
   this->response_->setConnectionHeaderByStatusCode(status_code);
-  this->response_->getResponseBody() =
-      getDefaultErrorBody(this->response_->getStatusCode(), this->response_->getStatusMessage());
+  // TODO: MUST BE EXECUTED ONLY WHEN BODY IS NOT PROVIDED
+  if (!(!status_code.compare("200") ||
+        !status_code.compare("201") ||
+        !status_code.compare("204")))
+    this->response_->getResponseBody() =
+        getDefaultErrorBody(this->response_->getStatusCode(), this->response_->getStatusMessage());
 }
 
 std::string ResponseHandler::getDefaultErrorBody(std::string status_code, std::string status_message) {
@@ -167,8 +171,7 @@ std::string ResponseHandler::getDefaultErrorBody(std::string status_code, std::s
   return body;
 }
 
-
-  // making response message end
+// making response message end
 
 /*-----------------------MAKING RESPONSE MESSAGE-----------------------------*/
 
@@ -237,7 +240,6 @@ void ResponseHandler::setResponseBodyFromFile(std::string &uri) {
                                             std::istreambuf_iterator<char>());
 }
 
-
 int ResponseHandler::deletePathRecursive(std::string &path) {
   // stat 동작시키고
   if (stat(path.c_str(), &stat_buffer_) != 0) {
@@ -285,6 +287,5 @@ int ResponseHandler::deletePathRecursive(std::string &path) {
 }
 
 /*-----------------------MAKING RESPONSE MESSAGE-----------------------------*/
-
 
 }  // namespace ft

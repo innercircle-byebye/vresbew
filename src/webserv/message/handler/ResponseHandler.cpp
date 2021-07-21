@@ -19,7 +19,6 @@ void ResponseHandler::setResponseFields(const std::string &method, std::string &
 
   if (!location->checkAcceptedMethod(method)) {
     setStatusLineWithCode("405");
-    // setResponse405();
     return;
   }
 
@@ -33,25 +32,24 @@ void ResponseHandler::setResponseFields(const std::string &method, std::string &
     }
     if (!isFileExist(uri)) {
       // 403 Forbidden 케이스도 있음
-      setResponse404();
+      setStatusLineWithCode("404");
     } else {
-      setResponse200();
+      setStatusLineWithCode("200");
       if (method == "GET")
         setResponseBodyFromFile(uri);
     }
   } else if (method == "PUT") {
     if (!uri.compare("/")) {
-      setResponse409();
+      setStatusLineWithCode("409");
     } else if (!isPathAccessable(location->getRoot(), uri)) {
       std::cout << "here" << std::endl;
-      setResponse500();
+      setStatusLineWithCode("500");
     } else if (!isFileExist(uri)) {  /// file writing not working yet!!!!!
-      setResponse201();
+      setStatusLineWithCode("201");
     } else {
-      setResponse204();
+      setStatusLineWithCode("204");
     }
   } else if (method == "POST") {
-    // write code!!!!
   } else if (method == "DELETE") {
     // TODO: 경로가 "/"로 시작하지 않는 경우에는 "./"를 붙이도록 수정
     // if isUriOnlyOrSlash -> delete everything in there and 403 forbidden
@@ -64,35 +62,35 @@ void ResponseHandler::setResponseFields(const std::string &method, std::string &
       // stat 으로 하위에 존재하는 모든것을 탐색해야합니다.
       std::cout << "uri : " << uri << " url : " << url << std::endl;
       if (deletePathRecursive(url) == -1) {
-        setResponse403();  // 실패인데 어떤 status code 를 주어야하는지 모르겠습니다...
+        setStatusLineWithCode("403");  // TODO:실패인데 어떤 status code 를 주어야하는지 모르겠습니다...
+                                       // A: 201 혹은 204로 추정됩니다.
       } else {
-        setResponse403();  // 여튼 성공!
+        setStatusLineWithCode("403");
       }
     } else {  // "/" 가 아닌 경우
       std::string url = getAccessPath(uri);
       std::cout << "url : " << url << std::endl;
       if (stat(url.c_str(), &this->stat_buffer_) < 0) {
         std::cout << "stat ain't work" << std::endl;
-        // if file is missing -> 404 not found
-        setResponse404();
+        setStatusLineWithCode("404");
       } else {
         // file or directory
         if (S_ISDIR(this->stat_buffer_.st_mode)) {
           // is directory
           // if path is directory -> 409 Conflict and do nothing
           std::cout << "is directory" << std::endl;
-          setResponse409();
+          setStatusLineWithCode("409");
         } else {  // is not directory == file ?!
           std::cout << "is not directory" << std::endl;
           // file 이 존재합니다. 존재하지 않으면 stat() 이 -1 을 반환합니다.
           // file 을 지웁니다. remove()
           if (remove(url.c_str()) != 0) {
             std::cout << "Error remove " << url << std::endl;
-            setResponse403();
+            setStatusLineWithCode("403");
             return;
           }
           std::cout << "remove success" << std::endl;
-          setResponse204();
+          setStatusLineWithCode("204");
         }
       }
     }
@@ -100,10 +98,11 @@ void ResponseHandler::setResponseFields(const std::string &method, std::string &
 
   ///////////////////////////////////////////////////////////////////////////////////////////////////
   if (this->response_->getResponseBody().size() > 0) {
-    this->response_->setHeader("Content-Length", std::to_string(this->response_->getResponseBody().size()));
+    this->response_->setHeader("Content-Length",
+      std::to_string(this->response_->getResponseBody().size()));
   }
 }
-
+/*-----------------------MAKING RESPONSE MESSAGE-----------------------------*/
 void ResponseHandler::makeResponseMsg() {
   setResponseStatusLineToMessageBuffer();
   setResponseHeaderToMessageBuffer();
@@ -134,11 +133,50 @@ void ResponseHandler::setResponseHeaderToMessageBuffer() {
   response_->getMsg() += "\r\n";
 }
 
+void ResponseHandler::setStatusLineWithCode(const std::string &status_code) {
+  this->response_->setStatusCode(status_code);
+  this->response_->setStatusMessage(StatusMessage::of(stoi(status_code)));
+  this->response_->getResponseBody() =
+      getDefaultErrorBody(this->response_->getStatusCode(), this->response_->getStatusMessage());
+  setConnectionHeaderByStatusCode(status_code);
+}
+
+std::string ResponseHandler::getDefaultErrorBody(std::string status_code, std::string status_message) {
+  std::string body;
+
+  body += "<html>\n";
+  body += "<head><title>" + status_code + " " + status_message + "</title></head>\n";
+  body += "<body>\n";
+  body += "<center><h1>" + status_code + " " + status_message + "</h1></center>\n";
+  body += "<hr><center>" + response_->getHeaderValue("Server") + "</center>\n";
+  body += "</body>\n";
+  body += "</html>\n";
+
+  return body;
+}
+
+void ResponseHandler::setConnectionHeaderByStatusCode(const std::string &status_code) {
+  if (!status_code.compare("403") ||
+      !status_code.compare("404") ||
+      !status_code.compare("405") ||  // TODO: 재확인 필요
+      !status_code.compare("409") ||  // TODO: 재확인 필요
+      !status_code.compare("200") ||
+      !status_code.compare("201") ||
+      !status_code.compare("204"))
+    this->response_->setHeader("Connection", "keep-alive");
+  else
+    this->response_->setHeader("Connection", "close");
+}
+
 void ResponseHandler::setResponseBodyToMessageBuffer() {
   if (response_->getResponseBody().size()) {
     response_->getMsg() += response_->getResponseBody();
   }
 }
+/*-----------------------MAKING RESPONSE MESSAGE-----------------------------*/
+
+/*--------------------------EXECUTING METHODS--------------------------------*/
+
 
 std::string ResponseHandler::getAccessPath(std::string uri) {
   LocationConfig *location = this->server_config_->getLocationConfig(uri);
@@ -187,142 +225,6 @@ void ResponseHandler::setResponseBodyFromFile(std::string &uri) {
                                             std::istreambuf_iterator<char>());
 }
 
-void ResponseHandler::setStatusLineWithCode(std::string status_code) {
-  this->response_->setStatusCode(status_code);
-  this->response_->setStatusMessage(StatusMessage::of(stoi(status_code)));
-  this->response_->getResponseBody() =
-      getDefaultErrorBody(this->response_->getStatusCode(), this->response_->getStatusMessage());
-  setConnectionHeaderByStatusCode(status_code);
-}
-
-void ResponseHandler::setConnectionHeaderByStatusCode(std::string const &status_code) {
-  if (!status_code.compare("403") ||
-      !status_code.compare("404") ||
-      !status_code.compare("405") ||
-      !status_code.compare("409") ||
-      !status_code.compare("200") ||
-      !status_code.compare("201") ||
-      !status_code.compare("204") )
-    this->response_->setHeader("Connection", "keep-alive");
-  else
-    this->response_->setHeader("Connection", "close");
-}
-
-void ResponseHandler::setResponse400() {
-  unsigned int status_code = 400;
-  std::string status_code_str = std::to_string(status_code);  // TODO : remove (c++11)
-
-  this->response_->setStatusCode(status_code_str);
-  this->response_->setStatusMessage(StatusMessage::of(status_code));
-  std::string error_body = getDefaultErrorBody(this->response_->getStatusCode(), this->response_->getStatusMessage());
-  this->response_->setResponseBody(error_body);
-
-  this->response_->setHeader("Connection", "close");
-}
-
-// kycho 님 이 부분도 추가해서 구현 부탁드립니다!
-void ResponseHandler::setResponse403() {
-  unsigned int status_code = 403;
-  std::string status_code_str = std::to_string(status_code);  // TODO : remove (c++11)
-
-  this->response_->setStatusCode(status_code_str);
-  this->response_->setStatusMessage(StatusMessage::of(status_code));
-  std::string error_body = getDefaultErrorBody(this->response_->getStatusCode(), this->response_->getStatusMessage());
-  this->response_->setResponseBody(error_body);
-
-  this->response_->setHeader("Connection", "keep-alive");  // TODO: 커넥션 값 확인
-}
-
-void ResponseHandler::setResponse404() {
-  unsigned int status_code = 404;
-  std::string status_code_str = std::to_string(status_code);  // TODO : remove (c++11)
-
-  this->response_->setStatusCode(status_code_str);
-  this->response_->setStatusMessage(StatusMessage::of(status_code));
-  std::string error_body = getDefaultErrorBody(this->response_->getStatusCode(), this->response_->getStatusMessage());
-  this->response_->setResponseBody(error_body);
-
-  this->response_->setHeader("Connection", "keep-alive");
-}
-
-void ResponseHandler::setResponse405() {
-  unsigned int status_code = 405;
-  std::string status_code_str = std::to_string(status_code);  // TODO : remove (c++11)
-
-  this->response_->setStatusCode(status_code_str);
-  this->response_->setStatusMessage(StatusMessage::of(status_code));
-  std::string error_body = getDefaultErrorBody(this->response_->getStatusCode(), this->response_->getStatusMessage());
-  this->response_->setResponseBody(error_body);
-
-  //확인안됨
-  this->response_->setHeader("Connection", "keep-alive");
-}
-
-void ResponseHandler::setResponse409() {
-  unsigned int status_code = 409;
-  std::string status_code_str = std::to_string(status_code);  // TODO : remove (c++11)
-
-  this->response_->setStatusCode(status_code_str);
-  this->response_->setStatusMessage(StatusMessage::of(status_code));
-  std::string error_body = getDefaultErrorBody(this->response_->getStatusCode(), this->response_->getStatusMessage());
-  this->response_->setResponseBody(error_body);
-
-  //확인안됨
-  this->response_->setHeader("Connection", "keep-alive");
-}
-
-void ResponseHandler::setResponse500() {
-  unsigned int status_code = 500;
-  std::string status_code_str = std::to_string(status_code);  // TODO : remove (c++11)
-
-  this->response_->setStatusCode(status_code_str);
-  this->response_->setStatusMessage(StatusMessage::of(status_code));
-  std::string error_body = getDefaultErrorBody(this->response_->getStatusCode(), this->response_->getStatusMessage());
-  this->response_->setResponseBody(error_body);
-
-  this->response_->setHeader("Connection", "close");
-}
-
-void ResponseHandler::setResponse200() {
-  unsigned int status_code = 200;
-  std::string status_code_str = std::to_string(status_code);  // TODO : remove (c++11)
-
-  this->response_->setStatusCode(status_code_str);
-  this->response_->setStatusMessage(StatusMessage::of(status_code));
-  this->response_->setHeader("Connection", "keep-alive");
-}
-
-void ResponseHandler::setResponse201() {
-  unsigned int status_code = 201;
-  std::string status_code_str = std::to_string(status_code);  // TODO : remove (c++11)
-
-  this->response_->setStatusCode(status_code_str);
-  this->response_->setStatusMessage(StatusMessage::of(status_code));
-  this->response_->setHeader("Connection", "keep-alive");
-}
-
-void ResponseHandler::setResponse204() {
-  unsigned int status_code = 201;
-  std::string status_code_str = std::to_string(status_code);  // TODO : remove (c++11)
-
-  this->response_->setStatusCode(status_code_str);
-  this->response_->setStatusMessage(StatusMessage::of(status_code));
-  this->response_->setHeader("Connection", "keep-alive");
-}
-
-std::string ResponseHandler::getDefaultErrorBody(std::string status_code, std::string status_message) {
-  std::string body;
-
-  body += "<html>\n";
-  body += "<head><title>" + status_code + " " + status_message + "</title></head>\n";
-  body += "<body>\n";
-  body += "<center><h1>" + status_code + " " + status_message + "</h1></center>\n";
-  body += "<hr><center>" + response_->getHeaderValue("Server") + "</center>\n";
-  body += "</body>\n";
-  body += "</html>\n";
-
-  return body;
-}
 
 int ResponseHandler::deletePathRecursive(std::string &path) {
   // stat 동작시키고
@@ -369,5 +271,7 @@ int ResponseHandler::deletePathRecursive(std::string &path) {
   }
   return (0);
 }
+/*-----------------------MAKING RESPONSE MESSAGE-----------------------------*/
+
 
 }  // namespace ft

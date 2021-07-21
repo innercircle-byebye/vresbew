@@ -1,16 +1,16 @@
 #ifndef RESPONSE_HANDLER_HPP
 #define RESPONSE_HANDLER_HPP
 
+#include <dirent.h>  // opendir()
+#include <stdio.h>   // remove()
 #include <sys/stat.h>
+#include <unistd.h>  // rmdir(2)
 
 #include <fstream>
 #include <iostream>
 #include <istream>
 #include <sstream>  // std::istringstream
 #include <string>
-#include <stdio.h>  // remove()
-#include <unistd.h>  // rmdir(2)
-#include <dirent.h>  // opendir()
 
 #include "webserv/config/HttpConfig.hpp"
 #include "webserv/logger/Time.hpp"
@@ -45,32 +45,37 @@ class ResponseHandler {
   void setResponseFields(const std::string &method, std::string &uri);
   void makeResponseMsg();
 
-  void setResponse400();
   std::string getAccessPath(std::string uri);
 
  private:
+  // Response::response_ setter begin
   void setResponseStatusLineToMessageBuffer();
   void setResponseHeaderToMessageBuffer();
   void setResponseBodyToMessageBuffer();
+  // Response::response_ setter end
 
-  // static bool isUriOnlySlash(std::string &uri);
+  // blocks for setResponse begin
+  void processGetAndHeaderMethod();
+  void processPutMethod();
+  void processDeleteMethod();
+  void processPostMethod();
+  // blocks for setResponse end
+
+  // making response message begin
+  void setStatusLineWithCode(const std::string &status_code);
+  void setConnectionHeaderByStatusCode(const std::string &status_code);
+  std::string getDefaultErrorBody(std::string status_code, std::string status_message);
+  // making response message end
+
+  // 애매함
+  void setResponseBodyFromFile(std::string &uri);
+  // 애매함 end
+
+  // executing methods helper begin
   bool isFileExist(std::string &uri);
   bool isPathAccessable(std::string path, std::string &uri);
-  void setResponseBodyFromFile(std::string &uri);
-  void setStatusLineWithCode(std::string status_code);
-  void setConnectionHeaderByStatusCode(std::string const &status_code);
-  void setResponse200();
-  void setResponse201();
-  void setResponse204();
-  void setResponse403();
-  void setResponse404();
-  void setResponse405();
-  void setResponse409();
-  void setResponse500();
-
-  std::string getDefaultErrorBody(std::string status_code, std::string status_message);
-
   int deletePathRecursive(std::string &path);
+  // executing methods helper end
 
 };
 }  // namespace ft

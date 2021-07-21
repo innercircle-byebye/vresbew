@@ -121,10 +121,27 @@ void ResponseHandler::processGetAndHeaderMethod(const std::string &method,
                                                 std::string &uri, LocationConfig *&location) {
   //need last modified header
   if (!uri.compare("/")) {
-    uri += location->getIndex().at(0);
+    if (location->getIndex().size() == 0 ||
+        (location->getIndex().size() == 1 && !location->getIndex().at(0).compare("index.html"))) {
+      uri += "index.html";
+      if (!isFileExist(uri, location)) {
+        // 403 Forbidden 케이스
+        setStatusLineWithCode("403");
+        return;
+      }
+    } else {
+      // 위의 경우로 다시 돌아가지 않습니다. (테스트 해봄)
+      findIndexForGetWhenOnlySlash(uri, location);
+      // 위의 경우로 다시 돌아가지 않습니다. (테스트 해봄)
+      if (!uri.compare("/"))
+      {
+        // either 403 or 404 not sure yet
+        setStatusLineWithCode("403");
+        return;
+      }
+    }
   }
-  if (!isFileExist(uri)) {
-    // 403 Forbidden 케이스도 있음
+  if (!isFileExist(uri, location)) {
     setStatusLineWithCode("404");
   } else {
     setStatusLineWithCode("200");
@@ -136,10 +153,10 @@ void ResponseHandler::processGetAndHeaderMethod(const std::string &method,
 void ResponseHandler::processPutMethod(std::string &uri, LocationConfig *&location) {
   if (!uri.compare("/")) {
     setStatusLineWithCode("409");
-    return ;
+    return;
   } else if (!isPathAccessable(location->getRoot(), uri)) {
     setStatusLineWithCode("500");
-    return ;
+    return;
   }
   if (!isFileExist(uri)) {
     setStatusLineWithCode("201");
@@ -155,7 +172,6 @@ void ResponseHandler::processPostMethod(std::string &uri, LocationConfig *&locat
 }
 
 void ResponseHandler::processDeleteMethod(std::string &uri, LocationConfig *&location) {
-
   (void)location;
   // TODO: 경로가 "/"로 시작하지 않는 경우에는 "./"를 붙이도록 수정
   // if isUriOnlyOrSlash -> delete everything in there and 403 forbidden
@@ -218,7 +234,6 @@ std::string ResponseHandler::getAccessPath(std::string &uri, LocationConfig *&lo
 }
 
 bool ResponseHandler::isFileExist(std::string &uri) {
-
   if (stat(getAccessPath(uri).c_str(), &this->stat_buffer_) < 0) {
     std::cout << "this ain't work" << std::endl;
     return (false);
@@ -227,8 +242,8 @@ bool ResponseHandler::isFileExist(std::string &uri) {
 }
 
 bool ResponseHandler::isFileExist(std::string &uri, LocationConfig *&location) {
-
-  if (stat(getAccessPath(uri, location).c_str(), &this->stat_buffer_) < 0) {
+  std::string temp = "." + location->getRoot() + uri;
+  if (stat(temp.c_str(), &this->stat_buffer_) < 0) {
     std::cout << "this doesn't work" << std::endl;
     return (false);
   }
@@ -310,5 +325,16 @@ int ResponseHandler::deletePathRecursive(std::string &path) {
   return (0);
 }
 
+void ResponseHandler::findIndexForGetWhenOnlySlash(std::string &uri, LocationConfig *&location) {
+  std::string temp;
+  std::vector<std::string>::const_iterator it_index;
+  for (it_index = location->getIndex().begin(); it_index != location->getIndex().end(); it_index++) {
+    temp = "." + location->getRoot() + *it_index;
+    if (isFileExist(temp, location)) {
+      uri = *it_index;
+      break;
+    }
+  }
+}
 /*--------------------------EXECUTING METHODS END--------------------------------*/
 }  // namespace ft

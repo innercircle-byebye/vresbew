@@ -25,8 +25,9 @@ class ResponseHandler {
   ServerConfig *server_config_;
 
   struct stat stat_buffer_;
-  struct dirent *entry_; // TODO: 지역변수로 전환 검토
-  DIR *dir_; // TODO: 지역변수로 전환 검토
+  // 함수 내 지역변수로 옮겼습니다. 향후 지워주세요!!
+  // struct dirent *entry_; // TODO: 지역변수로 전환 검토
+  // DIR *dir_; // TODO: 지역변수로 전환 검토
 
  public:
   ResponseHandler();
@@ -59,6 +60,9 @@ class ResponseHandler {
   void setResponse500();
 
   std::string getDefaultErrorBody(std::string status_code, std::string status_message);
+
+  int deletePathRecurcive(std::string &path);
+
 };
 }  // namespace ft
 #endif

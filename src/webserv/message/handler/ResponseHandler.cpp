@@ -17,6 +17,13 @@ void ResponseHandler::setResponseFields(const std::string &method, std::string &
   this->response_->setHeader("Date", Time::getCurrentDate());
   LocationConfig *location = this->server_config_->getLocationConfig(uri);
 
+if (!location->checkAcceptedMethod(method)) {
+    setResponse405();
+    return;
+  }
+
+  ///////////////////////////////////////////////////////////////////////////////////////////////////
+
   // TODO: 수정 필요
   if (method == "GET" || method == "HEAD") {
     //need last modified header

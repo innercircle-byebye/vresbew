@@ -17,23 +17,37 @@ enum MessageFromBufferStatus {
   MESSAGE_BODY_COMPLETE
 };
 
+#define LF     (u_char) '\n'
+#define CR     (u_char) '\r'
+#define CRLF   "\r\n"
+
 struct Request {
 
 private:
-  std::string msg_;  // buffer append시킬 string
-  int recv_phase_;   // msg가 얼마나 setting되었는지 알 수 있는 변수
+  // std::string msg_;  // buffer append시킬 string
+  // int recv_phase_;   // msg가 얼마나 setting되었는지 알 수 있는 변수
 
-  // start line
-  std::string method_;
-  std::string uri_;
-  std::string http_version_;
+  // // start line
+  // std::string method_;
+  // std::string uri_;
+  // std::string http_version_;
 
-  // header
-  std::map<std::string, std::string> headers_;
+  // // header
+  // std::map<std::string, std::string> headers_;
 
-  // entity body
-  int content_length_;
-  std::string entity_body_;
+  // // entity body
+  // int content_length_;
+  // std::string entity_body_;
+
+  int   method_;
+  int   http_version_;
+
+  std::string   request_line_;
+  std::string   uri;
+  std::string   unparsed_uri;
+
+  std::string   method_name;
+
 
 public:
   Request();

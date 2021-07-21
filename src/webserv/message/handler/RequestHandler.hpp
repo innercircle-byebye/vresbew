@@ -42,9 +42,12 @@ private:
   void parseHeaderLines();
   int parseHeaderLine(std::string &one_header_line);
   void parseEntityBody();
+
   static int getCountOfDelimiter(std::string const &str, char delimiter);
   static bool isValidHeaderKey(std::string const &key);
   static bool isValidStartLine(int item_ident, std::string const &item);
+
+
 };
 }  // namespace ft
 #endif

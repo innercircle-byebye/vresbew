@@ -56,22 +56,22 @@ class ResponseHandler {
   // Response::response_ setter end
 
   // making response message begin
-  // void setStatusLineWithCode(const std::string &status_code);
   std::string getDefaultErrorBody(std::string status_code, std::string status_message);
   // making response message end
-
-  // blocks for setResponseFields begin
-  void processGetAndHeaderMethod(const std::string *uri, LocationConfig *location);
-  void processPutMethod();
-  void processDeleteMethod();
-  void processPostMethod();
-  // blocks for setResponseFields end
-
-
 
   // 애매함
   void setResponseBodyFromFile(std::string &uri);
   // 애매함 end
+
+  /*--------------------------EXECUTING METHODS--------------------------------*/
+
+  // blocks for setResponseFields begin
+  void processGetAndHeaderMethod(const std::string &method,
+                                 std::string &uri, LocationConfig *&location);
+  void processPutMethod(std::string &uri, LocationConfig *&location);
+  void processDeleteMethod(std::string &uri, LocationConfig *&location);
+  void processPostMethod(std::string &uri, LocationConfig *&location);
+  // blocks for setResponseFields end
 
   // executing methods helper begin
   bool isFileExist(std::string &uri);
@@ -79,6 +79,7 @@ class ResponseHandler {
   int deletePathRecursive(std::string &path);
   // executing methods helper end
 
+  /*--------------------------EXECUTING METHODS END--------------------------------*/
 };
 }  // namespace ft
 #endif

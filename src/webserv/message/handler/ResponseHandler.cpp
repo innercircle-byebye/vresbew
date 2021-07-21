@@ -27,30 +27,9 @@ void ResponseHandler::setResponseFields(const std::string &method, std::string &
 
   // TODO: 수정 필요
   if (method == "GET" || method == "HEAD") {
-    //need last modified header
-    if (!uri.compare("/")) {
-      uri += location->getIndex().at(0);
-    }
-    if (!isFileExist(uri)) {
-      // 403 Forbidden 케이스도 있음
-      setStatusLineWithCode("404");
-    } else {
-      setStatusLineWithCode("200");
-      if (method == "GET")
-        setResponseBodyFromFile(uri);
-    }
-    // processGetAndHeaderMethod(uri, location);
+    processGetAndHeaderMethod(method, uri, location);
   } else if (method == "PUT") {
-    if (!uri.compare("/")) {
-      setStatusLineWithCode("409");
-    } else if (!isPathAccessable(location->getRoot(), uri)) {
-      std::cout << "here" << std::endl;
-      setStatusLineWithCode("500");
-    } else if (!isFileExist(uri)) {  /// file writing not working yet!!!!!
-      setStatusLineWithCode("201");
-    } else {
-      setStatusLineWithCode("204");
-    }
+    processPutMethod(uri, location);
   } else if (method == "POST") {
   } else if (method == "DELETE") {
     // TODO: 경로가 "/"로 시작하지 않는 경우에는 "./"를 붙이도록 수정
@@ -149,7 +128,8 @@ void ResponseHandler::setStatusLineWithCode(const std::string &status_code) {
   this->response_->setStatusCode(status_code);
   this->response_->setStatusMessage(StatusMessage::of(stoi(status_code)));
   this->response_->setConnectionHeaderByStatusCode(status_code);
-  // TODO: MUST BE EXECUTED ONLY WHEN BODY IS NOT PROVIDED
+  // MUST BE EXECUTED ONLY WHEN BODY IS NOT PROVIDED
+  // TODO: fix this garbage conditional statement...
   if (!(!status_code.compare("200") ||
         !status_code.compare("201") ||
         !status_code.compare("204")))
@@ -177,22 +157,37 @@ std::string ResponseHandler::getDefaultErrorBody(std::string status_code, std::s
 
 /*--------------------------EXECUTING METHODS--------------------------------*/
 
-//
-// void ResponseHandler::processGetAndHeaderMethod(const std::string *uri, LocationConfig *location)
-// {
-//     //need last modified header
-//     if (!uri.compare("/")) {
-//       *uri += location->getIndex().at(0);
-//     }
-//     if (!isFileExist(uri)) {
-//       // 403 Forbidden 케이스도 있음
-//       setStatusLineWithCode("404");
-//     } else {
-//       setStatusLineWithCode("200");
-//       if (method == "GET")
-//         setResponseBodyFromFile(uri);
-//     }
-// }
+// blocks for setResponseFields begin
+
+void ResponseHandler::processGetAndHeaderMethod(const std::string &method,
+                                                std::string &uri, LocationConfig *&location) {
+  //need last modified header
+  if (!uri.compare("/")) {
+    uri += location->getIndex().at(0);
+  }
+  if (!isFileExist(uri)) {
+    // 403 Forbidden 케이스도 있음
+    setStatusLineWithCode("404");
+  } else {
+    setStatusLineWithCode("200");
+    if (method == "GET")
+      setResponseBodyFromFile(uri);
+  }
+}
+
+void ResponseHandler::processPutMethod(std::string &uri, LocationConfig *&location) {
+  if (!uri.compare("/")) {
+    setStatusLineWithCode("409");
+  } else if (!isPathAccessable(location->getRoot(), uri)) {
+    std::cout << "here" << std::endl;
+    setStatusLineWithCode("500");
+  } else if (!isFileExist(uri)) {  /// file writing not working yet!!!!!
+    setStatusLineWithCode("201");
+  } else {
+    setStatusLineWithCode("204");
+  }
+}
+
 std::string ResponseHandler::getAccessPath(std::string uri) {
   LocationConfig *location = this->server_config_->getLocationConfig(uri);
 
@@ -286,6 +281,5 @@ int ResponseHandler::deletePathRecursive(std::string &path) {
   return (0);
 }
 
-/*-----------------------MAKING RESPONSE MESSAGE-----------------------------*/
-
+/*--------------------------EXECUTING METHODS END--------------------------------*/
 }  // namespace ft

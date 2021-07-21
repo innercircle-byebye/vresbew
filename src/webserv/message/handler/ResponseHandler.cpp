@@ -142,7 +142,7 @@ void ResponseHandler::processGetAndHeaderMethod(const std::string &method,
   } else {
     setStatusLineWithCode("200");
     if (method == "GET")
-      setResponseBodyFromFile(uri);
+      setResponseBodyFromFile(uri, location);
   }
 }
 
@@ -255,11 +255,10 @@ bool ResponseHandler::isPathAccessable(std::string &uri, LocationConfig *&locati
   return (false);
 }
 
-void ResponseHandler::setResponseBodyFromFile(std::string &uri) {
-  LocationConfig *location = this->server_config_->getLocationConfig(uri);  // 없으면 not found
-  (void)location;
+// 함수가 불리는 시점에서는 이미 파일은 존재함
+void ResponseHandler::setResponseBodyFromFile(std::string &uri, LocationConfig *&location) {
 
-  std::ifstream file(getAccessPath(uri).c_str());
+  std::ifstream file(getAccessPath(uri, location).c_str());
 
   file.seekg(0, std::ios::end);
   this->response_->getResponseBody().reserve(file.tellg());

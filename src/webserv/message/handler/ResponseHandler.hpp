@@ -61,7 +61,7 @@ class ResponseHandler {
   // making response message end
 
   // 애매함
-  void setResponseBodyFromFile(std::string &uri);
+  void setResponseBodyFromFile(std::string &uri, LocationConfig *&location);
   // 애매함 end
 
   /*--------------------------EXECUTING METHODS--------------------------------*/

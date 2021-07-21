@@ -81,26 +81,14 @@ void RequestHandler::parseHeaderLines() {
 
   std::istringstream is(header_line);
   std::string line;
-  while (getline(is, line, '\r')) { // ????????
+  while (getline(is, line)) { // ????????
     if (this->parseHeaderLine(line) != 0)  // TODO: 반환값(0) 확인 필요
       request_->clear();
   }
-  // 추가할 부분!!!
-  request_->setRecvPhase(MESSAGE_BODY_NO_NEED);
-  // if (request_->getHeaderValue("Content-Length").size() != 0) {
-  //   try {
-  //     request_->setHeaderValue("header", stoi(this->request_.headers["Content-Length"]));
-  //   } catch (const std::exception &e) {
-  //     std::cout << "content-length not available" << std::endl;
-  //     this->request_.headers.erase("Content-Length");
-  //     this->msg_body_buf_.clear();
-  //   }
-  //   if (this->recv_phase == MESSAGE_BODY_NO_NEED)
-  //     std::cout << "no need" << std::endl;
-  //   if (this->recv_phase == MESSAGE_HEADER_COMPLETE)
-  //     std::cout << "header complete" << std::endl;
-  // }
-  // request_->recv_phase = MESSAGE_BODY_INCOMING;
+  if (request_->getContentLength() == 0)
+    request_->setRecvPhase(MESSAGE_BODY_NO_NEED);
+  else
+    request_->setRecvPhase(MESSAGE_BODY_INCOMING);
 }
 
 int RequestHandler::parseHeaderLine(std::string &one_header_line) {
@@ -109,11 +97,19 @@ int RequestHandler::parseHeaderLine(std::string &one_header_line) {
   int delimiter = one_header_line.find(HEADER_DELIMITER);
 
     // parse key and validation
-    key = one_header_line.substr(0, delimiter);
-    value = one_header_line.substr(delimiter + 2);
+  key = one_header_line.substr(0, delimiter);
+  value = one_header_line.substr(delimiter + 2);
   // if (!(this->isValidHeaderKey(key)))
   //   return (404);
-
+  if (request_->getMethod().compare("GET") && !key.compare("Content-Length"))
+  {
+    try {
+      request_->setContentLength(stoi(value));
+    }
+    catch (std::exception &e) {
+      std::cout << e.what() << std::endl;
+    }
+  }
   // insert header
   this->request_->setHeader(key, value);
   return (0);

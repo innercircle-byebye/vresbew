@@ -319,7 +319,7 @@ int ResponseHandler::deletePathRecursive(std::string &path) {
   return (0);
 }
 
-void ResponseHandler::findIndexForGetWhenOnlySlashOrDirectory(std::string &uri, LocationConfig *&location) {
+void ResponseHandler::findIndexForGetWhenOnlySlash(std::string &uri, LocationConfig *&location) {
   std::string temp;
   std::vector<std::string>::const_iterator it_index;
   for (it_index = location->getIndex().begin(); it_index != location->getIndex().end(); it_index++) {

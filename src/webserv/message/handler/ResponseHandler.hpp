@@ -80,7 +80,7 @@ class ResponseHandler {
   bool isPathAccessable(std::string &uri, LocationConfig *&location);
   int deletePathRecursive(std::string &path);
 
-  void findIndexForGetWhenOnlySlashOrDirectory(std::string &uri, LocationConfig *&location);
+  void findIndexForGetWhenOnlySlash(std::string &uri, LocationConfig *&location);
 
   // executing methods helper end
 

@@ -14,24 +14,24 @@ void ResponseHandler::setServerConfig(HttpConfig *http_config, struct sockaddr_i
   this->server_config_ = http_config->getServerConfig(addr.sin_port, addr.sin_addr.s_addr, host);
 }
 
-void ResponseHandler::setResponseFields(const std::string &method, std::string &uri) {
+void ResponseHandler::setResponseFields(Request &request) {
   this->response_->setHeader("Date", Time::getCurrentDate());
-  LocationConfig *location = this->server_config_->getLocationConfig(uri);
+  LocationConfig *location = this->server_config_->getLocationConfig(request.getUri());
 
-  if (!location->checkAcceptedMethod(method)) {
+  if (!location->checkAcceptedMethod(request.getMethod())) {
     setStatusLineWithCode("405");
     return;
   }
 
-  if (method == "GET" || method == "HEAD")
-    processGetAndHeaderMethod(method, uri, location);
-  else if (method == "PUT")
-    processPutMethod(uri, location);
-  else if (method == "POST")
+  if (request.getMethod() == "GET" || request.getMethod() == "HEAD")
+    processGetAndHeaderMethod(request, location);
+  else if (request.getMethod() == "PUT")
+    processPutMethod(request.getUri(), location);
+  else if (request.getMethod() == "POST")
     // 아무것도 없음
-    processPostMethod(uri, location);
-  else if (method == "DELETE")
-    processDeleteMethod(uri, location);
+    processPostMethod(request.getUri(), location);
+  else if (request.getMethod() == "DELETE")
+    processDeleteMethod(request.getUri(), location);
 
   if (this->response_->getResponseBody().size() > 0) {
     this->response_->setHeader("Content-Length",
@@ -117,32 +117,38 @@ std::string ResponseHandler::getDefaultErrorBody(std::string status_code, std::s
 
 // ***********blocks for setResponseFields begin*************** //
 
-void ResponseHandler::processGetAndHeaderMethod(const std::string &method,
-                                                std::string &uri, LocationConfig *&location) {
+void ResponseHandler::processGetAndHeaderMethod(Request &request, LocationConfig *&location) {
   //need last modified header
-  if (!uri.compare("/")) {
+  if (!request.getUri().compare("/")) {
     if (location->getIndex().size() == 0 ||
         (location->getIndex().size() == 1 && !location->getIndex().at(0).compare("index.html"))) {
-      uri += "index.html";
-      if (!isFileExist(uri, location)) {
+      request.getUri() += "index.html";
+      if (!isFileExist(request.getUri(), location)) {
         setStatusLineWithCode("403");
         return;
       }
     } else {
-      findIndexForGetWhenOnlySlash(uri, location);
-      if (!uri.compare("/"))
-      {
+      findIndexForGetWhenOnlySlashOrDirectory(request.getUri(), location);
+      if (!request.getUri().compare("/")) {
         setStatusLineWithCode("403");
         return;
       }
     }
   }
-  if (!isFileExist(uri, location)) {
+  if (!isFileExist(request.getUri(), location)) {
     setStatusLineWithCode("404");
+    return;
   } else {
+    if (S_ISDIR(this->stat_buffer_.st_mode)) {
+      setStatusLineWithCode("301");
+      // TODO: string 을 생성 하지 않도록 수정하는 작업 필요
+      std::string temp_url = "http://" + request.getHeaderValue("Host") + request.getUri() + "/";
+      this->response_->setHeader("Location", temp_url);
+      return;
+    }
     setStatusLineWithCode("200");
-    if (method == "GET")
-      setResponseBodyFromFile(uri, location);
+    if (request.getMethod() == "GET")
+      setResponseBodyFromFile(request.getUri(), location);
   }
 }
 
@@ -257,7 +263,6 @@ bool ResponseHandler::isPathAccessable(std::string &uri, LocationConfig *&locati
 
 // 함수가 불리는 시점에서는 이미 파일은 존재함
 void ResponseHandler::setResponseBodyFromFile(std::string &uri, LocationConfig *&location) {
-
   std::ifstream file(getAccessPath(uri, location).c_str());
 
   file.seekg(0, std::ios::end);
@@ -314,7 +319,7 @@ int ResponseHandler::deletePathRecursive(std::string &path) {
   return (0);
 }
 
-void ResponseHandler::findIndexForGetWhenOnlySlash(std::string &uri, LocationConfig *&location) {
+void ResponseHandler::findIndexForGetWhenOnlySlashOrDirectory(std::string &uri, LocationConfig *&location) {
   std::string temp;
   std::vector<std::string>::const_iterator it_index;
   for (it_index = location->getIndex().begin(); it_index != location->getIndex().end(); it_index++) {

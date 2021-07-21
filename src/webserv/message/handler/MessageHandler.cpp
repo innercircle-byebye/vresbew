@@ -34,7 +34,7 @@ void MessageHandler::handle_response(Connection *c) {
       !isValidRequestVersion(c->getRequest().getHttpVersion(), c->getRequest().getHeaders()))
     response_handler_.setStatusLineWithCode("400");
   else
-    response_handler_.setResponseFields(c->getRequest().getMethod(), c->getRequest().getUri());
+    response_handler_.setResponseFields(c->getRequest());
 
   response_handler_.makeResponseMsg();
 

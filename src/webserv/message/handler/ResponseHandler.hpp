@@ -42,7 +42,7 @@ class ResponseHandler {
 
   void setResponse(Response *response);
   void setServerConfig(HttpConfig *http_config, struct sockaddr_in &addr, const std::string &host);
-  void setResponseFields(const std::string &method, std::string &uri);
+  void setResponseFields(Request &request);
   void makeResponseMsg();
   void setStatusLineWithCode(const std::string &status_code);
 
@@ -67,8 +67,7 @@ class ResponseHandler {
   /*--------------------------EXECUTING METHODS--------------------------------*/
 
   // blocks for setResponseFields begin
-  void processGetAndHeaderMethod(const std::string &method,
-                                 std::string &uri, LocationConfig *&location);
+  void processGetAndHeaderMethod(Request &request, LocationConfig *&location);
   void processPutMethod(std::string &uri, LocationConfig *&location);
   void processDeleteMethod(std::string &uri, LocationConfig *&location);
   void processPostMethod(std::string &uri, LocationConfig *&location);
@@ -81,7 +80,7 @@ class ResponseHandler {
   bool isPathAccessable(std::string &uri, LocationConfig *&location);
   int deletePathRecursive(std::string &path);
 
-  void findIndexForGetWhenOnlySlash(std::string &uri, LocationConfig *&location);
+  void findIndexForGetWhenOnlySlashOrDirectory(std::string &uri, LocationConfig *&location);
 
   // executing methods helper end
 

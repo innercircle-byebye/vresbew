@@ -9,6 +9,7 @@ ResponseHandler::~ResponseHandler() {}
 void ResponseHandler::setResponse(Response *response) { response_ = response; }
 
 //TODO: setLocationConfig로 바꿔도 될지 확인해보기
+//      일단 안하는게 맞는걸로 확인함.
 void ResponseHandler::setServerConfig(HttpConfig *http_config, struct sockaddr_in &addr, const std::string &host) {
   this->server_config_ = http_config->getServerConfig(addr.sin_port, addr.sin_addr.s_addr, host);
 }
@@ -38,6 +39,7 @@ void ResponseHandler::setResponseFields(const std::string &method, std::string &
       if (method == "GET")
         setResponseBodyFromFile(uri);
     }
+    // processGetAndHeaderMethod(uri, location);
   } else if (method == "PUT") {
     if (!uri.compare("/")) {
       setStatusLineWithCode("409");
@@ -102,14 +104,17 @@ void ResponseHandler::setResponseFields(const std::string &method, std::string &
       std::to_string(this->response_->getResponseBody().size()));
   }
 }
+
 /*-----------------------MAKING RESPONSE MESSAGE-----------------------------*/
+
 void ResponseHandler::makeResponseMsg() {
-  setResponseStatusLineToMessageBuffer();
-  setResponseHeaderToMessageBuffer();
-  setResponseBodyToMessageBuffer();
+  setResponseStatusLine();
+  setResponseHeader();
+  setResponseBody();
 }
 
-void ResponseHandler::setResponseStatusLineToMessageBuffer() {
+// Response::response_ setter begin
+void ResponseHandler::setResponseStatusLine() {
   response_->getMsg() += this->response_->getHttpVersion();
   response_->getMsg() += " ";
   response_->getMsg() += this->response_->getStatusCode();
@@ -118,7 +123,7 @@ void ResponseHandler::setResponseStatusLineToMessageBuffer() {
   response_->getMsg() += "\r\n";
 }
 
-void ResponseHandler::setResponseHeaderToMessageBuffer() {
+void ResponseHandler::setResponseHeader() {
   std::map<std::string, std::string> headers = response_->getHeaders();
   std::map<std::string, std::string>::iterator it;
   // nginx 는 알파벳 역순으로 저장함
@@ -132,13 +137,20 @@ void ResponseHandler::setResponseHeaderToMessageBuffer() {
   }
   response_->getMsg() += "\r\n";
 }
+void ResponseHandler::setResponseBody() {
+  if (response_->getResponseBody().size()) {
+    response_->getMsg() += response_->getResponseBody();
+  }
+}
+// Response::response_ setter begin
 
+// making response message begin
 void ResponseHandler::setStatusLineWithCode(const std::string &status_code) {
   this->response_->setStatusCode(status_code);
   this->response_->setStatusMessage(StatusMessage::of(stoi(status_code)));
+  this->response_->setConnectionHeaderByStatusCode(status_code);
   this->response_->getResponseBody() =
       getDefaultErrorBody(this->response_->getStatusCode(), this->response_->getStatusMessage());
-  setConnectionHeaderByStatusCode(status_code);
 }
 
 std::string ResponseHandler::getDefaultErrorBody(std::string status_code, std::string status_message) {
@@ -155,29 +167,29 @@ std::string ResponseHandler::getDefaultErrorBody(std::string status_code, std::s
   return body;
 }
 
-void ResponseHandler::setConnectionHeaderByStatusCode(const std::string &status_code) {
-  if (!status_code.compare("403") ||
-      !status_code.compare("404") ||
-      !status_code.compare("405") ||  // TODO: 재확인 필요
-      !status_code.compare("409") ||  // TODO: 재확인 필요
-      !status_code.compare("200") ||
-      !status_code.compare("201") ||
-      !status_code.compare("204"))
-    this->response_->setHeader("Connection", "keep-alive");
-  else
-    this->response_->setHeader("Connection", "close");
-}
 
-void ResponseHandler::setResponseBodyToMessageBuffer() {
-  if (response_->getResponseBody().size()) {
-    response_->getMsg() += response_->getResponseBody();
-  }
-}
+  // making response message end
+
 /*-----------------------MAKING RESPONSE MESSAGE-----------------------------*/
 
 /*--------------------------EXECUTING METHODS--------------------------------*/
 
-
+//
+// void ResponseHandler::processGetAndHeaderMethod(const std::string *uri, LocationConfig *location)
+// {
+//     //need last modified header
+//     if (!uri.compare("/")) {
+//       *uri += location->getIndex().at(0);
+//     }
+//     if (!isFileExist(uri)) {
+//       // 403 Forbidden 케이스도 있음
+//       setStatusLineWithCode("404");
+//     } else {
+//       setStatusLineWithCode("200");
+//       if (method == "GET")
+//         setResponseBodyFromFile(uri);
+//     }
+// }
 std::string ResponseHandler::getAccessPath(std::string uri) {
   LocationConfig *location = this->server_config_->getLocationConfig(uri);
 
@@ -271,6 +283,7 @@ int ResponseHandler::deletePathRecursive(std::string &path) {
   }
   return (0);
 }
+
 /*-----------------------MAKING RESPONSE MESSAGE-----------------------------*/
 
 

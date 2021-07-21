@@ -16,7 +16,7 @@ void Response::clear() {
 
   headers_.clear();
   this->initHeaders();
-  
+
   response_body_.clear();
 
   msg_.clear();
@@ -50,5 +50,18 @@ void Response::setHttpVersion(std::string http_version) { http_version_ = http_v
 void Response::setHeader(std::string key, std::string value) { headers_[key] = value; }
 void Response::setResponseBody(std::string response_body) { response_body_ = response_body; }
 void Response::setMsg(std::string msg) { msg_ = msg; }
+
+void Response::setConnectionHeaderByStatusCode(const std::string &status_code) {
+  if (!status_code.compare("403") ||
+      !status_code.compare("404") ||
+      !status_code.compare("405") ||  // TODO: 재확인 필요
+      !status_code.compare("409") ||  // TODO: 재확인 필요
+      !status_code.compare("200") ||
+      !status_code.compare("201") ||
+      !status_code.compare("204"))
+    setHeader("Connection", "keep-alive");
+  else
+    setHeader("Connection", "close");
+}
 
 }  // namespace ft

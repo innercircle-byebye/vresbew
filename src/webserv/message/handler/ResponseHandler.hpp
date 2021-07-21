@@ -44,28 +44,30 @@ class ResponseHandler {
   void setServerConfig(HttpConfig *http_config, struct sockaddr_in &addr, const std::string &host);
   void setResponseFields(const std::string &method, std::string &uri);
   void makeResponseMsg();
+  void setStatusLineWithCode(const std::string &status_code);
 
   std::string getAccessPath(std::string uri);
 
  private:
   // Response::response_ setter begin
-  void setResponseStatusLineToMessageBuffer();
-  void setResponseHeaderToMessageBuffer();
-  void setResponseBodyToMessageBuffer();
+  void setResponseStatusLine();
+  void setResponseHeader();
+  void setResponseBody();
   // Response::response_ setter end
 
-  // blocks for setResponse begin
-  void processGetAndHeaderMethod();
+  // making response message begin
+  // void setStatusLineWithCode(const std::string &status_code);
+  std::string getDefaultErrorBody(std::string status_code, std::string status_message);
+  // making response message end
+
+  // blocks for setResponseFields begin
+  void processGetAndHeaderMethod(const std::string *uri, LocationConfig *location);
   void processPutMethod();
   void processDeleteMethod();
   void processPostMethod();
-  // blocks for setResponse end
+  // blocks for setResponseFields end
 
-  // making response message begin
-  void setStatusLineWithCode(const std::string &status_code);
-  void setConnectionHeaderByStatusCode(const std::string &status_code);
-  std::string getDefaultErrorBody(std::string status_code, std::string status_message);
-  // making response message end
+
 
   // 애매함
   void setResponseBodyFromFile(std::string &uri);

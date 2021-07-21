@@ -30,10 +30,9 @@ void MessageHandler::handle_response(Connection *c) {
   response_handler_.setResponse(&c->getResponse());
   response_handler_.setServerConfig(c->getHttpConfig(), c->getSockaddrToConnect(), c->getRequest().getHeaderValue("Host"));
 
-
-  if (!isValidRequestMethod(c->getRequest().getMethod()) || \
+  if (!isValidRequestMethod(c->getRequest().getMethod()) ||
       !isValidRequestVersion(c->getRequest().getHttpVersion(), c->getRequest().getHeaders()))
-    response_handler_.setResponse400();
+    response_handler_.setStatusLineWithCode("400");
   else
     response_handler_.setResponseFields(c->getRequest().getMethod(), c->getRequest().getUri());
 
@@ -41,7 +40,6 @@ void MessageHandler::handle_response(Connection *c) {
 
   if (c->getRequest().getMethod() == "PUT" &&
       (c->getResponse().getStatusCode() == "201" || (c->getResponse().getStatusCode() == "204"))) {
-
     std::cout << "in message handler it catched " << std::endl;
     executePutMethod(response_handler_.getAccessPath(c->getRequest().getUri()), c->getRequest().getEntityBody());
   }
@@ -50,7 +48,6 @@ void MessageHandler::handle_response(Connection *c) {
   // TODO: 언제 삭제해야하는지 적절한 시기를 확인해야함
   c->getRequest().clear();
   c->getResponse().clear();
-
 }
 
 void MessageHandler::executePutMethod(std::string path, std::string content) {
@@ -65,7 +62,6 @@ bool MessageHandler::isValidRequestMethod(const std::string &method) {
       method.compare("DELETE") && method.compare("PUT") && method.compare("HEAD"))
     return (false);
   return (true);
-
 }
 
 bool MessageHandler::isValidRequestVersion(const std::string &http_version, const std::map<std::string, std::string> &headers) {

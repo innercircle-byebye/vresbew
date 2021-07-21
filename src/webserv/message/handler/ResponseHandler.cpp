@@ -62,56 +62,11 @@ void ResponseHandler::setResponseFields(const std::string &method, std::string &
       std::string url = getAccessPath(uri);
       // stat 으로 하위에 존재하는 모든것을 탐색해야합니다.
       std::cout << "uri : " << uri << " url : " << url << std::endl;
-      if (!(this->dir_ = opendir(url.c_str()))) {
-        std::cout << "Error opendir" << std::endl;
-        setResponse404();  // 404 Not Found
-        return ;
+      if (deletePathRecurcive(url) == -1) {
+        setResponse403();  // 실패인데 어떤 status code 를 주어야하는지 모르겠습니다...
+      } else {
+        setResponse403();  // 여튼 성공!
       }
-      // error handling 이 잘되면 else 안하고 쌉가능하다.
-      std::cout << "directory open success" << std::endl;
-      while ((this->entry_ = readdir(this->dir_)) != NULL) {
-        std::cout << "entry d_name : " << entry_->d_name << std::endl;
-        if (strcmp(entry_->d_name, ".") == 0) {
-          std::cout << "find ." << std::endl;
-          continue ;
-        }
-        else if (strcmp(entry_->d_name, "..") == 0) {
-          std::cout << "find .." << std::endl;
-          continue ;
-        }
-        else {
-          std::string remove_target_path;
-
-          remove_target_path += url;
-          remove_target_path += entry_->d_name;
-          std::cout << "path of remove target : " << remove_target_path << std::endl;
-          // directory 인지 file 인지 확인하는 기능
-          if (stat(remove_target_path.c_str(), &this->stat_buffer_) < 0) {
-            std::cout << "stat ain't work" << std::endl;
-            setResponse404();  // 404 Not Found
-            return ;
-          }
-          if (S_ISDIR(this->stat_buffer_.st_mode)) {
-            // 또 open dir 로 열어 제낀다음에 하위 목록들 싹다 지워야 directory 가 지워집니다.
-            // TODO: directory 를 열고 하위 자료를 싹 지우는 제귀함수 구현하기
-            if (rmdir(remove_target_path.c_str()) != 0) {
-              // rmdir fail
-              std::cout << "Error rmdir " << entry_->d_name << std::endl;
-              setResponse403();
-              return ;
-            }
-          } else if (S_ISREG(this->stat_buffer_.st_mode)) {
-            if (remove(remove_target_path.c_str()) != 0) {
-              // remove fail
-              std::cout << "Error remove " << entry_->d_name << std::endl;
-              setResponse403();
-              return ;
-            }
-          }
-        }
-      }
-      setResponse403();  // 여튼 성공!
-      closedir(this->dir_);
     } else {  // "/" 가 아닌 경우
       std::string url = getAccessPath(uri);
       std::cout << "url : " << url << std::endl;
@@ -351,6 +306,55 @@ std::string ResponseHandler::getDefaultErrorBody(std::string status_code, std::s
   body += "</html>\n";
 
   return body;
+}
+
+int ResponseHandler::deletePathRecurcive(std::string &path) {
+  struct stat stat_buffer;
+  // path 설정
+
+  // stat 동작시키고
+  if (stat(path.c_str(), &stat_buffer) != 0) {
+    // std::cerr << "fail stat(<File>)" << std::endl;
+    return (-1);  // error
+  }
+
+  if (S_ISDIR(stat_buffer.st_mode)) {
+    DIR *dir_ptr;
+    struct dirent *item;
+
+    // std::cout << path << " is directory" << std::endl;
+    if (!(dir_ptr = opendir(path.c_str()))) {
+      // std::cerr << "fail opendir(<FILE>) " << path << std::endl;
+      return (-1);
+    }
+    while ((item = readdir(dir_ptr))) {
+      if (strcmp(item->d_name, ".") == 0 || strcmp(item->d_name, "..") == 0)
+        continue;
+      std::string new_path(path);
+      new_path += "/";
+      new_path += item->d_name;
+      // std::cout << "Good?! : " << new_path << std::endl;
+      if (deletePathRecurcive(new_path) == -1) {
+        // std::cout << "Error!!! " << new_path << std::endl;
+        return (-1);
+      }
+    }
+    // std::cout << "finish inner search " << path << std::endl;
+    if (rmdir(path.c_str()) == -1) {
+      // std::cerr << "fail rmdir(<DIR>) " << path << std::endl;
+      return (-1);
+    }
+    // std::cout << "success rmdir " << path << std::endl;
+  } else if (S_ISREG(stat_buffer.st_mode)) {
+    // std::cout << path << " is file" << std::endl;
+    // remove(path.c_str());
+    if (remove(path.c_str()) != 0) {
+      // std::cerr << "fail remove(<FILE>) " << path << std::endl;
+      return (-1);
+    }
+    // std::cout << "success remove " << path << std::endl;
+  }
+  return (0);
 }
 
 }  // namespace ft

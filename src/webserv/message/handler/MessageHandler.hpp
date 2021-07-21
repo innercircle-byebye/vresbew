@@ -9,23 +9,24 @@
 #include <string>
 
 #include "webserv/config/HttpConfig.hpp"
-#include "webserv/socket/Connection.hpp"
 #include "webserv/message/handler/RequestHandler.hpp"
 #include "webserv/message/handler/ResponseHandler.hpp"
+#include "webserv/socket/Connection.hpp"
 
 namespace ft {
 
 class MessageHandler {
- public:
-
+ private:
+  static ResponseHandler response_handler_;
+  static RequestHandler request_handler_;
   MessageHandler();
   ~MessageHandler();
 
+ public:
   static void handle_request(Connection *c);
   static void handle_response(Connection *c);
 
-
- private:
+private:
   static void executePutMethod(std::string path, std::string content);
   static bool isValidRequestMethod(const std::string &method);
   static bool isValidRequestVersion(const std::string &http_version, const std::map<std::string, std::string> &headers);

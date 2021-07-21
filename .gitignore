@@ -9,3 +9,4 @@
 *.o
 error.log
 webserv.dSYM
+./webserv

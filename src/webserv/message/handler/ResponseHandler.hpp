@@ -8,35 +8,25 @@
 #include <istream>
 #include <sstream>  // std::istringstream
 #include <string>
+#include <stdio.h>  // remove()
+#include <unistd.h>  // rmdir(2)
+#include <dirent.h>  // opendir()
 
 #include "webserv/config/HttpConfig.hpp"
+#include "webserv/logger/Time.hpp"
 #include "webserv/message/Request.hpp"
 #include "webserv/message/Response.hpp"
-#include "webserv/logger/Time.hpp"
+#include "webserv/message/StatusMessage.hpp"
 
 namespace ft {
 
-
-enum requestMethodForEnum {
-  METHOD_GET = 0,
-  METHOD_HEAD,
-  METHOD_PUT,
-  METHOD_POST,
-  METHOD_DELETE
-};
-
 class ResponseHandler {
+  Response *response_;
+  ServerConfig *server_config_;
 
-  Response      *response_;
-  ServerConfig  *server_config_;
-
-  std::string rootpath_;
-  std::string error400;
-  std::string error404;
-  std::string error405;
-  std::string error409;
-  std::string error500;
   struct stat stat_buffer_;
+  struct dirent *entry_; // TODO: 지역변수로 전환 검토
+  DIR *dir_; // TODO: 지역변수로 전환 검토
 
  public:
   ResponseHandler();
@@ -55,8 +45,6 @@ class ResponseHandler {
   void setResponseHeader();
   void setResponseBody();
 
-  bool isRequestMethodAllowed(const std::string &uri, const std::string &method);
-  int getMethodByEnum(std::string request_method);
   // static bool isUriOnlySlash(std::string &uri);
   bool isFileExist(std::string &uri);
   bool isPathAccessable(std::string path, std::string &uri);
@@ -64,11 +52,13 @@ class ResponseHandler {
   void setResponse200();
   void setResponse201();
   void setResponse204();
+  void setResponse403();
   void setResponse404();
   void setResponse405();
   void setResponse409();
   void setResponse500();
 
+  std::string getDefaultErrorBody(std::string status_code, std::string status_message);
 };
 }  // namespace ft
 #endif

@@ -1,13 +1,16 @@
 #include "webserv/message/handler/MessageHandler.hpp"
 
 namespace ft {
-  
+
+RequestHandler MessageHandler::request_handler_ = RequestHandler();
+ResponseHandler MessageHandler::response_handler_ = ResponseHandler();
+
 MessageHandler::MessageHandler() {}
 
 MessageHandler::~MessageHandler() {}
 
 void MessageHandler::handle_request(Connection *c) {
-  RequestHandler  request_handler_;
+  //RequestHandler  request_handler_;
 
   // 1. recv
   size_t recv_len = recv(c->getFd(), c->buffer_, BUF_SIZE, 0);
@@ -22,7 +25,7 @@ void MessageHandler::handle_request(Connection *c) {
 }
 
 void MessageHandler::handle_response(Connection *c) {
-  ResponseHandler response_handler_;
+  //ResponseHandler response_handler_;
 
   response_handler_.setResponse(&c->getResponse());
   response_handler_.setServerConfig(c->getHttpConfig(), c->getSockaddrToConnect(), c->getRequest().getHeaderValue("Host"));
@@ -35,7 +38,7 @@ void MessageHandler::handle_response(Connection *c) {
     response_handler_.setResponseFields(c->getRequest().getMethod(), c->getRequest().getUri());
 
   response_handler_.makeResponseMsg();
-  
+
   if (c->getRequest().getMethod() == "PUT" &&
       (c->getResponse().getStatusCode() == "201" || (c->getResponse().getStatusCode() == "204"))) {
 

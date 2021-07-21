@@ -32,49 +32,7 @@ void ResponseHandler::setResponseFields(const std::string &method, std::string &
     processPutMethod(uri, location);
   } else if (method == "POST") {
   } else if (method == "DELETE") {
-    // TODO: 경로가 "/"로 시작하지 않는 경우에는 "./"를 붙이도록 수정
-    // if isUriOnlyOrSlash -> delete everything in there and 403 forbidden
-    // if path is directory -> 409 Conflict and do nothing
-    // if file is missing -> 404 not found
-    // if file is available -> 204 No Content and delete the file
-    std::cout << "in delete" << std::endl;
-    if (!uri.compare("/")) {  // URI 에 "/" 만 있는 경우
-      std::string url = getAccessPath(uri);
-      // stat 으로 하위에 존재하는 모든것을 탐색해야합니다.
-      std::cout << "uri : " << uri << " url : " << url << std::endl;
-      if (deletePathRecursive(url) == -1) {
-        setStatusLineWithCode("403");  // TODO:실패인데 어떤 status code 를 주어야하는지 모르겠습니다...
-                                       // A: 201 혹은 204로 추정됩니다.
-      } else {
-        setStatusLineWithCode("403");
-      }
-    } else {  // "/" 가 아닌 경우
-      std::string url = getAccessPath(uri);
-      std::cout << "url : " << url << std::endl;
-      if (stat(url.c_str(), &this->stat_buffer_) < 0) {
-        std::cout << "stat ain't work" << std::endl;
-        setStatusLineWithCode("404");
-      } else {
-        // file or directory
-        if (S_ISDIR(this->stat_buffer_.st_mode)) {
-          // is directory
-          // if path is directory -> 409 Conflict and do nothing
-          std::cout << "is directory" << std::endl;
-          setStatusLineWithCode("409");
-        } else {  // is not directory == file ?!
-          std::cout << "is not directory" << std::endl;
-          // file 이 존재합니다. 존재하지 않으면 stat() 이 -1 을 반환합니다.
-          // file 을 지웁니다. remove()
-          if (remove(url.c_str()) != 0) {
-            std::cout << "Error remove " << url << std::endl;
-            setStatusLineWithCode("403");
-            return;
-          }
-          std::cout << "remove success" << std::endl;
-          setStatusLineWithCode("204");
-        }
-      }
-    }
+    processDeleteMethod(uri, location);
   }
 
   ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -181,10 +139,56 @@ void ResponseHandler::processPutMethod(std::string &uri, LocationConfig *&locati
   } else if (!isPathAccessable(location->getRoot(), uri)) {
     std::cout << "here" << std::endl;
     setStatusLineWithCode("500");
-  } else if (!isFileExist(uri)) {  /// file writing not working yet!!!!!
+  } else if (!isFileExist(uri)) {
     setStatusLineWithCode("201");
   } else {
     setStatusLineWithCode("204");
+  }
+}
+
+void ResponseHandler::processDeleteMethod(std::string &uri, LocationConfig *&location) {
+  // TODO: 경로가 "/"로 시작하지 않는 경우에는 "./"를 붙이도록 수정
+  // if isUriOnlyOrSlash -> delete everything in there and 403 forbidden
+  // if path is directory -> 409 Conflict and do nothing
+  // if file is missing -> 404 not found
+  // if file is available -> 204 No Content and delete the file
+  std::cout << "in delete" << std::endl;
+  if (!uri.compare("/")) {  // URI 에 "/" 만 있는 경우
+    std::string url = getAccessPath(uri);
+    // stat 으로 하위에 존재하는 모든것을 탐색해야합니다.
+    std::cout << "uri : " << uri << " url : " << url << std::endl;
+    if (deletePathRecursive(url) == -1) {
+      setStatusLineWithCode("403");  // TODO:실패인데 어떤 status code 를 주어야하는지 모르겠습니다...
+                                     // A: 201 혹은 204로 추정됩니다.
+    } else {
+      setStatusLineWithCode("403");
+    }
+  } else {  // "/" 가 아닌 경우
+    std::string url = getAccessPath(uri);
+    std::cout << "url : " << url << std::endl;
+    if (stat(url.c_str(), &this->stat_buffer_) < 0) {
+      std::cout << "stat ain't work" << std::endl;
+      setStatusLineWithCode("404");
+    } else {
+      // file or directory
+      if (S_ISDIR(this->stat_buffer_.st_mode)) {
+        // is directory
+        // if path is directory -> 409 Conflict and do nothing
+        std::cout << "is directory" << std::endl;
+        setStatusLineWithCode("409");
+      } else {  // is not directory == file ?!
+        std::cout << "is not directory" << std::endl;
+        // file 이 존재합니다. 존재하지 않으면 stat() 이 -1 을 반환합니다.
+        // file 을 지웁니다. remove()
+        if (remove(url.c_str()) != 0) {
+          std::cout << "Error remove " << url << std::endl;
+          setStatusLineWithCode("403");
+          return;
+        }
+        std::cout << "remove success" << std::endl;
+        setStatusLineWithCode("204");
+      }
+    }
   }
 }
 

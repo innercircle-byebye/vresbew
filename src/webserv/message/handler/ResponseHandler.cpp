@@ -250,7 +250,6 @@ bool ResponseHandler::isPathAccessable(std::string &uri, LocationConfig *&locati
   if (stat(getAccessPath(uri, location).c_str(), &this->stat_buffer_) < 0) {
     return (false);
   }
-  std::cout << stat_buffer_.st_mode << std::endl;
   if (stat_buffer_.st_mode & S_IRWXU)
     return (true);
   return (false);

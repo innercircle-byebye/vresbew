@@ -9,7 +9,7 @@ ResponseHandler::~ResponseHandler() {}
 void ResponseHandler::setResponse(Response *response) { response_ = response; }
 
 //TODO: setLocationConfig로 바꿔도 될지 확인해보기
-//      일단 안하는게 맞는걸로 확인함.
+//      일단 안하는게 맞는걸로 확인되는데 다시 확인 필요...
 void ResponseHandler::setServerConfig(HttpConfig *http_config, struct sockaddr_in &addr, const std::string &host) {
   this->server_config_ = http_config->getServerConfig(addr.sin_port, addr.sin_addr.s_addr, host);
 }
@@ -61,7 +61,7 @@ void ResponseHandler::setResponseStatusLine() {
 void ResponseHandler::setResponseHeader() {
   std::map<std::string, std::string> headers = response_->getHeaders();
   std::map<std::string, std::string>::iterator it;
-  // nginx 는 알파벳 역순으로 저장함
+  // nginx 는 알파벳 역순으로 메세지를 보냄
   for (it = headers.end(); it != headers.begin(); it--) {
     if (it->second != "") {
       response_->getMsg() += it->first;
@@ -123,7 +123,7 @@ void ResponseHandler::processGetAndHeaderMethod(const std::string &method,
   if (!uri.compare("/")) {
     uri += location->getIndex().at(0);
   }
-  if (!isFileExist(uri, location)) {
+  if (!isFileExist(uri)) {
     // 403 Forbidden 케이스도 있음
     setStatusLineWithCode("404");
   } else {
@@ -136,23 +136,27 @@ void ResponseHandler::processGetAndHeaderMethod(const std::string &method,
 void ResponseHandler::processPutMethod(std::string &uri, LocationConfig *&location) {
   if (!uri.compare("/")) {
     setStatusLineWithCode("409");
+    return ;
   } else if (!isPathAccessable(location->getRoot(), uri)) {
-    std::cout << "here" << std::endl;
     setStatusLineWithCode("500");
-  } else if (!isFileExist(uri, location)) {
+    return ;
+  }
+  if (!isFileExist(uri)) {
     setStatusLineWithCode("201");
   } else {
     setStatusLineWithCode("204");
   }
 }
 
-void processPostMethod(std::string &uri, LocationConfig *&location) {
+void ResponseHandler::processPostMethod(std::string &uri, LocationConfig *&location) {
   (void)uri;
   (void)location;
   ;
 }
 
 void ResponseHandler::processDeleteMethod(std::string &uri, LocationConfig *&location) {
+
+  (void)location;
   // TODO: 경로가 "/"로 시작하지 않는 경우에는 "./"를 붙이도록 수정
   // if isUriOnlyOrSlash -> delete everything in there and 403 forbidden
   // if path is directory -> 409 Conflict and do nothing
@@ -160,7 +164,7 @@ void ResponseHandler::processDeleteMethod(std::string &uri, LocationConfig *&loc
   // if file is available -> 204 No Content and delete the file
   std::cout << "in delete" << std::endl;
   if (!uri.compare("/")) {  // URI 에 "/" 만 있는 경우
-    std::string url = getAccessPath(uri, location);
+    std::string url = getAccessPath(uri);
     // stat 으로 하위에 존재하는 모든것을 탐색해야합니다.
     std::cout << "uri : " << uri << " url : " << url << std::endl;
     if (deletePathRecursive(url) == -1) {
@@ -170,7 +174,7 @@ void ResponseHandler::processDeleteMethod(std::string &uri, LocationConfig *&loc
       setStatusLineWithCode("403");
     }
   } else {  // "/" 가 아닌 경우
-    std::string url = getAccessPath(uri, location);
+    std::string url = getAccessPath(uri);
     std::cout << "url : " << url << std::endl;
     if (stat(url.c_str(), &this->stat_buffer_) < 0) {
       std::cout << "stat ain't work" << std::endl;
@@ -200,17 +204,32 @@ void ResponseHandler::processDeleteMethod(std::string &uri, LocationConfig *&loc
 
 // ***********blocks for setResponseFields end*************** //
 
+std::string ResponseHandler::getAccessPath(std::string &uri) {
+  LocationConfig *location = this->server_config_->getLocationConfig(uri);
+  std::string path;
+  path = "." + location->getRoot() + uri;
+  return (path);
+}
+
 std::string ResponseHandler::getAccessPath(std::string &uri, LocationConfig *&location) {
   std::string path;
   path = "." + location->getRoot() + uri;
   return (path);
 }
 
+bool ResponseHandler::isFileExist(std::string &uri) {
+
+  if (stat(getAccessPath(uri).c_str(), &this->stat_buffer_) < 0) {
+    std::cout << "this ain't work" << std::endl;
+    return (false);
+  }
+  return (true);
+}
+
 bool ResponseHandler::isFileExist(std::string &uri, LocationConfig *&location) {
-  // LocationConfig *location = this->server_config_->getLocationConfig(uri);
 
   if (stat(getAccessPath(uri, location).c_str(), &this->stat_buffer_) < 0) {
-    std::cout << "this ain't work" << std::endl;
+    std::cout << "this doesn't work" << std::endl;
     return (false);
   }
   return (true);
@@ -235,7 +254,7 @@ void ResponseHandler::setResponseBodyFromFile(std::string &uri) {
   LocationConfig *location = this->server_config_->getLocationConfig(uri);  // 없으면 not found
   (void)location;
 
-  std::ifstream file(getAccessPath(uri, location).c_str());
+  std::ifstream file(getAccessPath(uri).c_str());
 
   file.seekg(0, std::ios::end);
   this->response_->getResponseBody().reserve(file.tellg());

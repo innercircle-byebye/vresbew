@@ -38,9 +38,11 @@ void MessageHandler::handle_response(Connection *c) {
 
   response_handler_.makeResponseMsg();
 
+  /// executePutMEthod가 있던 자리...
   if (c->getRequest().getMethod() == "PUT" &&
       (c->getResponse().getStatusCode() == "201" || (c->getResponse().getStatusCode() == "204"))) {
     std::cout << "in message handler it catched " << std::endl;
+    // create response body
     executePutMethod(response_handler_.getAccessPath(c->getRequest().getUri()), c->getRequest().getEntityBody());
   }
 

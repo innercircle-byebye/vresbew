@@ -23,19 +23,16 @@ void ResponseHandler::setResponseFields(const std::string &method, std::string &
     return;
   }
 
-  ///////////////////////////////////////////////////////////////////////////////////////////////////
-
-  // TODO: 수정 필요
-  if (method == "GET" || method == "HEAD") {
+  if (method == "GET" || method == "HEAD")
     processGetAndHeaderMethod(method, uri, location);
-  } else if (method == "PUT") {
+  else if (method == "PUT")
     processPutMethod(uri, location);
-  } else if (method == "POST") {
-  } else if (method == "DELETE") {
+  else if (method == "POST")
+    // 아무것도 없음
+    processPostMethod(uri, location);
+  else if (method == "DELETE")
     processDeleteMethod(uri, location);
-  }
 
-  ///////////////////////////////////////////////////////////////////////////////////////////////////
   if (this->response_->getResponseBody().size() > 0) {
     this->response_->setHeader("Content-Length",
                                std::to_string(this->response_->getResponseBody().size()));
@@ -44,6 +41,7 @@ void ResponseHandler::setResponseFields(const std::string &method, std::string &
 
 /*-----------------------MAKING RESPONSE MESSAGE-----------------------------*/
 
+// 흐름상 가장 아래에 위치함
 void ResponseHandler::makeResponseMsg() {
   setResponseStatusLine();
   setResponseHeader();
@@ -79,7 +77,8 @@ void ResponseHandler::setResponseBody() {
     response_->getMsg() += response_->getResponseBody();
   }
 }
-// Response::response_ setter begin
+
+// Response::response_ setter end
 
 // making response message begin
 void ResponseHandler::setStatusLineWithCode(const std::string &status_code) {
@@ -96,6 +95,7 @@ void ResponseHandler::setStatusLineWithCode(const std::string &status_code) {
 }
 
 std::string ResponseHandler::getDefaultErrorBody(std::string status_code, std::string status_message) {
+  //TODO: 리팩토링 필요..
   std::string body;
 
   body += "<html>\n";
@@ -106,16 +106,16 @@ std::string ResponseHandler::getDefaultErrorBody(std::string status_code, std::s
   body += "</body>\n";
   body += "</html>\n";
 
-  return body;
+  return (body);
 }
 
 // making response message end
 
-/*-----------------------MAKING RESPONSE MESSAGE-----------------------------*/
+/*-----------------------MAKING RESPONSE MESSAGE END-----------------------------*/
 
-/*--------------------------EXECUTING METHODS--------------------------------*/
+/*--------------------------EXECUTING METHODS BEGIN--------------------------------*/
 
-// blocks for setResponseFields begin
+// ***********blocks for setResponseFields begin*************** //
 
 void ResponseHandler::processGetAndHeaderMethod(const std::string &method,
                                                 std::string &uri, LocationConfig *&location) {
@@ -123,7 +123,7 @@ void ResponseHandler::processGetAndHeaderMethod(const std::string &method,
   if (!uri.compare("/")) {
     uri += location->getIndex().at(0);
   }
-  if (!isFileExist(uri)) {
+  if (!isFileExist(uri, location)) {
     // 403 Forbidden 케이스도 있음
     setStatusLineWithCode("404");
   } else {
@@ -139,11 +139,17 @@ void ResponseHandler::processPutMethod(std::string &uri, LocationConfig *&locati
   } else if (!isPathAccessable(location->getRoot(), uri)) {
     std::cout << "here" << std::endl;
     setStatusLineWithCode("500");
-  } else if (!isFileExist(uri)) {
+  } else if (!isFileExist(uri, location)) {
     setStatusLineWithCode("201");
   } else {
     setStatusLineWithCode("204");
   }
+}
+
+void processPostMethod(std::string &uri, LocationConfig *&location) {
+  (void)uri;
+  (void)location;
+  ;
 }
 
 void ResponseHandler::processDeleteMethod(std::string &uri, LocationConfig *&location) {
@@ -154,7 +160,7 @@ void ResponseHandler::processDeleteMethod(std::string &uri, LocationConfig *&loc
   // if file is available -> 204 No Content and delete the file
   std::cout << "in delete" << std::endl;
   if (!uri.compare("/")) {  // URI 에 "/" 만 있는 경우
-    std::string url = getAccessPath(uri);
+    std::string url = getAccessPath(uri, location);
     // stat 으로 하위에 존재하는 모든것을 탐색해야합니다.
     std::cout << "uri : " << uri << " url : " << url << std::endl;
     if (deletePathRecursive(url) == -1) {
@@ -164,7 +170,7 @@ void ResponseHandler::processDeleteMethod(std::string &uri, LocationConfig *&loc
       setStatusLineWithCode("403");
     }
   } else {  // "/" 가 아닌 경우
-    std::string url = getAccessPath(uri);
+    std::string url = getAccessPath(uri, location);
     std::cout << "url : " << url << std::endl;
     if (stat(url.c_str(), &this->stat_buffer_) < 0) {
       std::cout << "stat ain't work" << std::endl;
@@ -192,18 +198,18 @@ void ResponseHandler::processDeleteMethod(std::string &uri, LocationConfig *&loc
   }
 }
 
-std::string ResponseHandler::getAccessPath(std::string uri) {
-  LocationConfig *location = this->server_config_->getLocationConfig(uri);
+// ***********blocks for setResponseFields end*************** //
 
+std::string ResponseHandler::getAccessPath(std::string &uri, LocationConfig *&location) {
   std::string path;
   path = "." + location->getRoot() + uri;
   return (path);
 }
 
-bool ResponseHandler::isFileExist(std::string &uri) {
+bool ResponseHandler::isFileExist(std::string &uri, LocationConfig *&location) {
   // LocationConfig *location = this->server_config_->getLocationConfig(uri);
 
-  if (stat(getAccessPath(uri).c_str(), &this->stat_buffer_) < 0) {
+  if (stat(getAccessPath(uri, location).c_str(), &this->stat_buffer_) < 0) {
     std::cout << "this ain't work" << std::endl;
     return (false);
   }
@@ -229,7 +235,7 @@ void ResponseHandler::setResponseBodyFromFile(std::string &uri) {
   LocationConfig *location = this->server_config_->getLocationConfig(uri);  // 없으면 not found
   (void)location;
 
-  std::ifstream file(getAccessPath(uri).c_str());
+  std::ifstream file(getAccessPath(uri, location).c_str());
 
   file.seekg(0, std::ios::end);
   this->response_->getResponseBody().reserve(file.tellg());

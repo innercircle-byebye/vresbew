@@ -46,10 +46,11 @@ class ResponseHandler {
   void makeResponseMsg();
   void setStatusLineWithCode(const std::string &status_code);
 
-  std::string getAccessPath(std::string uri);
+  std::string getAccessPath(std::string &uri, LocationConfig *&location);
 
  private:
   // Response::response_ setter begin
+  // 흐름상 가장 아래에 위치함
   void setResponseStatusLine();
   void setResponseHeader();
   void setResponseBody();
@@ -74,7 +75,7 @@ class ResponseHandler {
   // blocks for setResponseFields end
 
   // executing methods helper begin
-  bool isFileExist(std::string &uri);
+  bool isFileExist(std::string &uri, LocationConfig *&location);
   bool isPathAccessable(std::string path, std::string &uri);
   int deletePathRecursive(std::string &path);
   // executing methods helper end

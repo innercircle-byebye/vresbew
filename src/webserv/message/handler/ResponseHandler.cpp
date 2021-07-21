@@ -154,7 +154,7 @@ void ResponseHandler::processPutMethod(std::string &uri, LocationConfig *&locati
     setStatusLineWithCode("500");
     return;
   }
-  if (!isFileExist(uri)) {
+  if (!isFileExist(uri, location)) {
     setStatusLineWithCode("201");
   } else {
     setStatusLineWithCode("204");

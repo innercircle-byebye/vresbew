@@ -128,7 +128,7 @@ void ResponseHandler::processGetAndHeaderMethod(Request &request, LocationConfig
         return;
       }
     } else {
-      findIndexForGetWhenOnlySlashOrDirectory(request.getUri(), location);
+      findIndexForGetWhenOnlySlash(request.getUri(), location);
       if (!request.getUri().compare("/")) {
         setStatusLineWithCode("403");
         return;

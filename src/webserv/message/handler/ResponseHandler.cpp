@@ -18,7 +18,8 @@ void ResponseHandler::setResponseFields(const std::string &method, std::string &
   LocationConfig *location = this->server_config_->getLocationConfig(uri);
 
   if (!location->checkAcceptedMethod(method)) {
-    setResponse405();
+    setStatusLineWithCode("405");
+    // setResponse405();
     return;
   }
 
@@ -62,7 +63,7 @@ void ResponseHandler::setResponseFields(const std::string &method, std::string &
       std::string url = getAccessPath(uri);
       // stat 으로 하위에 존재하는 모든것을 탐색해야합니다.
       std::cout << "uri : " << uri << " url : " << url << std::endl;
-      if (deletePathRecurcive(url) == -1) {
+      if (deletePathRecursive(url) == -1) {
         setResponse403();  // 실패인데 어떤 status code 를 주어야하는지 모르겠습니다...
       } else {
         setResponse403();  // 여튼 성공!
@@ -88,7 +89,7 @@ void ResponseHandler::setResponseFields(const std::string &method, std::string &
           if (remove(url.c_str()) != 0) {
             std::cout << "Error remove " << url << std::endl;
             setResponse403();
-            return ;
+            return;
           }
           std::cout << "remove success" << std::endl;
           setResponse204();
@@ -104,12 +105,12 @@ void ResponseHandler::setResponseFields(const std::string &method, std::string &
 }
 
 void ResponseHandler::makeResponseMsg() {
-  setResponseStatusLine();
-  setResponseHeader();
-  setResponseBody();
+  setResponseStatusLineToMessageBuffer();
+  setResponseHeaderToMessageBuffer();
+  setResponseBodyToMessageBuffer();
 }
 
-void ResponseHandler::setResponseStatusLine() {
+void ResponseHandler::setResponseStatusLineToMessageBuffer() {
   response_->getMsg() += this->response_->getHttpVersion();
   response_->getMsg() += " ";
   response_->getMsg() += this->response_->getStatusCode();
@@ -118,11 +119,11 @@ void ResponseHandler::setResponseStatusLine() {
   response_->getMsg() += "\r\n";
 }
 
-void ResponseHandler::setResponseHeader() {
+void ResponseHandler::setResponseHeaderToMessageBuffer() {
   std::map<std::string, std::string> headers = response_->getHeaders();
   std::map<std::string, std::string>::iterator it;
-  // 순서에 맞아야하는지 확인해야함
-  for (it = headers.begin(); it != headers.end(); it++) {
+  // nginx 는 알파벳 역순으로 저장함
+  for (it = headers.end(); it != headers.begin(); it--) {
     if (it->second != "") {
       response_->getMsg() += it->first;
       response_->getMsg() += ": ";
@@ -133,7 +134,7 @@ void ResponseHandler::setResponseHeader() {
   response_->getMsg() += "\r\n";
 }
 
-void ResponseHandler::setResponseBody() {
+void ResponseHandler::setResponseBodyToMessageBuffer() {
   if (response_->getResponseBody().size()) {
     response_->getMsg() += response_->getResponseBody();
   }
@@ -146,12 +147,6 @@ std::string ResponseHandler::getAccessPath(std::string uri) {
   path = "." + location->getRoot() + uri;
   return (path);
 }
-
-// bool ResponseHandler::isUriOnlySlash(std::string &uri) {
-//   if (!uri.compare("/"))
-//     return (true);
-//   return (false);
-// }
 
 bool ResponseHandler::isFileExist(std::string &uri) {
   // LocationConfig *location = this->server_config_->getLocationConfig(uri);
@@ -190,6 +185,27 @@ void ResponseHandler::setResponseBodyFromFile(std::string &uri) {
 
   this->response_->getResponseBody().assign((std::istreambuf_iterator<char>(file)),
                                             std::istreambuf_iterator<char>());
+}
+
+void ResponseHandler::setStatusLineWithCode(std::string status_code) {
+  this->response_->setStatusCode(status_code);
+  this->response_->setStatusMessage(StatusMessage::of(stoi(status_code)));
+  this->response_->getResponseBody() =
+      getDefaultErrorBody(this->response_->getStatusCode(), this->response_->getStatusMessage());
+  setConnectionHeaderByStatusCode(status_code);
+}
+
+void ResponseHandler::setConnectionHeaderByStatusCode(std::string const &status_code) {
+  if (!status_code.compare("403") ||
+      !status_code.compare("404") ||
+      !status_code.compare("405") ||
+      !status_code.compare("409") ||
+      !status_code.compare("200") ||
+      !status_code.compare("201") ||
+      !status_code.compare("204") )
+    this->response_->setHeader("Connection", "keep-alive");
+  else
+    this->response_->setHeader("Connection", "close");
 }
 
 void ResponseHandler::setResponse400() {
@@ -286,7 +302,7 @@ void ResponseHandler::setResponse201() {
 }
 
 void ResponseHandler::setResponse204() {
-  unsigned int status_code = 204;
+  unsigned int status_code = 201;
   std::string status_code_str = std::to_string(status_code);  // TODO : remove (c++11)
 
   this->response_->setStatusCode(status_code_str);
@@ -308,17 +324,14 @@ std::string ResponseHandler::getDefaultErrorBody(std::string status_code, std::s
   return body;
 }
 
-int ResponseHandler::deletePathRecurcive(std::string &path) {
-  struct stat stat_buffer;
-  // path 설정
-
+int ResponseHandler::deletePathRecursive(std::string &path) {
   // stat 동작시키고
-  if (stat(path.c_str(), &stat_buffer) != 0) {
+  if (stat(path.c_str(), &stat_buffer_) != 0) {
     // std::cerr << "fail stat(<File>)" << std::endl;
     return (-1);  // error
   }
 
-  if (S_ISDIR(stat_buffer.st_mode)) {
+  if (S_ISDIR(stat_buffer_.st_mode)) {
     DIR *dir_ptr;
     struct dirent *item;
 
@@ -334,7 +347,7 @@ int ResponseHandler::deletePathRecurcive(std::string &path) {
       new_path += "/";
       new_path += item->d_name;
       // std::cout << "Good?! : " << new_path << std::endl;
-      if (deletePathRecurcive(new_path) == -1) {
+      if (deletePathRecursive(new_path) == -1) {
         // std::cout << "Error!!! " << new_path << std::endl;
         return (-1);
       }
@@ -345,7 +358,7 @@ int ResponseHandler::deletePathRecurcive(std::string &path) {
       return (-1);
     }
     // std::cout << "success rmdir " << path << std::endl;
-  } else if (S_ISREG(stat_buffer.st_mode)) {
+  } else if (S_ISREG(stat_buffer_.st_mode)) {
     // std::cout << path << " is file" << std::endl;
     // remove(path.c_str());
     if (remove(path.c_str()) != 0) {

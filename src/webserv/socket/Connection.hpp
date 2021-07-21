@@ -8,6 +8,7 @@
 #include "webserv/message/Response.hpp"
 #include "webserv/logger/Logger.hpp"
 
+
 namespace ft {
 
 class Connection {
@@ -31,6 +32,7 @@ class Connection {
  public:
   char buffer_[BUF_SIZE];
 
+
   Connection();
   ~Connection();
 
@@ -44,8 +46,6 @@ class Connection {
   void setSockaddrToConnectPort(in_port_t port);
   void setSockaddrToConnectIP(in_addr_t ipaddr);
   void setHttpConfig(HttpConfig *httpconfig);
-  // void setRequest();
-  // void setResponse();
 
   bool getListen() const;
   Connection *getNext() const;

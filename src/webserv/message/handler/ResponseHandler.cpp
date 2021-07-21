@@ -2,7 +2,9 @@
 
 namespace ft {
 
+
 ResponseHandler::ResponseHandler() {
+
   this->error400 = "<html>\n<head><title>400 Bad Request</title></head>\n<body>\n<center><h1>400 Bad Request</h1></center>\n<hr><center>vresbew</center>\n</body>\n</html>\n";
   this->error404 = "<html>\n<head><title>404 Not Found</title></head>\n<body>\n<center><h1>404 Not Found</h1></center>\n<hr><center>vresbew</center>\n</body>\n</html>\n";
   this->error405 = "<html>\n<head><title>404 Method Not Allowed</title></head>\n<body>\n<center><h1>405 Method Not Allowed</h1></center>\n<hr><center>vresbew</center>\n</body>\n</html>\n";
@@ -10,6 +12,7 @@ ResponseHandler::ResponseHandler() {
   this->error409 = "<html>\n<head><title>409 Conflict</title></head>\n<body>\n<center><h1>409 Confilct</h1></center>\n<hr><center>vresbew</center>\n</body>\n</html>\n";
   this->error500 = "<html>\n<head><title>500 Internal Server Error</title></head>\n<body>\n<center><h1>500 Internal Server Error</h1></center>\n<hr><center>vresbew</center>\n</body>\n</html>\n";
 }
+
 
 ResponseHandler::~ResponseHandler() {}
 
@@ -20,16 +23,13 @@ void ResponseHandler::setResponse(Response *response) {
 //TODO: setLocationConfig로 바꿔도 될지 확인해보기
 void ResponseHandler::setServerConfig(HttpConfig *http_config, struct sockaddr_in &addr, const std::string &host) {
   this->server_config_ = http_config->getServerConfig(addr.sin_port, addr.sin_addr.s_addr, host);
+
 }
 
 void ResponseHandler::setResponseFields(const std::string &method, std::string &uri) {
   this->response_->setHeader("Date", Time::getCurrentDate());
   LocationConfig *location = this->server_config_->getLocationConfig(uri);
 
-  if (!this->isRequestMethodAllowed(uri, method)) {
-    setResponse405();
-    return;
-  }
   // TODO: 수정 필요
   // switch case 쓰려고 굳이 이렇게 까지 할 필요가 있을까...
   switch (getMethodByEnum(method)) {
@@ -39,8 +39,10 @@ void ResponseHandler::setResponseFields(const std::string &method, std::string &
       if (!uri.compare("/")) {
         uri += location->getIndex().at(0);
       }
+
       if (!isFileExist(uri)) {
       // 403 Forbidden 케이스도 있음
+
         setResponse404();
         break;
       } else {
@@ -58,7 +60,9 @@ void ResponseHandler::setResponseFields(const std::string &method, std::string &
         setResponse409();
         break;
       }
+
       if (!isPathAccessable(location->getRoot(), uri)) {
+
         std::cout << "here" << std::endl;
         setResponse500();
         break;
@@ -72,13 +76,11 @@ void ResponseHandler::setResponseFields(const std::string &method, std::string &
       break;
     }
     case METHOD_POST:
-    case METHOD_DELETE:
-    {
+    case METHOD_DELETE: {
       // if isUriOnlyOrSlash -> delete everything in there and 403 forbidden
       // if path is directory -> 409 Conflict and do nothing
       // if file is missing -> 404 not found
       // if file is available -> 204 No Content and delete the file
-
     }
     default:
       break;
@@ -94,6 +96,7 @@ void ResponseHandler::makeResponseMsg() {
   setResponseHeader();
   setResponseBody();
 }
+
 
 void ResponseHandler::setResponseStatusLine() {
   response_->getMsg() += this->response_->getHttpVersion();
@@ -122,6 +125,7 @@ void ResponseHandler::setResponseHeader() {
 void ResponseHandler::setResponseBody() {
   if (response_->getResponseBody().size()) {
     response_->getMsg() += response_->getResponseBody();
+
   }
 }
 
@@ -151,15 +155,18 @@ bool ResponseHandler::isFileExist(std::string &uri) {
   // LocationConfig *location = this->server_config_->getLocationConfig(uri);
 
   if (stat(getAccessPath(uri).c_str(), &this->stat_buffer_) < 0) {
+
     std::cout << "this ain't work" << std::endl;
     return (false);
   }
   return (true);
 }
 
+
 bool ResponseHandler::isPathAccessable(std::string path, std::string &uri) {
   LocationConfig *location = this->server_config_->getLocationConfig(uri);
   (void)location;
+
 
   path.insert(0, ".");
   std::cout << path << std::endl;
@@ -172,11 +179,13 @@ bool ResponseHandler::isPathAccessable(std::string path, std::string &uri) {
   return (false);
 }
 
+
 void ResponseHandler::setResponseBodyFromFile(std::string &uri) {
   LocationConfig *location = this->server_config_->getLocationConfig(uri);  // 없으면 not found
   (void)location;
 
   std::ifstream file(getAccessPath(uri).c_str());
+
   file.seekg(0, std::ios::end);
   this->response_->getResponseBody().reserve(file.tellg());
   file.seekg(0, std::ios::beg);
@@ -240,6 +249,7 @@ void ResponseHandler::setResponse204() {
 }
 
 
+
 // std::string ResponseHandler::getCurrentDate() {
 //   //TODO: 개선이 필요함
 //   std::string current_time;
@@ -249,6 +259,7 @@ void ResponseHandler::setResponse204() {
 //   tt = gmtime(&t);
 //   current_time.append(asctime(tt), strlen(asctime(tt)) - 1);
 //   current_time.append(" GMT");
+
 
 //   return (current_time);
 // }

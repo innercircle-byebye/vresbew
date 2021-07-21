@@ -1,0 +1,11 @@
+# OS
+.DS_Store
+
+# IDE
+.vscode
+
+# compiler and binary
+*.out
+*.o
+error.log
+webserv.dSYM

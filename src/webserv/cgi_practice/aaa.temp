@@ -1,0 +1,18 @@
+CONTENT_LENGTH 100000000
+CONTENT_TYPE test/file
+GATEWAY_INTERFACE CGI/1.1
+HTTP_Accept-Encoding gzip
+HTTP_Content-Type test/file
+HTTP_Host localhost:80
+HTTP_Transfer-Encoding chunked
+HTTP_User-Agent Go-http-client/1.1
+PATH_INFO /directory/youpi.bla
+PATH_TRANSLATED /Users/wwaya/42-webserv/www/YoupiBanane/youpi.bla
+QUERY_STRING
+REMOTE_ADDR 127.0.0.1
+REQUEST_METHOD POST
+REQUEST_URI /directory/youpi.bla
+SCRIPT_NAME /Users/wwaya/42-webserv/cgi_tester
+SERVER_PORT 80
+SERVER_PROTOCOL HTTP/1.1
+SERVER_SOFTWARE webserv

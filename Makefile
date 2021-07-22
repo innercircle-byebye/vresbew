@@ -39,11 +39,13 @@ $(NAME):		$(OBJS)
 
 clean:
 				$(RM) $(OBJS)
-				rm -r ./webserv.dSYM
+
 
 
 fclean:			clean
 				$(RM) $(NAME) $(LOGFILE)
+
+
 
 debug:			fclean
 				@echo "DEBUG MODE BUILD START...."

@@ -9,6 +9,7 @@ LocationConfig::LocationConfig(std::vector<std::string> tokens, ServerConfig *se
   this->client_max_body_size = server_config->getClientMaxBodySize();
   this->return_code = -1;
   this->return_value = "";
+  this->cgi_path = "";
 
   // 한번이라도 세팅했었는지 체크하는 변수
   bool check_root_setting = false;
@@ -17,6 +18,8 @@ LocationConfig::LocationConfig(std::vector<std::string> tokens, ServerConfig *se
   bool check_client_max_body_size = false;
   bool check_limit_except = false;
   bool check_return = false;
+  bool check_cgi = false;
+  bool check_cgi_path = false;
 
   std::vector<std::string>::iterator it = tokens.begin();  // "location"
   it++;                                                    // path
@@ -157,9 +160,38 @@ LocationConfig::LocationConfig(std::vector<std::string> tokens, ServerConfig *se
         this->return_value = *(it + 2);
         it += 4;
       }
+    } else if (*it == "cgi") {
+      if (check_cgi == true)
+        throw std::runtime_error("webserv: [emerg] \"cgi\" directive is duplicate");
+
+      it++;
+      if (*it == ";") {
+        throw std::runtime_error("webserv: [emerg] invalid number of arguments in \"cgi\" directive");
+      }
+
+      for (; *it != ";"; it++) {
+        if (it->find(".") != 0)
+          throw std::runtime_error("webserv: [emerg] invalid cgi extention \"" + (*it) + "\"");
+        this->cgi.push_back(*it);
+      }
+      it++;
+      check_cgi = true;
+    } else if (*it == "cgi_path") {
+      if (check_cgi_path == true)
+        throw std::runtime_error("webserv: [emerg] \"cgi_path\" directive is duplicate");
+      if (*(it + 1) == ";" || *(it + 2) != ";")
+        throw std::runtime_error("webserv: [emerg] invalid number of arguments in \"cgi_path\" directive");
+
+      this->cgi_path = *(it + 1);
+      it += 3;
+      check_cgi_path = true;
     } else {
       throw std::runtime_error("webserv: [emerg] unknown directive \"" + (*it) + "\"");
     }
+  }
+
+  if (check_cgi != check_cgi_path) {
+    throw std::runtime_error("webserv: [emerg] \"cgi\" and \"cgi_path\" directives must be used together");
   }
 
   for (std::map<int, std::string>::const_iterator i = server_config->getErrorPage().begin(); i != server_config->getErrorPage().end(); i++) {
@@ -217,13 +249,25 @@ const std::string &LocationConfig::getReturnValue(void) const {
   return this->return_value;
 }
 
+const std::string &LocationConfig::getCgiPath(void) const {
+  return this->cgi_path;
+}
+
 bool LocationConfig::checkReturn(void) const {
   return this->return_code != -1;
 }
 
-bool LocationConfig::checkAcceptedMethod(const std::string request_method) const {
+bool LocationConfig::checkAcceptedMethod(const std::string &request_method) const {
   if (this->limit_except.size() == 0 || this->limit_except.count(request_method) == 1)
     return true;
+  return false;
+}
+
+bool LocationConfig::checkCgiExtension(const std::string &request_uri) const {
+  for (std::vector<std::string>::const_iterator i = this->cgi.begin(); i != this->cgi.end(); i++) {
+    if (request_uri.rfind(*i) + i->length() == request_uri.length())  // request_uri의 suffix가 *i인지 확인
+      return true;
+  }
   return false;
 }
 
@@ -279,6 +323,28 @@ void LocationConfig::print_status_for_debug(std::string prefix)  // TODO : remov
   } else {
     std::cout << "false" << std::endl;
   }
+
+  std::cout << prefix;
+  std::cout << "cgi : ";
+  for (std::vector<std::string>::iterator i = this->cgi.begin(); i != this->cgi.end(); i++) {
+    std::cout << *i << " ";
+  }
+  std::cout << std::endl;
+
+  std::cout << prefix;
+  std::cout << "cgi_path : " << this->cgi_path << std::endl;
+
+  std::cout << prefix;
+  std::cout << " - checkCgiExtention - " << std::endl;;
+  std::cout << prefix;
+  std::cout << ".bin : " << this->checkCgiExtension(".bin") << std::endl;
+  std::cout << prefix;
+  std::cout << ".bla : " << this->checkCgiExtension(".bla") << std::endl;
+  std::cout << prefix;
+  std::cout << ".cgi : " << this->checkCgiExtension(".cgi") << std::endl;
+  std::cout << prefix;
+  std::cout << ".test : " << this->checkCgiExtension(".test") << std::endl;
+
 
   std::cout << prefix;
   std::cout << "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~" << std::endl;

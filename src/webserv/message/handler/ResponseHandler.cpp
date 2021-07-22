@@ -169,38 +169,13 @@ void ResponseHandler::processPutMethod(std::string &uri, LocationConfig *&locati
 }
 
 void ResponseHandler::processPostMethod(Request &request, LocationConfig *&location) {
-  /* 임시 */
-  std::vector<std::string> cgi;
-  cgi.push_back(".bin");
-  cgi.push_back(".cgi");
-  cgi.push_back(".bla");
-  std::string cgi_path = "/opt/homebrew/bin/php-cgi";
-  /* 임시 */
-
-  if (cgi_path.empty()){
-    setStatusLineWithCode("405");
-    return ;
-  }
-
-  bool in_cgi_directive = false;
-  std::vector<std::string>::iterator it_cgi;
-  std::string uri_extension = request.getUri();
-  for (it_cgi = cgi.begin(); it_cgi != cgi.end(); it_cgi++) {
-    if (uri_extension.find_last_of(*it_cgi) != std::string::npos)
-    {
-      std::cout << "hihi"  << std::endl;
-      in_cgi_directive = true;
-      break;
-    }
-  }
-
-  if (!in_cgi_directive)
-  {
+  if (!location->checkCgiExtension(request.getUri()) ||
+      location->getCgiPath().empty()) {
     setStatusLineWithCode("405");
     return;
   }
-  (void)location;
-  ;
+
+  setStatusLineWithCode("999");
 }
 
 void ResponseHandler::processDeleteMethod(std::string &uri, LocationConfig *&location) {
@@ -215,7 +190,7 @@ void ResponseHandler::processDeleteMethod(std::string &uri, LocationConfig *&loc
     std::string url = getAccessPath(uri);
     if (stat(url.c_str(), &this->stat_buffer_) < 0) {
       setStatusLineWithCode("405");
-      return ;
+      return;
     } else {
       if (S_ISDIR(this->stat_buffer_.st_mode)) {
         DIR *dir_ptr;
@@ -223,7 +198,7 @@ void ResponseHandler::processDeleteMethod(std::string &uri, LocationConfig *&loc
 
         if (!(dir_ptr = opendir(url.c_str()))) {
           setStatusLineWithCode("403");  // Not Allowed
-          return ;
+          return;
         }
         while ((item = readdir(dir_ptr))) {
           if (strcmp(item->d_name, ".") == 0 || strcmp(item->d_name, "..") == 0)
@@ -232,14 +207,14 @@ void ResponseHandler::processDeleteMethod(std::string &uri, LocationConfig *&loc
           new_path += item->d_name;
           if (deletePathRecursive(new_path) == -1) {
             setStatusLineWithCode("403");
-            return ;
+            return;
           }
         }
         setStatusLineWithCode("403");
       } else {
         if (remove(url.c_str()) != 0) {
           setStatusLineWithCode("403");
-          return ;
+          return;
         }
         setStatusLineWithCode("204");
       }

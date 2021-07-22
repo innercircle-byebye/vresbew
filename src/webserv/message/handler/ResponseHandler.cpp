@@ -289,13 +289,13 @@ void ResponseHandler::setResponseBodyFromFile(std::string &uri, LocationConfig *
 }
 
 int ResponseHandler::deletePathRecursive(std::string &path) {
-  struct stat stat_buffer;
+  // struct stat stat_buffer;
 
-  if (stat(path.c_str(), &stat_buffer) != 0) {
+  if (stat(path.c_str(), &this->stat_buffer_) != 0) {
     return (-1);  // error
   }
 
-  if (S_ISDIR(stat_buffer.st_mode)) {
+  if (S_ISDIR(this->stat_buffer_.st_mode)) {
     DIR *dir_ptr;
     struct dirent *item;
 
@@ -312,13 +312,19 @@ int ResponseHandler::deletePathRecursive(std::string &path) {
         return (-1);
       }
     }
+    /*
     if (rmdir(path.c_str()) == -1) {
       return (-1);
     }
-  } else if (S_ISREG(stat_buffer.st_mode)) {
+    */
+    return (remove_directory(path));
+  } else if (S_ISREG(this->stat_buffer_.st_mode)) {
+    /*
     if (remove(path.c_str()) != 0) {
       return (-1);
     }
+    */
+    return (remove_file(path));
   }
   return (0);
 }
@@ -333,6 +339,24 @@ void ResponseHandler::findIndexForGetWhenOnlySlash(std::string &uri, LocationCon
       break;
     }
   }
+}
+
+int ResponseHandler::remove_file(std::string file_name) {
+  if (remove(file_name.c_str()) != 0) {
+    std::cout << "fail remove " << file_name << std::endl;
+    return (-1);
+  }
+  std::cout << "sucess remove file " << file_name << std::endl;
+  return (0);
+}
+
+int ResponseHandler::remove_directory(std::string directory_name) {
+  if (rmdir(directory_name.c_str()) != 0) {
+    std::cout << "fail remove " << directory_name << std::endl;
+    return (-1);
+  }
+  std::cout << "sucess remove file " << directory_name << std::endl;
+  return (0);
 }
 /*--------------------------EXECUTING METHODS END--------------------------------*/
 }  // namespace ft

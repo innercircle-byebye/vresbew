@@ -70,7 +70,7 @@ class ResponseHandler {
   void processGetAndHeaderMethod(Request &request, LocationConfig *&location);
   void processPutMethod(std::string &uri, LocationConfig *&location);
   void processDeleteMethod(std::string &uri, LocationConfig *&location);
-  void processPostMethod(std::string &uri, LocationConfig *&location);
+  void processPostMethod(Request &request, LocationConfig *&location);
   // blocks for setResponseFields end
 
   // executing methods helper begin

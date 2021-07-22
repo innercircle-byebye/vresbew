@@ -29,10 +29,9 @@ void ResponseHandler::setResponseFields(Request &request) {
     processPutMethod(request.getUri(), location);
   else if (request.getMethod() == "POST")
     // 아무것도 없음
-    processPostMethod(request.getUri(), location);
+    processPostMethod(request, location);
   else if (request.getMethod() == "DELETE")
     processDeleteMethod(request.getUri(), location);
-
 
   if (this->response_->getResponseBody().size() > 0) {
     this->response_->setHeader("Content-Length",
@@ -168,8 +167,37 @@ void ResponseHandler::processPutMethod(std::string &uri, LocationConfig *&locati
   }
 }
 
-void ResponseHandler::processPostMethod(std::string &uri, LocationConfig *&location) {
-  (void)uri;
+void ResponseHandler::processPostMethod(Request &request, LocationConfig *&location) {
+  /* 임시 */
+  std::vector<std::string> cgi;
+  cgi.push_back(".bin");
+  cgi.push_back(".cgi");
+  cgi.push_back(".bla");
+  std::string cgi_path = "/opt/homebrew/bin/php-cgi";
+  /* 임시 */
+
+  if (cgi_path.empty()){
+    setStatusLineWithCode("405");
+    return ;
+  }
+
+  bool in_cgi_directive = false;
+  std::vector<std::string>::iterator it_cgi;
+  std::string uri_extension = request.getUri();
+  for (it_cgi = cgi.begin(); it_cgi != cgi.end(); it_cgi++) {
+    if (uri_extension.find_last_of(*it_cgi) != std::string::npos)
+    {
+      std::cout << "hihi"  << std::endl;
+      in_cgi_directive = true;
+      break;
+    }
+  }
+
+  if (!in_cgi_directive)
+  {
+    setStatusLineWithCode("405");
+    return;
+  }
   (void)location;
   ;
 }
@@ -245,7 +273,7 @@ bool ResponseHandler::isFileExist(std::string &uri) {
 }
 
 bool ResponseHandler::isFileExist(std::string &uri, LocationConfig *&location) {
-  std::string temp = "." + location->getRoot() +"/" + uri;
+  std::string temp = "." + location->getRoot() + "/" + uri;
   std::cout << "temp: " << temp << std::endl;
   if (stat(temp.c_str(), &this->stat_buffer_) < 0) {
     std::cout << "this doesn't work" << std::endl;

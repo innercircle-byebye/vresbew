@@ -226,7 +226,7 @@ void ResponseHandler::processPostMethod(Request &request, LocationConfig *&locat
   }
 
   this->response_->setResponseBody(cgi_output_temp);
-  setStatusLineWithCode("999");
+  setStatusLineWithCode("200");
 }
 
 void ResponseHandler::processDeleteMethod(std::string &uri, LocationConfig *&location) {

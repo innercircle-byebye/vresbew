@@ -19,7 +19,6 @@ void RequestHandler::processByRecvPhase() {
   if (request_->getRecvPhase() == MESSAGE_HEADER_COMPLETE) {
     parseStartLine();
     parseHeaderLines(); // 내부에서 body 필요한지 체크한 후 content_length랑 recv_phase 변경
-
   }
   if (request_->getRecvPhase() == MESSAGE_BODY_NO_NEED)
     return ;
@@ -76,15 +75,19 @@ int RequestHandler::parseStartLine() {
 
 void RequestHandler::parseHeaderLines() {
   size_t pos = request_->getMsg().find("\r\n\r\n");
-  std::string const header_line = request_->getMsg().substr(0, pos);
+  std::string header_lines = request_->getMsg().substr(0, pos);
+
   request_->getMsg().erase(0, pos + 4);
 
-  std::istringstream is(header_line);
-  std::string line;
-  while (getline(is, line)) { // ????????
-    if (this->parseHeaderLine(line) != 0)  // TODO: 반환값(0) 확인 필요
-      request_->clear();
+  while ((pos = header_lines.find("\r\n")) != std::string::npos) {
+      std::string one_header_line = header_lines.substr(0, pos);
+      if (this->parseHeaderLine(one_header_line) != 0)  // TODO: 반환값(0) 확인 필요
+        request_->clear();
+      header_lines.erase(0, pos + 2);
   }
+  if (this->parseHeaderLine(header_lines) != 0)  // TODO: 반환값(0) 확인 필요
+    request_->clear();
+
   if (request_->getContentLength() == 0)
     request_->setRecvPhase(MESSAGE_BODY_NO_NEED);
   else
@@ -101,7 +104,7 @@ int RequestHandler::parseHeaderLine(std::string &one_header_line) {
   value = one_header_line.substr(delimiter + 2);
   // if (!(this->isValidHeaderKey(key)))
   //   return (404);
-  if (request_->getMethod().compare("GET") && !key.compare("Content-Length"))
+  if (!key.compare("Content-Length") && request_->getMethod().compare("GET") && request_->getMethod().compare("DELETE"))
   {
     try {
       request_->setContentLength(stoi(value));

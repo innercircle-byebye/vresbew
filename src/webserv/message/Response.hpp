@@ -7,19 +7,18 @@
 
 namespace ft {
 class Response {
-
-private:
+ private:
   std::string status_code_;
   std::string status_message_;
   std::string http_version_;
 
   std::map<std::string, std::string> headers_;
-  
+
   std::string response_body_;
 
   std::string msg_;
 
-public:
+ public:
   Response();
   ~Response();
 
@@ -42,6 +41,10 @@ public:
   void setResponseBody(std::string response_body);
   void setMsg(std::string msg);
 
+  void setConnectionHeaderByStatusCode(const std::string &status_code);
+
+
+ private:
 };
 }  // namespace ft
 #endif

@@ -1,15 +1,3 @@
-/* ************************************************************************** */
-/*                                                                            */
-/*                                                        :::      ::::::::   */
-/*   LocationConfig.hpp                                 :+:      :+:    :+:   */
-/*                                                    +:+ +:+         +:+     */
-/*   By: sucho <sucho@student.42seoul.kr>           +#+  +:+       +#+        */
-/*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2021/06/25 13:48:51 by kycho             #+#    #+#             */
-/*   Updated: 2021/07/14 17:17:59 by sucho            ###   ########.fr       */
-/*                                                                            */
-/* ************************************************************************** */
-
 #ifndef LOCATION_CONFIG_HPP
 #define LOCATION_CONFIG_HPP
 
@@ -45,7 +33,7 @@ class LocationConfig {
 
   const std::string &getUri(void) const;
   const std::string &getRoot(void) const;
-  const std::vector<std::string> getIndex(void) const;
+  const std::vector<std::string> &getIndex(void) const;
   const bool &getAutoindex(void) const;
   const unsigned long &getClientMaxBodySize(void) const;
   const std::map<int, std::string> &getErrorPage(void) const;

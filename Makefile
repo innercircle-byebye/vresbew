@@ -39,6 +39,8 @@ $(NAME):		$(OBJS)
 
 clean:
 				$(RM) $(OBJS)
+				rm -r ./webserv.dSYM
+
 
 fclean:			clean
 				$(RM) $(NAME) $(LOGFILE)
@@ -46,7 +48,6 @@ fclean:			clean
 debug:			fclean
 				@echo "DEBUG MODE BUILD START...."
 				@$(CXX) $(CXXFLAGS) -I$(SRC_PATH) $(LEAKS) $(SRCS) -o $(NAME)
-				@$(RM) -r ./webserv.dSYM
 				@echo "DEBUG MODE BUILD DONE"
 
 re:				fclean all

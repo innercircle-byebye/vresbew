@@ -9,6 +9,7 @@ std::map<unsigned int, std::string> StatusMessage::makeStatusMessages(void) {
   messages[200] = "OK";
   messages[201] = "Created";
   messages[204] = "No Content";
+  messages[301] = "Moved Permanently";
   messages[400] = "Bad Request";
   messages[401] = "Unauthorized";
   messages[403] = "Forbidden";

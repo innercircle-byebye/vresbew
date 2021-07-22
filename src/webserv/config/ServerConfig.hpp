@@ -1,15 +1,3 @@
-/* ************************************************************************** */
-/*                                                                            */
-/*                                                        :::      ::::::::   */
-/*   ServerConfig.hpp                                   :+:      :+:    :+:   */
-/*                                                    +:+ +:+         +:+     */
-/*   By: sucho <sucho@student.42seoul.kr>           +#+  +:+       +#+        */
-/*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2021/06/25 13:46:49 by kycho             #+#    #+#             */
-/*   Updated: 2021/07/14 17:18:11 by sucho            ###   ########.fr       */
-/*                                                                            */
-/* ************************************************************************** */
-
 #ifndef SERVER_CONFIG_HPP
 #define SERVER_CONFIG_HPP
 
@@ -49,7 +37,7 @@ class ServerConfig {
   const std::vector<std::string> &getListen(void) const;
   const std::vector<std::string> &getServerName(void) const;
   const std::string &getRoot(void) const;
-  const std::vector<std::string> getIndex(void) const;
+  const std::vector<std::string> &getIndex(void) const;
   const bool &getAutoindex(void) const;
   const unsigned long &getClientMaxBodySize(void) const;
   const std::map<int, std::string> &getErrorPage(void) const;

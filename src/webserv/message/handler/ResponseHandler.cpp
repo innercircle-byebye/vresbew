@@ -245,7 +245,8 @@ bool ResponseHandler::isFileExist(std::string &uri) {
 }
 
 bool ResponseHandler::isFileExist(std::string &uri, LocationConfig *&location) {
-  std::string temp = "." + location->getRoot() + uri;
+  std::string temp = "." + location->getRoot() +"/" + uri;
+  std::cout << "temp: " << temp << std::endl;
   if (stat(temp.c_str(), &this->stat_buffer_) < 0) {
     std::cout << "this doesn't work" << std::endl;
     return (false);
@@ -324,7 +325,7 @@ void ResponseHandler::findIndexForGetWhenOnlySlash(std::string &uri, LocationCon
   std::string temp;
   std::vector<std::string>::const_iterator it_index;
   for (it_index = location->getIndex().begin(); it_index != location->getIndex().end(); it_index++) {
-    temp = "." + location->getRoot() + *it_index;
+    temp = *it_index;
     if (isFileExist(temp, location)) {
       uri = *it_index;
       break;

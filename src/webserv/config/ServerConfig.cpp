@@ -1,15 +1,3 @@
-/* ************************************************************************** */
-/*                                                                            */
-/*                                                        :::      ::::::::   */
-/*   ServerConfig.cpp                                   :+:      :+:    :+:   */
-/*                                                    +:+ +:+         +:+     */
-/*   By: sucho <sucho@student.42seoul.kr>           +#+  +:+       +#+        */
-/*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2021/07/03 03:06:27 by kycho             #+#    #+#             */
-/*   Updated: 2021/07/14 17:18:20 by sucho            ###   ########.fr       */
-/*                                                                            */
-/* ************************************************************************** */
-
 #include "webserv/config/ServerConfig.hpp"
 
 namespace ft {
@@ -230,7 +218,7 @@ const std::string &ServerConfig::getRoot(void) const {
   return this->root;
 }
 
-const std::vector<std::string> ServerConfig::getIndex(void) const {
+const std::vector<std::string> &ServerConfig::getIndex(void) const {
   return this->index;
 }
 

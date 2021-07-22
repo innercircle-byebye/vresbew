@@ -1,15 +1,3 @@
-/* ************************************************************************** */
-/*                                                                            */
-/*                                                        :::      ::::::::   */
-/*   LocationConfig.cpp                                 :+:      :+:    :+:   */
-/*                                                    +:+ +:+         +:+     */
-/*   By: sucho <sucho@student.42seoul.kr>           +#+  +:+       +#+        */
-/*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2021/07/03 14:11:56 by kycho             #+#    #+#             */
-/*   Updated: 2021/07/14 17:18:28 by sucho            ###   ########.fr       */
-/*                                                                            */
-/* ************************************************************************** */
-
 #include "webserv/config/LocationConfig.hpp"
 namespace ft {
 
@@ -162,7 +150,7 @@ const std::string &LocationConfig::getRoot(void) const {
   return this->root;
 }
 
-const std::vector<std::string> LocationConfig::getIndex(void) const {
+const std::vector<std::string> &LocationConfig::getIndex(void) const {
   return this->index;
 }
 

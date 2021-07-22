@@ -1,15 +1,3 @@
-/* ************************************************************************** */
-/*                                                                            */
-/*                                                        :::      ::::::::   */
-/*   HttpConfig.hpp                                     :+:      :+:    :+:   */
-/*                                                    +:+ +:+         +:+     */
-/*   By: sucho <sucho@student.42seoul.kr>           +#+  +:+       +#+        */
-/*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2021/06/25 13:47:53 by kycho             #+#    #+#             */
-/*   Updated: 2021/07/14 17:17:36 by sucho            ###   ########.fr       */
-/*                                                                            */
-/* ************************************************************************** */
-
 #ifndef HTTP_CONFIG_HPP
 #define HTTP_CONFIG_HPP
 
@@ -52,7 +40,7 @@ class HttpConfig {
 
   const std::multimap<in_port_t, in_addr_t> &getMustListens(void) const;
   const std::string &getRoot(void) const;
-  const std::vector<std::string> getIndex(void) const;
+  const std::vector<std::string> &getIndex(void) const;
   const bool &getAutoindex(void) const;
   const unsigned long &getClientMaxBodySize(void) const;
   const std::map<int, std::string> &getErrorPage(void) const;

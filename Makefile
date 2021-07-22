@@ -46,7 +46,6 @@ fclean:			clean
 debug:			fclean
 				@echo "DEBUG MODE BUILD START...."
 				@$(CXX) $(CXXFLAGS) -I$(SRC_PATH) $(LEAKS) $(SRCS) -o $(NAME)
-				@$(RM) -r ./webserv.dSYM
 				@echo "DEBUG MODE BUILD DONE"
 
 re:				fclean all

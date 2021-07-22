@@ -1,15 +1,3 @@
-/* ************************************************************************** */
-/*                                                                            */
-/*                                                        :::      ::::::::   */
-/*   HttpConfig.cpp                                     :+:      :+:    :+:   */
-/*                                                    +:+ +:+         +:+     */
-/*   By: sucho <sucho@student.42seoul.kr>           +#+  +:+       +#+        */
-/*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2021/07/03 03:18:26 by kycho             #+#    #+#             */
-/*   Updated: 2021/07/14 17:18:40 by sucho            ###   ########.fr       */
-/*                                                                            */
-/* ************************************************************************** */
-
 #include "webserv/config/HttpConfig.hpp"
 
 namespace ft {
@@ -224,7 +212,7 @@ const std::string &HttpConfig::getRoot(void) const {
   return this->root;
 }
 
-const std::vector<std::string> HttpConfig::getIndex(void) const {
+const std::vector<std::string> &HttpConfig::getIndex(void) const {
   return this->index;
 }
 

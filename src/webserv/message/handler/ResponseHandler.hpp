@@ -25,16 +25,6 @@ class ResponseHandler {
   ServerConfig *server_config_;
 
   struct stat stat_buffer_;
-  // 함수 내 지역변수로 옮겼습니다. 향후 지워주세요!!
-  // struct dirent *entry_; // TODO: 지역변수로 전환 검토
-  // DIR *dir_; // TODO: 지역변수로 전환 검토
-
-  // stat_buffer_ 는 request내에서 하나의 url에 한번만 필요하다고 판단하여
-  // 멤버변수로 한번만 등후 클래스 내에서 해당 url에 대한 파일/디렉토리의 정보를 조회하기 위해
-  // 멤버변수로 설정 하여 놓았습니다.
-  // 단순히 하나의 변수를 담아놓는 '공간'으로 사용한다면
-  // 클래스의 멤버변수에 위치하는것이 나을 것 같습니다.
-  // (= 작성하신 deletePathRecursive 함수를 살펴 보았을 때 문제 없는것 같습니다.)
 
  public:
   ResponseHandler();
@@ -87,6 +77,11 @@ class ResponseHandler {
   // executing methods helper end
 
   /*--------------------------EXECUTING METHODS END--------------------------------*/
+
+  /*--------------------------FOR CGI--------------------------------*/
+  char **setEnviron(std::map<std::string, std::string> env);
+  char **setCommand(std::string command, std::string path);
+  /*--------------------------FOR CGI--------------------------------*/
 };
 }  // namespace ft
 #endif

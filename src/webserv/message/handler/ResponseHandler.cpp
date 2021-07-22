@@ -89,7 +89,8 @@ void ResponseHandler::setStatusLineWithCode(const std::string &status_code) {
   // TODO: fix this garbage conditional statement...
   if (!(!status_code.compare("200") ||
         !status_code.compare("201") ||
-        !status_code.compare("204")))
+        !status_code.compare("204") ||
+        !status_code.compare("999")))
     this->response_->getResponseBody() =
         getDefaultErrorBody(this->response_->getStatusCode(), this->response_->getStatusMessage());
 }
@@ -175,6 +176,56 @@ void ResponseHandler::processPostMethod(Request &request, LocationConfig *&locat
     return;
   }
 
+  // assume query string is placed in request.entity_body_;
+
+  // init env_set map which will be transformned into char** later
+  char **environ;
+  char **command;
+  pid_t pid;
+  int pipe_fd[2];
+  char foo[4096];
+
+  std::string cgi_output_temp;
+  std::map<std::string, std::string> env_set;
+  {
+    env_set["CONTENT_LENGTH"] = request.getHeaderValue("Content-Length");
+    env_set["QUERY_STRING"] = request.getEntityBody();
+    env_set["REQUEST_METHOD"] = request.getMethod();
+    env_set["REDIRECT_STATUS"] = "CGI";
+    env_set["SCRIPT_FILENAME"] = getAccessPath(request.getUri());
+    env_set["SERVER_PROTOCOL"] = "HTTP/1.1";
+    env_set["PATH_INFO"] = getAccessPath(request.getUri());
+    env_set["CONTENT_TYPE"] = "test/file";
+    env_set["GATEWAY_INTERFACE"] = "CGI/1.1";
+    env_set["PATH_TRANSLATED"] = getAccessPath(request.getUri());
+    env_set["REMOTE_ADDR"] = "127.0.0.1";
+    env_set["REQUEST_URI"] = getAccessPath(request.getUri());
+    env_set["SERVER_PORT"] = "80";
+    env_set["SERVER_PROTOCOL"] = "HTTP/1.1";
+    env_set["SERVER_SOFTWARE"] = "versbew";
+    env_set["SCRIPT_NAMME"] = location->getCgiPath();
+  }
+  environ = setEnviron(env_set);
+  command = setCommand(location->getCgiPath(), getAccessPath(request.getUri()));
+
+  pipe(pipe_fd);
+  pid = fork();
+  if (!pid) {
+    dup2(pipe_fd[1], STDOUT_FILENO);
+    close(pipe_fd[0]);
+    close(pipe_fd[1]);
+    execve(location->getCgiPath().c_str(), command, environ);
+    exit(1);
+  } else {
+    close(pipe_fd[1]);
+    int nbytes = read(pipe_fd[0], foo, sizeof(foo));
+    std::cout << "nbytes: "<< nbytes << std::endl;
+    cgi_output_temp.append(foo);
+    write(STDOUT_FILENO, foo, strlen(foo));
+    wait(NULL);
+  }
+
+  this->response_->setResponseBody(cgi_output_temp);
   setStatusLineWithCode("999");
 }
 
@@ -262,7 +313,7 @@ bool ResponseHandler::isFileExist(std::string &uri) {
 }
 
 bool ResponseHandler::isFileExist(std::string &uri, LocationConfig *&location) {
-  std::string temp = "." + location->getRoot() + "/" + uri;
+  std::string temp = "." + location->getRoot() + uri;
   std::cout << "temp: " << temp << std::endl;
   if (stat(temp.c_str(), &this->stat_buffer_) < 0) {
     std::cout << "this doesn't work" << std::endl;
@@ -362,5 +413,43 @@ int ResponseHandler::remove_directory(std::string directory_name) {
   std::cout << "sucess remove file " << directory_name << std::endl;
   return (0);
 }
+
+char **ResponseHandler::setEnviron(std::map<std::string, std::string> env) {
+  char **return_value;
+  std::string temp;
+
+  return_value = (char **)malloc(sizeof(char *) * (env.size() + 1));
+  int i = 0;
+  std::map<std::string, std::string>::iterator it;
+  for (it = env.begin(); it != env.end(); it++) {
+    temp = (*it).first + "=" + (*it).second;
+    char *p = (char *)malloc(temp.size() + 1);
+    strcpy(p, temp.c_str());
+    return_value[i] = p;
+    i++;
+  }
+  return_value[i] = NULL;
+  return (return_value);
+}
+
+char **ResponseHandler::setCommand(std::string command, std::string path) {
+  // TODO: leak check
+  char **return_value;
+  return_value = (char **)malloc(sizeof(char *) * (3));
+
+  char *temp;
+  // TODO: leak check
+  temp = (char *)malloc(sizeof(char) * (command.size() + 1));
+  strcpy(temp, command.c_str());
+  return_value[0] = temp;
+
+  // TODO: leak check
+  temp = (char *)malloc(sizeof(char) * (path.size() + 1));
+  strcpy(temp, path.c_str());
+  return_value[1] = temp;
+  return_value[2] = NULL;
+  return (return_value);
+}
+
 /*--------------------------EXECUTING METHODS END--------------------------------*/
 }  // namespace ft

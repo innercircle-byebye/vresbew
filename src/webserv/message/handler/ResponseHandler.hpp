@@ -82,6 +82,8 @@ class ResponseHandler {
 
   void findIndexForGetWhenOnlySlash(std::string &uri, LocationConfig *&location);
 
+  int remove_file(std::string file_name);
+  int remove_directory(std::string directory_name);
   // executing methods helper end
 
   /*--------------------------EXECUTING METHODS END--------------------------------*/

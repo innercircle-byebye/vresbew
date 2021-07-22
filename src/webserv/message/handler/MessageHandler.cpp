@@ -30,6 +30,10 @@ void MessageHandler::handle_response(Connection *c) {
   response_handler_.setResponse(&c->getResponse());
   response_handler_.setServerConfig(c->getHttpConfig(), c->getSockaddrToConnect(), c->getRequest().getHeaderValue("Host"));
 
+  // TODO: HTTP/1.0 일 때 로직 복구 필요
+  // if (c->getRequest().getHttpVersion() == "HTTP/1.0" && !c->getRequest().getHeaders().count("Host") )
+  //   c->getRequest().setHeader("Host", "");
+
   if (!isValidRequestMethod(c->getRequest().getMethod()) ||
       !isValidRequestVersion(c->getRequest().getHttpVersion(), c->getRequest().getHeaders()))
     response_handler_.setStatusLineWithCode("400");
@@ -74,6 +78,9 @@ bool MessageHandler::isValidRequestVersion(const std::string &http_version, cons
   } else if (!http_version.compare("HTTP/1.0")) {
     // if (!headers.count("Host"))
     //   request_->setHeader("Host", "");   // ?? 자동으로 ""되어있는거 아닌지?
+                                            // A: 아닙니다. Response의 경우 응답 헤더들을 미리 설정 해 놓았지만 Request는 어떤 헤더가 들어 올지 모르기 때문에 설정 해주지 않았습니다.
+                                            // HTTP/1.0 처리 하지 못하는 상황 발생하여 수정하겠습니다.
+
     return (true);
   }
   return (false);

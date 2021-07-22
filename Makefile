@@ -42,6 +42,7 @@ clean:
 
 fclean:			clean
 				$(RM) $(NAME) $(LOGFILE)
+				rm -r ./webserv.dSYM
 
 debug:			fclean
 				@echo "DEBUG MODE BUILD START...."

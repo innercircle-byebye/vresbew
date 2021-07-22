@@ -19,6 +19,7 @@ std::map<unsigned int, std::string> StatusMessage::makeStatusMessages(void) {
   messages[500] = "Internal Server Error";
   messages[501] = "Not Implemented";
   messages[503] = "Service Unavailable";
+  messages[999] = "POST WIP";
   return messages;
 }
 

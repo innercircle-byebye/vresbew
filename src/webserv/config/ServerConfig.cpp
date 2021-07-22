@@ -2,7 +2,7 @@
 
 namespace ft {
 
-bool ServerConfig::compare_uri_for_descending_order_by_length(const LocationConfig *first, const LocationConfig *second) {
+bool ServerConfig::compareUriForDescendingOrderByLength(const LocationConfig *first, const LocationConfig *second) {
   return first->getUri().length() > second->getUri().length();
 }
 
@@ -14,6 +14,8 @@ ServerConfig::ServerConfig(std::vector<std::string> tokens, HttpConfig *http_con
   this->index = http_config->getIndex();
   this->autoindex = http_config->getAutoindex();
   this->client_max_body_size = http_config->getClientMaxBodySize();
+  this->return_code = -1;
+  this->return_value = "";
 
   // 한번이라도 세팅했었는지 체크하는 변수
   bool check_listen_setting = false;
@@ -22,6 +24,7 @@ ServerConfig::ServerConfig(std::vector<std::string> tokens, HttpConfig *http_con
   bool check_index_setting = false;
   bool check_autoindex_setting = false;
   bool check_client_max_body_size = false;
+  bool check_return = false;
 
   std::vector<std::vector<std::string> > locations_tokens;
 
@@ -139,6 +142,47 @@ ServerConfig::ServerConfig(std::vector<std::string> tokens, HttpConfig *http_con
 
       check_client_max_body_size = true;
       it += 3;
+    } else if (*it == "return") {
+      int count = 1;
+      while (*(it + count) != ";")
+        count++;
+
+      if (count != 2 && count != 3)
+        throw std::runtime_error("webserv: [emerg] invalid number of arguments in \"return\" directive");
+
+      if (check_return == true) {
+        it += (count + 1);
+        continue;
+      }
+      check_return = true;
+
+      if (count == 2) {
+        if ((*(it + 1)).find("http://") == 0 || (*(it + 1)).find("https://") == 0) {
+          this->return_code = 302;
+          this->return_value = *(it + 1);
+        } else {
+          std::string &code = *(it + 1);
+          if (code.size() > 3)
+            throw std::runtime_error("webserv: [emerg] invalid return code \"" + code + "\"");
+          for (std::string::iterator i = code.begin(); i != code.end(); i++) {
+            if (!isdigit(*i))
+              throw std::runtime_error("webserv: [emerg] invalid return code \"" + code + "\"");
+          }
+          this->return_code = stoi(code);  // TODO : remove (c++11)
+        }
+        it += 3;
+      } else if (count == 3) {
+        std::string &code = *(it + 1);
+        if (code.size() > 3)
+          throw std::runtime_error("webserv: [emerg] invalid return code \"" + code + "\"");
+        for (std::string::iterator i = code.begin(); i != code.end(); i++) {
+          if (!isdigit(*i))
+            throw std::runtime_error("webserv: [emerg] invalid return code \"" + code + "\"");
+        }
+        this->return_value = *(it + 2);
+        it += 4;
+      }
+
     } else if (*it == "location") {
       // TODO : 예외처리해야함
       std::vector<std::string> location_tokekns;
@@ -181,7 +225,7 @@ ServerConfig::ServerConfig(std::vector<std::string> tokens, HttpConfig *http_con
     this->location_configs.push_back(new_location);
   }
 
-  std::sort(this->location_configs.begin(), this->location_configs.end(), this->compare_uri_for_descending_order_by_length);
+  std::sort(this->location_configs.begin(), this->location_configs.end(), this->compareUriForDescendingOrderByLength);
 }
 
 ServerConfig::~ServerConfig(void) {
@@ -234,6 +278,18 @@ const std::map<int, std::string> &ServerConfig::getErrorPage(void) const {
   return this->error_page;
 }
 
+int ServerConfig::getReturnCode(void) const {
+  return this->return_code;
+}
+
+const std::string &ServerConfig::getReturnValue(void) const {
+  return this->return_value;
+}
+
+bool ServerConfig::checkReturn(void) const {
+  return this->return_code != -1;
+}
+
 // ############## for debug ###################
 void ServerConfig::print_status_for_debug(std::string prefix)  // TODO : remove
 {
@@ -276,6 +332,21 @@ void ServerConfig::print_status_for_debug(std::string prefix)  // TODO : remove
     std::cout << i->first << ":" << i->second << "  ";
   }
   std::cout << std::endl;
+
+  std::cout << prefix;
+  std::cout << "return_code : " << this->return_code << std::endl;
+
+  std::cout << prefix;
+  std::cout << "return_value : " << this->return_value << std::endl;
+
+  std::cout << prefix;
+  std::cout << "checkReturn() : ";
+  if (this->checkReturn()) {
+    std::cout << "true" << std::endl;
+  } else {
+    std::cout << "false" << std::endl;
+  }
+
   std::cout << prefix;
   std::cout << "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~" << std::endl;
 }

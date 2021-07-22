@@ -22,8 +22,11 @@ class LocationConfig {
   bool autoindex;
   unsigned long client_max_body_size;
   std::map<int, std::string> error_page;
-  //return
+  int return_code;
+  std::string return_value;
   std::set<std::string> limit_except;
+  std::vector<std::string> cgi;
+  std::string cgi_path;
 
  public:
   LocationConfig(std::vector<std::string> tokens, ServerConfig *server_config);
@@ -37,8 +40,13 @@ class LocationConfig {
   const bool &getAutoindex(void) const;
   const unsigned long &getClientMaxBodySize(void) const;
   const std::map<int, std::string> &getErrorPage(void) const;
+  int getReturnCode(void) const;
+  const std::string &getReturnValue(void) const;
+  const std::string &getCgiPath(void) const;
 
-  bool checkAcceptedMethod(const std::string request_method) const;
+  bool checkReturn(void) const;
+  bool checkAcceptedMethod(const std::string &request_method) const;
+  bool checkCgiExtension(const std::string &request_uri) const;
 
   // for debug
   void print_status_for_debug(std::string prefix);          // TODO : remove

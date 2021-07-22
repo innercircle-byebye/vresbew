@@ -44,7 +44,7 @@ void ResponseHandler::setResponseFields(const std::string &method, std::string &
     } else if (!isPathAccessable(location->getRoot(), uri)) {
       std::cout << "here" << std::endl;
       setResponse500();
-    } else if (!isFileExist(uri)) {  /// file writing not working yet!!!!!
+    } else if (!isFileExist(uri)) {  // file writing not working yet!!!!!
       setResponse201();
     } else {
       setResponse204();

@@ -181,40 +181,53 @@ void ResponseHandler::processDeleteMethod(std::string &uri, LocationConfig *&loc
   // if path is directory -> 409 Conflict and do nothing
   // if file is missing -> 404 not found
   // if file is available -> 204 No Content and delete the file
-  std::cout << "in delete" << std::endl;
+  std::cout << "start process delete method : " << uri << std::endl;
   if (!uri.compare("/")) {  // URI 에 "/" 만 있는 경우
     std::string url = getAccessPath(uri);
-    // stat 으로 하위에 존재하는 모든것을 탐색해야합니다.
-    std::cout << "uri : " << uri << " url : " << url << std::endl;
-    if (deletePathRecursive(url) == -1) {
-      setStatusLineWithCode("403");  // TODO:실패인데 어떤 status code 를 주어야하는지 모르겠습니다...
-                                     // A: 201 혹은 204로 추정됩니다.
+    if (stat(url.c_str(), &this->stat_buffer_) < 0) {
+      setStatusLineWithCode("405");
+      return ;
     } else {
-      setStatusLineWithCode("403");
+      if (S_ISDIR(this->stat_buffer_.st_mode)) {
+        DIR *dir_ptr;
+        struct dirent *item;
+
+        if (!(dir_ptr = opendir(url.c_str()))) {
+          setStatusLineWithCode("403");  // Not Allowed
+          return ;
+        }
+        while ((item = readdir(dir_ptr))) {
+          if (strcmp(item->d_name, ".") == 0 || strcmp(item->d_name, "..") == 0)
+            continue;
+          std::string new_path(url);
+          new_path += item->d_name;
+          if (deletePathRecursive(new_path) == -1) {
+            setStatusLineWithCode("403");
+            return ;
+          }
+        }
+        setStatusLineWithCode("403");
+      } else {
+        if (remove(url.c_str()) != 0) {
+          setStatusLineWithCode("403");
+          return ;
+        }
+        setStatusLineWithCode("204");
+      }
     }
   } else {  // "/" 가 아닌 경우
     std::string url = getAccessPath(uri);
-    std::cout << "url : " << url << std::endl;
     if (stat(url.c_str(), &this->stat_buffer_) < 0) {
-      std::cout << "stat ain't work" << std::endl;
       setStatusLineWithCode("404");
     } else {
       // file or directory
       if (S_ISDIR(this->stat_buffer_.st_mode)) {
-        // is directory
-        // if path is directory -> 409 Conflict and do nothing
-        std::cout << "is directory" << std::endl;
         setStatusLineWithCode("409");
       } else {  // is not directory == file ?!
-        std::cout << "is not directory" << std::endl;
-        // file 이 존재합니다. 존재하지 않으면 stat() 이 -1 을 반환합니다.
-        // file 을 지웁니다. remove()
         if (remove(url.c_str()) != 0) {
-          std::cout << "Error remove " << url << std::endl;
           setStatusLineWithCode("403");
           return;
         }
-        std::cout << "remove success" << std::endl;
         setStatusLineWithCode("204");
       }
     }
@@ -276,19 +289,17 @@ void ResponseHandler::setResponseBodyFromFile(std::string &uri, LocationConfig *
 }
 
 int ResponseHandler::deletePathRecursive(std::string &path) {
-  // stat 동작시키고
-  if (stat(path.c_str(), &stat_buffer_) != 0) {
-    // std::cerr << "fail stat(<File>)" << std::endl;
+  // struct stat stat_buffer;
+
+  if (stat(path.c_str(), &this->stat_buffer_) != 0) {
     return (-1);  // error
   }
 
-  if (S_ISDIR(stat_buffer_.st_mode)) {
+  if (S_ISDIR(this->stat_buffer_.st_mode)) {
     DIR *dir_ptr;
     struct dirent *item;
 
-    // std::cout << path << " is directory" << std::endl;
     if (!(dir_ptr = opendir(path.c_str()))) {
-      // std::cerr << "fail opendir(<FILE>) " << path << std::endl;
       return (-1);
     }
     while ((item = readdir(dir_ptr))) {
@@ -297,26 +308,23 @@ int ResponseHandler::deletePathRecursive(std::string &path) {
       std::string new_path(path);
       new_path += "/";
       new_path += item->d_name;
-      // std::cout << "Good?! : " << new_path << std::endl;
       if (deletePathRecursive(new_path) == -1) {
-        // std::cout << "Error!!! " << new_path << std::endl;
         return (-1);
       }
     }
-    // std::cout << "finish inner search " << path << std::endl;
+    /*
     if (rmdir(path.c_str()) == -1) {
-      // std::cerr << "fail rmdir(<DIR>) " << path << std::endl;
       return (-1);
     }
-    // std::cout << "success rmdir " << path << std::endl;
-  } else if (S_ISREG(stat_buffer_.st_mode)) {
-    // std::cout << path << " is file" << std::endl;
-    // remove(path.c_str());
+    */
+    return (remove_directory(path));
+  } else if (S_ISREG(this->stat_buffer_.st_mode)) {
+    /*
     if (remove(path.c_str()) != 0) {
-      // std::cerr << "fail remove(<FILE>) " << path << std::endl;
       return (-1);
     }
-    // std::cout << "success remove " << path << std::endl;
+    */
+    return (remove_file(path));
   }
   return (0);
 }
@@ -331,6 +339,24 @@ void ResponseHandler::findIndexForGetWhenOnlySlash(std::string &uri, LocationCon
       break;
     }
   }
+}
+
+int ResponseHandler::remove_file(std::string file_name) {
+  if (remove(file_name.c_str()) != 0) {
+    std::cout << "fail remove " << file_name << std::endl;
+    return (-1);
+  }
+  std::cout << "sucess remove file " << file_name << std::endl;
+  return (0);
+}
+
+int ResponseHandler::remove_directory(std::string directory_name) {
+  if (rmdir(directory_name.c_str()) != 0) {
+    std::cout << "fail remove " << directory_name << std::endl;
+    return (-1);
+  }
+  std::cout << "sucess remove file " << directory_name << std::endl;
+  return (0);
 }
 /*--------------------------EXECUTING METHODS END--------------------------------*/
 }  // namespace ft

@@ -44,7 +44,7 @@ void Kqueue::kqueueSetEvent(Connection *c, u_short filter, u_int flags) {
 void Kqueue::kqueueProcessEvents(SocketManager *sm) {
 
   int events = kevent(kq_, change_list_, nchanges_, event_list_, nevents_, &ts_);
-  
+
 
   nchanges_ = 0;
   if (events == -1) {
@@ -80,7 +80,13 @@ void Kqueue::kqueueProcessEvents(SocketManager *sm) {
           MessageHandler::handle_response(c);
           if (!c->getResponse().getStatusCode().compare("404") || !c->getRequest().getHttpVersion().compare("HTTP/1.0"))
             sm->closeConnection(c);
-
+          // check Connection header close
+          std::cout << "=======check connection header======" << std::endl;
+          std::cout << c->getResponse().getHeaderValue("Connection") << std::endl;
+          if (c->getResponse().getHeaderValue("Connection").compare("close") == 0) {
+            std::cout << "connection header is close " << std::endl;
+            sm->closeConnection(c);
+          }
         }
       }
     }

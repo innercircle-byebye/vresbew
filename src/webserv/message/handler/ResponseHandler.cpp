@@ -119,6 +119,7 @@ std::string ResponseHandler::getDefaultErrorBody(std::string status_code, std::s
 
 void ResponseHandler::processGetAndHeaderMethod(Request &request, LocationConfig *&location) {
   //need last modified header
+  // TODO: apply for all url when directory is given
   if (!request.getUri().compare("/")) {
     if (location->getIndex().size() == 0 ||
         (location->getIndex().size() == 1 && !location->getIndex().at(0).compare("index.html"))) {
@@ -128,7 +129,7 @@ void ResponseHandler::processGetAndHeaderMethod(Request &request, LocationConfig
         return;
       }
     } else {
-      findIndexForGetWhenOnlySlash(request.getUri(), location);
+      findIndexForGetWhenOnlySlash(request, location);
       if (!request.getUri().compare("/")) {
         setStatusLineWithCode("403");
         return;
@@ -357,13 +358,13 @@ int ResponseHandler::deletePathRecursive(std::string &path) {
   return (0);
 }
 
-void ResponseHandler::findIndexForGetWhenOnlySlash(std::string &uri, LocationConfig *&location) {
+void ResponseHandler::findIndexForGetWhenOnlySlash(Request &request, LocationConfig *&location) {
   std::string temp;
   std::vector<std::string>::const_iterator it_index;
   for (it_index = location->getIndex().begin(); it_index != location->getIndex().end(); it_index++) {
     temp = *it_index;
     if (isFileExist(temp, location)) {
-      uri = *it_index;
+      request.setUri(*it_index);
       break;
     }
   }

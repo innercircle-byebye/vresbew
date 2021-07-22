@@ -80,7 +80,7 @@ class ResponseHandler {
   bool isPathAccessable(std::string &uri, LocationConfig *&location);
   int deletePathRecursive(std::string &path);
 
-  void findIndexForGetWhenOnlySlash(std::string &uri, LocationConfig *&location);
+  void findIndexForGetWhenOnlySlash(Request &request, LocationConfig *&location);
 
   int remove_file(std::string file_name);
   int remove_directory(std::string directory_name);

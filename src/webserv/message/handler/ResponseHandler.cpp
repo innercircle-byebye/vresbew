@@ -33,6 +33,7 @@ void ResponseHandler::setResponseFields(Request &request) {
   else if (request.getMethod() == "DELETE")
     processDeleteMethod(request.getUri(), location);
 
+
   if (this->response_->getResponseBody().size() > 0) {
     this->response_->setHeader("Content-Length",
                                std::to_string(this->response_->getResponseBody().size()));

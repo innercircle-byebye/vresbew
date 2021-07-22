@@ -22,7 +22,8 @@ class LocationConfig {
   bool autoindex;
   unsigned long client_max_body_size;
   std::map<int, std::string> error_page;
-  //return
+  int return_code;
+  std::string return_value;
   std::set<std::string> limit_except;
 
  public:
@@ -37,6 +38,9 @@ class LocationConfig {
   const bool &getAutoindex(void) const;
   const unsigned long &getClientMaxBodySize(void) const;
   const std::map<int, std::string> &getErrorPage(void) const;
+  int getReturnCode(void) const;
+  const std::string &getReturnValue(void) const;
+  bool checkReturn(void) const;
 
   bool checkAcceptedMethod(const std::string request_method) const;
 

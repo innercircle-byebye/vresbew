@@ -143,11 +143,10 @@ ServerConfig::ServerConfig(std::vector<std::string> tokens, HttpConfig *http_con
       check_client_max_body_size = true;
       it += 3;
     } else if (*it == "return") {
-
       int count = 1;
       while (*(it + count) != ";")
         count++;
-      
+
       if (count != 2 && count != 3)
         throw std::runtime_error("webserv: [emerg] invalid number of arguments in \"return\" directive");
 
@@ -158,11 +157,11 @@ ServerConfig::ServerConfig(std::vector<std::string> tokens, HttpConfig *http_con
       check_return = true;
 
       if (count == 2) {
-        if ((*(it + 1)).find("http://") == 0 || (*(it + 1)).find("https://") == 0 ) {
+        if ((*(it + 1)).find("http://") == 0 || (*(it + 1)).find("https://") == 0) {
           this->return_code = 302;
           this->return_value = *(it + 1);
         } else {
-          std::string& code = *(it + 1);
+          std::string &code = *(it + 1);
           if (code.size() > 3)
             throw std::runtime_error("webserv: [emerg] invalid return code \"" + code + "\"");
           for (std::string::iterator i = code.begin(); i != code.end(); i++) {
@@ -173,7 +172,7 @@ ServerConfig::ServerConfig(std::vector<std::string> tokens, HttpConfig *http_con
         }
         it += 3;
       } else if (count == 3) {
-        std::string& code = *(it + 1);
+        std::string &code = *(it + 1);
         if (code.size() > 3)
           throw std::runtime_error("webserv: [emerg] invalid return code \"" + code + "\"");
         for (std::string::iterator i = code.begin(); i != code.end(); i++) {
@@ -183,7 +182,6 @@ ServerConfig::ServerConfig(std::vector<std::string> tokens, HttpConfig *http_con
         this->return_value = *(it + 2);
         it += 4;
       }
-
 
     } else if (*it == "location") {
       // TODO : 예외처리해야함
@@ -337,7 +335,7 @@ void ServerConfig::print_status_for_debug(std::string prefix)  // TODO : remove
 
   std::cout << prefix;
   std::cout << "return_code : " << this->return_code << std::endl;
-  
+
   std::cout << prefix;
   std::cout << "return_value : " << this->return_value << std::endl;
 

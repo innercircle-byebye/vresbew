@@ -23,7 +23,8 @@ class ServerConfig {
   bool autoindex;
   unsigned long client_max_body_size;
   std::map<int, std::string> error_page;
-  // return_value;
+  int return_code;
+  std::string return_value;
 
   std::vector<LocationConfig *> location_configs;
 
@@ -41,13 +42,16 @@ class ServerConfig {
   const bool &getAutoindex(void) const;
   const unsigned long &getClientMaxBodySize(void) const;
   const std::map<int, std::string> &getErrorPage(void) const;
+  int getReturnCode(void) const;
+  const std::string &getReturnValue(void) const;
+  bool checkReturn(void) const;
 
   // for debug
   void print_status_for_debug(std::string prefix);                      // TODO : remove
   const std::vector<LocationConfig *> &getLocationConfigs(void) const;  // TODO : remove
 
  private:
-  static bool compare_uri_for_descending_order_by_length(const LocationConfig *first, const LocationConfig *second);
+  static bool compareUriForDescendingOrderByLength(const LocationConfig *first, const LocationConfig *second);
 };
 }  // namespace ft
 #endif

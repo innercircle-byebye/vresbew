@@ -60,9 +60,9 @@ void ResponseHandler::setResponseStatusLine() {
 
 void ResponseHandler::setResponseHeader() {
   std::map<std::string, std::string> headers = response_->getHeaders();
-  std::map<std::string, std::string>::iterator it;
+  std::map<std::string, std::string>::reverse_iterator it;
   // nginx 는 알파벳 역순으로 메세지를 보냄
-  for (it = headers.end(); it != headers.begin(); it--) {
+  for (it = headers.rbegin(); it != headers.rend(); it--) {
     if (it->second != "") {
       response_->getMsg() += it->first;
       response_->getMsg() += ": ";

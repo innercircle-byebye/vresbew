@@ -218,10 +218,14 @@ void ResponseHandler::processPostMethod(Request &request, LocationConfig *&locat
     exit(1);
   } else {
     close(pipe_fd[1]);
-    int nbytes = read(pipe_fd[0], foo, sizeof(foo));
-    std::cout << "nbytes: "<< nbytes << std::endl;
-    cgi_output_temp.append(foo);
-    write(STDOUT_FILENO, foo, strlen(foo));
+    int nbytes;
+    int i = 0;
+    while ((nbytes = read(pipe_fd[0], foo, sizeof(foo)))) {
+      cgi_output_temp.append(foo);
+      i++;
+    }
+    std::cout << "i: " << nbytes << std::endl;
+    // write(STDOUT_FILENO, foo, strlen(foo));
     wait(NULL);
   }
 
@@ -313,7 +317,7 @@ bool ResponseHandler::isFileExist(std::string &uri) {
 }
 
 bool ResponseHandler::isFileExist(std::string &uri, LocationConfig *&location) {
-  std::string temp = "." + location->getRoot() + uri;
+  std::string temp = "." + location->getRoot()+ "/" + uri;
   std::cout << "temp: " << temp << std::endl;
   if (stat(temp.c_str(), &this->stat_buffer_) < 0) {
     std::cout << "this doesn't work" << std::endl;

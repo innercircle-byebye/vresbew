@@ -81,7 +81,8 @@ void Kqueue::kqueueProcessEvents(SocketManager *sm) {
       } else {
         if (c->getRequest().getUri().size() > 0) {
           MessageHandler::handle_response(c);
-          if (!c->getResponse().getHeaderValue("Connection").compare("close")) {
+          if (!c->getResponse().getHeaderValue("Connection").compare("close") ||
+              !c->getRequest().getHttpVersion().compare("HTTP/1.0")) {
             sm->closeConnection(c);
           }
           // TODO: 언제 삭제해야하는지 적절한 시기를 확인해야함

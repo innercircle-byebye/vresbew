@@ -37,6 +37,12 @@ class ResponseHandler {
   void setStatusLineWithCode(const std::string &status_code);
 
   std::string getAccessPath(std::string &uri);
+  std::string getAccessPath(std::string &uri, LocationConfig *&location);
+
+  /*--------------------------FOR CGI--------------------------------*/
+  char **setEnviron(std::map<std::string, std::string> env);
+  char **setCommand(std::string command, std::string path);
+  /*--------------------------FOR CGI--------------------------------*/
 
  private:
   // Response::response_ setter begin
@@ -66,7 +72,6 @@ class ResponseHandler {
   // executing methods helper begin
   bool isFileExist(std::string &uri);
   bool isFileExist(std::string &uri, LocationConfig *&location);
-  std::string getAccessPath(std::string &uri, LocationConfig *&location);
   bool isPathAccessable(std::string &uri, LocationConfig *&location);
   int deletePathRecursive(std::string &path);
 
@@ -77,11 +82,6 @@ class ResponseHandler {
   // executing methods helper end
 
   /*--------------------------EXECUTING METHODS END--------------------------------*/
-
-  /*--------------------------FOR CGI--------------------------------*/
-  char **setEnviron(std::map<std::string, std::string> env);
-  char **setCommand(std::string command, std::string path);
-  /*--------------------------FOR CGI--------------------------------*/
 };
 }  // namespace ft
 #endif

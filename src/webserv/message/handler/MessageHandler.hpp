@@ -25,6 +25,7 @@ class MessageHandler {
  public:
   static void handle_request(Connection *c);
   static void handle_response(Connection *c);
+  static void handle_cgi(Connection *c, LocationConfig *location);
 
 private:
   static void executePutMethod(std::string path, std::string content);

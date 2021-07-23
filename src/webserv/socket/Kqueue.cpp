@@ -42,9 +42,7 @@ void Kqueue::kqueueSetEvent(Connection *c, u_short filter, u_int flags) {
 }
 
 void Kqueue::kqueueProcessEvents(SocketManager *sm) {
-
   int events = kevent(kq_, change_list_, nchanges_, event_list_, nevents_, &ts_);
-
 
   nchanges_ = 0;
   if (events == -1) {
@@ -67,16 +65,20 @@ void Kqueue::kqueueProcessEvents(SocketManager *sm) {
       } else {
         MessageHandler::handle_request(c);
         if (c->getRequest().getRecvPhase() == MESSAGE_BODY_COMPLETE) {
+          //TODO: 전반적인 정리가 필요하다
+          ServerConfig *serverconfig_test = c->getHttpConfig()->getServerConfig(c->getSockaddrToConnect().sin_port, c->getSockaddrToConnect().sin_addr.s_addr, c->getRequest().getHeaderValue("Host"));
+          LocationConfig *locationconfig_test = serverconfig_test->getLocationConfig(c->getRequest().getUri());
+          //TODO: c->getRequest().getUri().find_last_of() 부분을 메세지 헤더의 mime_types로 확인하도록 교체/ 확인 필요
+          if (!locationconfig_test->getCgiPath().empty() && (c->getRequest().getUri().find_last_of(".php") != std::string::npos))
+            MessageHandler::handle_cgi(c, locationconfig_test);
           kqueueSetEvent(c, EVFILT_WRITE, EV_ADD | EV_ONESHOT);
         }
-
       }
     } else if (event_list_[i].filter == EVFILT_WRITE) {
       if (event_list_[i].flags & EV_EOF) {
         Logger::logError(LOG_ALERT, "%d kevent() reported about an %d reader disconnects", events, (int)event_list_[i].ident);
         sm->closeConnection(c);
       } else {
-
         if (c->getRequest().getUri().size() > 0) {
           MessageHandler::handle_response(c);
           if (!c->getResponse().getStatusCode().compare("404") || !c->getRequest().getHttpVersion().compare("HTTP/1.0"))

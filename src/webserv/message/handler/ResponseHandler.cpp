@@ -176,60 +176,60 @@ void ResponseHandler::processPostMethod(Request &request, LocationConfig *&locat
     return;
   }
 
-  // assume query string is placed in request.entity_body_;
+  // // assume query string is placed in request.entity_body_;
 
-  // init env_set map which will be transformned into char** later
-  char **environ;
-  char **command;
-  pid_t pid;
-  int pipe_fd[2];
-  char foo[4096];
+  // // init env_set map which will be transformned into char** later
+  // char **environ;
+  // char **command;
+  // pid_t pid;
+  // int pipe_fd[2];
+  // char foo[4096];
 
-  std::string cgi_output_temp;
-  std::map<std::string, std::string> env_set;
-  {
-    env_set["CONTENT_LENGTH"] = request.getHeaderValue("Content-Length");
-    env_set["QUERY_STRING"] = request.getEntityBody();
-    env_set["REQUEST_METHOD"] = request.getMethod();
-    env_set["REDIRECT_STATUS"] = "CGI";
-    env_set["SCRIPT_FILENAME"] = getAccessPath(request.getUri());
-    env_set["SERVER_PROTOCOL"] = "HTTP/1.1";
-    env_set["PATH_INFO"] = getAccessPath(request.getUri());
-    env_set["CONTENT_TYPE"] = "test/file";
-    env_set["GATEWAY_INTERFACE"] = "CGI/1.1";
-    env_set["PATH_TRANSLATED"] = getAccessPath(request.getUri());
-    env_set["REMOTE_ADDR"] = "127.0.0.1";
-    env_set["REQUEST_URI"] = getAccessPath(request.getUri());
-    env_set["SERVER_PORT"] = "80";
-    env_set["SERVER_PROTOCOL"] = "HTTP/1.1";
-    env_set["SERVER_SOFTWARE"] = "versbew";
-    env_set["SCRIPT_NAMME"] = location->getCgiPath();
-  }
-  environ = setEnviron(env_set);
-  command = setCommand(location->getCgiPath(), getAccessPath(request.getUri()));
+  // std::string cgi_output_temp;
+  // std::map<std::string, std::string> env_set;
+  // {
+  //   env_set["CONTENT_LENGTH"] = request.getHeaderValue("Content-Length");
+  //   env_set["QUERY_STRING"] = request.getEntityBody();
+  //   env_set["REQUEST_METHOD"] = request.getMethod();
+  //   env_set["REDIRECT_STATUS"] = "CGI";
+  //   env_set["SCRIPT_FILENAME"] = getAccessPath(request.getUri());
+  //   env_set["SERVER_PROTOCOL"] = "HTTP/1.1";
+  //   env_set["PATH_INFO"] = getAccessPath(request.getUri());
+  //   env_set["CONTENT_TYPE"] = "test/file";
+  //   env_set["GATEWAY_INTERFACE"] = "CGI/1.1";
+  //   env_set["PATH_TRANSLATED"] = getAccessPath(request.getUri());
+  //   env_set["REMOTE_ADDR"] = "127.0.0.1";
+  //   env_set["REQUEST_URI"] = getAccessPath(request.getUri());
+  //   env_set["SERVER_PORT"] = "80";
+  //   env_set["SERVER_PROTOCOL"] = "HTTP/1.1";
+  //   env_set["SERVER_SOFTWARE"] = "versbew";
+  //   env_set["SCRIPT_NAMME"] = location->getCgiPath();
+  // }
+  // environ = setEnviron(env_set);
+  // command = setCommand(location->getCgiPath(), getAccessPath(request.getUri()));
 
-  pipe(pipe_fd);
-  pid = fork();
-  if (!pid) {
-    dup2(pipe_fd[1], STDOUT_FILENO);
-    close(pipe_fd[0]);
-    close(pipe_fd[1]);
-    execve(location->getCgiPath().c_str(), command, environ);
-    exit(1);
-  } else {
-    close(pipe_fd[1]);
-    int nbytes;
-    int i = 0;
-    while ((nbytes = read(pipe_fd[0], foo, sizeof(foo)))) {
-      cgi_output_temp.append(foo);
-      i++;
-    }
-    std::cout << "i: " << nbytes << std::endl;
-    // write(STDOUT_FILENO, foo, strlen(foo));
-    wait(NULL);
-  }
+  // pipe(pipe_fd);
+  // pid = fork();
+  // if (!pid) {
+  //   dup2(pipe_fd[1], STDOUT_FILENO);
+  //   close(pipe_fd[0]);
+  //   close(pipe_fd[1]);
+  //   execve(location->getCgiPath().c_str(), command, environ);
+  //   exit(1);
+  // } else {
+  //   close(pipe_fd[1]);
+  //   int nbytes;
+  //   int i = 0;
+  //   while ((nbytes = read(pipe_fd[0], foo, sizeof(foo)))) {
+  //     cgi_output_temp.append(foo);
+  //     i++;
+  //   }
+  //   std::cout << "i: " << nbytes << std::endl;
+  //   // write(STDOUT_FILENO, foo, strlen(foo));
+  //   wait(NULL);
+  // }
 
-  this->response_->setResponseBody(cgi_output_temp);
+  // this->response_->setResponseBody(cgi_output_temp);
   setStatusLineWithCode("200");
 }
 

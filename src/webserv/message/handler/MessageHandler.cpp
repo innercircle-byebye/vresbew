@@ -102,9 +102,6 @@ void MessageHandler::handle_response(Connection *c) {
   }
 
   send(c->getFd(), c->getResponse().getMsg().c_str(), c->getResponse().getMsg().size(), 0);
-  // TODO: 언제 삭제해야하는지 적절한 시기를 확인해야함
-  c->getRequest().clear();
-  c->getResponse().clear();
 }
 
 void MessageHandler::executePutMethod(std::string path, std::string content) {

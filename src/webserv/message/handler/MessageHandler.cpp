@@ -51,6 +51,7 @@ void MessageHandler::handle_cgi(Connection *c, LocationConfig *location) {
   }
   environ = response_handler_.setEnviron(env_set);
   command = response_handler_.setCommand(location->getCgiPath(), response_handler_.getAccessPath(c->getRequest().getUri(), location));
+
   std::string cgi_output_temp;
   pipe(pipe_fd);
   pid = fork();
@@ -68,11 +69,21 @@ void MessageHandler::handle_cgi(Connection *c, LocationConfig *location) {
       cgi_output_temp.append(foo);
       i++;
     }
-    std::cout << "i: " << nbytes << std::endl;
     // write(STDOUT_FILENO, foo, strlen(foo));
     wait(NULL);
   }
+  std::string cgi_output_response_header;
+  std::string cgi_output_response_body;
+
+  // cgi_output_response_header = parseCgiHeader(cgi_output_temp);
+
   c->getResponse().setResponseBody(cgi_output_temp);
+}
+
+std::string MessageHandler::parseCgiHeader(const std::string &cgi_output)
+{
+
+  return (cgi_output);
 }
 
 void MessageHandler::handle_response(Connection *c) {

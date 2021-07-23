@@ -31,6 +31,7 @@ private:
   static void executePutMethod(std::string path, std::string content);
   static bool isValidRequestMethod(const std::string &method);
   static bool isValidRequestVersion(const std::string &http_version, const std::map<std::string, std::string> &headers);
+  std::string parseCgiHeader(const std::string &cgi_output);
 };
 }  // namespace ft
 #endif

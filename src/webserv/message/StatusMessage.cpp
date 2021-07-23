@@ -15,6 +15,7 @@ std::map<unsigned int, std::string> StatusMessage::makeStatusMessages(void) {
   messages[403] = "Forbidden";
   messages[404] = "Not Found";
   messages[405] = "Not Allowed";
+  messages[409] = "Conflict";
   messages[413] = "Request Entity Too Large";
   messages[500] = "Internal Server Error";
   messages[501] = "Not Implemented";

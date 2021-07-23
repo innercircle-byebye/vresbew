@@ -26,7 +26,7 @@ void ResponseHandler::setResponseFields(Request &request) {
   if (request.getMethod() == "GET" || request.getMethod() == "HEAD")
     processGetAndHeaderMethod(request, location);
   else if (request.getMethod() == "PUT")
-    processPutMethod(request.getUri(), location);
+    processPutMethod(request, location);
   else if (request.getMethod() == "POST")
     // 아무것도 없음
     processPostMethod(request, location);
@@ -61,7 +61,6 @@ void ResponseHandler::setResponseStatusLine() {
 void ResponseHandler::setResponseHeader() {
   std::map<std::string, std::string> headers = response_->getHeaders();
   std::map<std::string, std::string>::reverse_iterator it;
-  // nginx 는 알파벳 역순으로 메세지를 보냄
   for (it = headers.rbegin(); it != headers.rend(); it++) {
     if (it->second != "") {
       response_->getMsg() += it->first;
@@ -121,20 +120,11 @@ std::string ResponseHandler::getDefaultErrorBody(std::string status_code, std::s
 void ResponseHandler::processGetAndHeaderMethod(Request &request, LocationConfig *&location) {
   //need last modified header
   // TODO: apply for all url when directory is given
-  if (!request.getUri().compare("/")) {
-    if (location->getIndex().size() == 0 ||
-        (location->getIndex().size() == 1 && !location->getIndex().at(0).compare("index.html"))) {
-      request.getUri() += "index.html";
-      if (!isFileExist(request.getUri(), location)) {
-        setStatusLineWithCode("403");
-        return;
-      }
-    } else {
-      findIndexForGetWhenOnlySlash(request, location);
-      if (!request.getUri().compare("/")) {
-        setStatusLineWithCode("403");
-        return;
-      }
+  if (*(request.getUri().rbegin()) == '/') {
+    findIndexForGetWhenOnlySlash(request, location);
+    if (!request.getUri().compare("/")) {
+      setStatusLineWithCode("403");
+      return;
     }
   }
   if (!isFileExist(request.getUri(), location)) {
@@ -154,15 +144,21 @@ void ResponseHandler::processGetAndHeaderMethod(Request &request, LocationConfig
   }
 }
 
-void ResponseHandler::processPutMethod(std::string &uri, LocationConfig *&location) {
-  if (!uri.compare("/")) {
+void ResponseHandler::processPutMethod(Request &request, LocationConfig *&location) {
+  std::cout << "uri: " << request.getUri() << std::endl;
+  if (*(request.getUri().rbegin()) == '/') {
     setStatusLineWithCode("409");
     return;
-  } else if (!isPathAccessable(uri, location)) {
+  }
+  if (!isPathAccessable(request.getUri(), location)) {
     setStatusLineWithCode("500");
     return;
   }
-  if (!isFileExist(uri, location)) {
+  if (!isFileExist(request.getUri(), location)) {
+    if (S_ISDIR(this->stat_buffer_.st_mode)) {
+      setStatusLineWithCode("500");
+      return;
+    }
     setStatusLineWithCode("201");
   } else {
     setStatusLineWithCode("204");
@@ -175,61 +171,6 @@ void ResponseHandler::processPostMethod(Request &request, LocationConfig *&locat
     setStatusLineWithCode("405");
     return;
   }
-
-  // // assume query string is placed in request.entity_body_;
-
-  // // init env_set map which will be transformned into char** later
-  // char **environ;
-  // char **command;
-  // pid_t pid;
-  // int pipe_fd[2];
-  // char foo[4096];
-
-  // std::string cgi_output_temp;
-  // std::map<std::string, std::string> env_set;
-  // {
-  //   env_set["CONTENT_LENGTH"] = request.getHeaderValue("Content-Length");
-  //   env_set["QUERY_STRING"] = request.getEntityBody();
-  //   env_set["REQUEST_METHOD"] = request.getMethod();
-  //   env_set["REDIRECT_STATUS"] = "CGI";
-  //   env_set["SCRIPT_FILENAME"] = getAccessPath(request.getUri());
-  //   env_set["SERVER_PROTOCOL"] = "HTTP/1.1";
-  //   env_set["PATH_INFO"] = getAccessPath(request.getUri());
-  //   env_set["CONTENT_TYPE"] = "test/file";
-  //   env_set["GATEWAY_INTERFACE"] = "CGI/1.1";
-  //   env_set["PATH_TRANSLATED"] = getAccessPath(request.getUri());
-  //   env_set["REMOTE_ADDR"] = "127.0.0.1";
-  //   env_set["REQUEST_URI"] = getAccessPath(request.getUri());
-  //   env_set["SERVER_PORT"] = "80";
-  //   env_set["SERVER_PROTOCOL"] = "HTTP/1.1";
-  //   env_set["SERVER_SOFTWARE"] = "versbew";
-  //   env_set["SCRIPT_NAMME"] = location->getCgiPath();
-  // }
-  // environ = setEnviron(env_set);
-  // command = setCommand(location->getCgiPath(), getAccessPath(request.getUri()));
-
-  // pipe(pipe_fd);
-  // pid = fork();
-  // if (!pid) {
-  //   dup2(pipe_fd[1], STDOUT_FILENO);
-  //   close(pipe_fd[0]);
-  //   close(pipe_fd[1]);
-  //   execve(location->getCgiPath().c_str(), command, environ);
-  //   exit(1);
-  // } else {
-  //   close(pipe_fd[1]);
-  //   int nbytes;
-  //   int i = 0;
-  //   while ((nbytes = read(pipe_fd[0], foo, sizeof(foo)))) {
-  //     cgi_output_temp.append(foo);
-  //     i++;
-  //   }
-  //   std::cout << "i: " << nbytes << std::endl;
-  //   // write(STDOUT_FILENO, foo, strlen(foo));
-  //   wait(NULL);
-  // }
-
-  // this->response_->setResponseBody(cgi_output_temp);
   setStatusLineWithCode("200");
 }
 
@@ -298,28 +239,38 @@ void ResponseHandler::processDeleteMethod(std::string &uri, LocationConfig *&loc
 std::string ResponseHandler::getAccessPath(std::string &uri) {
   LocationConfig *location = this->server_config_->getLocationConfig(uri);
   std::string path;
-  path = "." + location->getRoot() + uri;
+  path = location->getRoot() + uri;
   return (path);
 }
 
-std::string ResponseHandler::getAccessPath(std::string &uri, LocationConfig *&location) {
+std::string ResponseHandler::getAccessPath(const std::string &uri, LocationConfig *&location) {
   std::string path;
-  path = "." + location->getRoot() + uri;
+  path = location->getRoot() + uri;
   return (path);
 }
 
-bool ResponseHandler::isFileExist(std::string &uri) {
-  if (stat(getAccessPath(uri).c_str(), &this->stat_buffer_) < 0) {
-    std::cout << "this ain't work" << std::endl;
+// bool ResponseHandler::isFileExist(std::string &uri) {
+//   if (stat(getAccessPath(uri).c_str(), &this->stat_buffer_) < 0) {
+//     std::cout << "this ain't work" << std::endl;
+//     return (false);
+//   }
+//   return (true);
+// }
+
+bool ResponseHandler::isFileExist(const std::string &path) {
+  std::cout << "REMINDER: THIS METHOD SHOULD ONLY BE \
+    CALLED WHEN FILE PATH IS COMBINED WITH ROOT DIRECTIVE"
+            << path << std::endl;
+  std::cout << "path: " << path << std::endl;
+  if (stat(path.c_str(), &this->stat_buffer_) < 0) {
+    std::cout << "this aint work" << std::endl;
     return (false);
   }
   return (true);
 }
-
-bool ResponseHandler::isFileExist(std::string &uri, LocationConfig *&location) {
-  std::string temp = "." + location->getRoot()+ "/" + uri;
-  std::cout << "temp: " << temp << std::endl;
-  if (stat(temp.c_str(), &this->stat_buffer_) < 0) {
+bool ResponseHandler::isFileExist(const std::string &path, LocationConfig *&location) {
+  std::cout << "yo:" << getAccessPath(path, location) << std::endl;
+  if (stat(getAccessPath(path, location).c_str(), &this->stat_buffer_) < 0) {
     std::cout << "this doesn't work" << std::endl;
     return (false);
   }
@@ -389,14 +340,15 @@ int ResponseHandler::deletePathRecursive(std::string &path) {
 }
 
 void ResponseHandler::findIndexForGetWhenOnlySlash(Request &request, LocationConfig *&location) {
-  std::string temp;
   std::vector<std::string>::const_iterator it_index;
+  std::string temp;
   for (it_index = location->getIndex().begin(); it_index != location->getIndex().end(); it_index++) {
-    temp = *it_index;
-    if (isFileExist(temp, location)) {
-      request.setUri(*it_index);
+    temp = location->getRoot() + request.getUri() + *it_index;
+    if (isFileExist(temp)) {
+      request.getUri() += *it_index;
       break;
     }
+    temp.clear();
   }
 }
 

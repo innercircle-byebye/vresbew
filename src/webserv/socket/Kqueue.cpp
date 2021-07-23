@@ -66,9 +66,10 @@ void Kqueue::kqueueProcessEvents(SocketManager *sm) {
         sm->closeConnection(c);
       } else {
         MessageHandler::handle_request(c);
-        if ((c->getRequest().getRecvPhase() == MESSAGE_BODY_NO_NEED) || (c->getRequest().getRecvPhase() == MESSAGE_BODY_COMPLETE)) {
+        if (c->getRequest().getRecvPhase() == MESSAGE_BODY_COMPLETE) {
           kqueueSetEvent(c, EVFILT_WRITE, EV_ADD | EV_ONESHOT);
         }
+
       }
     } else if (event_list_[i].filter == EVFILT_WRITE) {
       if (event_list_[i].flags & EV_EOF) {

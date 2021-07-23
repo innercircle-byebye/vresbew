@@ -46,7 +46,6 @@ void MessageHandler::handle_cgi(Connection *c, LocationConfig *location) {
     env_set["REMOTE_ADDR"] = "127.0.0.1";  // TODO: ip주소 받아오는 부분 찾기
     env_set["REQUEST_URI"] = response_handler_.getAccessPath(c->getRequest().getUri(), location);
     env_set["SERVER_PORT"] = std::to_string(ntohs(c->getSockaddrToConnect().sin_port));  // 포트도
-    env_set["SERVER_PROTOCOL"] = "HTTP/1.1";
     env_set["SERVER_SOFTWARE"] = "versbew";
     env_set["SCRIPT_NAMME"] = location->getCgiPath();
   }

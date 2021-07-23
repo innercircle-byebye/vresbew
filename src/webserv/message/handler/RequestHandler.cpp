@@ -18,15 +18,12 @@ void RequestHandler::processByRecvPhase() {
     checkMsgForHeader();
   if (request_->getRecvPhase() == MESSAGE_HEADER_COMPLETE) {
     parseStartLine();
-    parseHeaderLines(); // 내부에서 body 필요한지 체크한 후 content_length랑 recv_phase 변경
+    parseHeaderLines();  // 내부에서 body 필요한지 체크한 후 content_length랑 recv_phase 변경
   }
-  if (request_->getRecvPhase() == MESSAGE_BODY_NO_NEED)
-    return ;
   if (request_->getRecvPhase() == MESSAGE_BODY_INCOMING)
     checkMsgForEntityBody();
   if (request_->getRecvPhase() == MESSAGE_BODY_COMPLETE) {  // content_length 초기화하는 부분도 추가하기
     parseEntityBody();
-    // request_->recv_phase = MESSAGE_HEADER_INCOMPLETE;  // ?????
   }
 }
 
@@ -54,7 +51,7 @@ int RequestHandler::parseStartLine() {
   request_->getMsg().erase(0, pos + 2);
 
   int delimiter_count = this->getCountOfDelimiter(start_line,
-                                                    START_LINE_DELIMITER);
+                                                  START_LINE_DELIMITER);
   if (delimiter_count != 2) {
     return (404);
   }
@@ -80,16 +77,16 @@ void RequestHandler::parseHeaderLines() {
   request_->getMsg().erase(0, pos + 4);
 
   while ((pos = header_lines.find("\r\n")) != std::string::npos) {
-      std::string one_header_line = header_lines.substr(0, pos);
-      if (this->parseHeaderLine(one_header_line) != 0)  // TODO: 반환값(0) 확인 필요
-        request_->clear();
-      header_lines.erase(0, pos + 2);
+    std::string one_header_line = header_lines.substr(0, pos);
+    if (this->parseHeaderLine(one_header_line) != 0)  // TODO: 반환값(0) 확인 필요
+      request_->clear();
+    header_lines.erase(0, pos + 2);
   }
   if (this->parseHeaderLine(header_lines) != 0)  // TODO: 반환값(0) 확인 필요
     request_->clear();
 
   if (request_->getContentLength() == 0)
-    request_->setRecvPhase(MESSAGE_BODY_NO_NEED);
+    request_->setRecvPhase(MESSAGE_BODY_COMPLETE);
   else
     request_->setRecvPhase(MESSAGE_BODY_INCOMING);
 }
@@ -99,17 +96,15 @@ int RequestHandler::parseHeaderLine(std::string &one_header_line) {
   std::string value;
   int delimiter = one_header_line.find(HEADER_DELIMITER);
 
-    // parse key and validation
+  // parse key and validation
   key = one_header_line.substr(0, delimiter);
   value = one_header_line.substr(delimiter + 2);
   // if (!(this->isValidHeaderKey(key)))
   //   return (404);
-  if (!key.compare("Content-Length") && request_->getMethod().compare("GET") && request_->getMethod().compare("DELETE"))
-  {
+  if (!key.compare("Content-Length") && request_->getMethod().compare("GET") && request_->getMethod().compare("DELETE")) {
     try {
       request_->setContentLength(stoi(value));
-    }
-    catch (std::exception &e) {
+    } catch (std::exception &e) {
       std::cout << e.what() << std::endl;
     }
   }
@@ -119,7 +114,8 @@ int RequestHandler::parseHeaderLine(std::string &one_header_line) {
 }
 
 void RequestHandler::parseEntityBody() {
-  request_->setEntityBody(request_->getMsg().substr(0, request_->getContentLength()));
+  if (request_->getContentLength() > 0)
+    request_->setEntityBody(request_->getMsg().substr(0, request_->getContentLength()));
 }
 
 /* UTILS */

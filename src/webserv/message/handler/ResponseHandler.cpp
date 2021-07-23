@@ -29,10 +29,9 @@ void ResponseHandler::setResponseFields(Request &request) {
     processPutMethod(request.getUri(), location);
   else if (request.getMethod() == "POST")
     // 아무것도 없음
-    processPostMethod(request.getUri(), location);
+    processPostMethod(request, location);
   else if (request.getMethod() == "DELETE")
     processDeleteMethod(request.getUri(), location);
-
 
   if (this->response_->getResponseBody().size() > 0) {
     this->response_->setHeader("Content-Length",
@@ -90,7 +89,8 @@ void ResponseHandler::setStatusLineWithCode(const std::string &status_code) {
   // TODO: fix this garbage conditional statement...
   if (!(!status_code.compare("200") ||
         !status_code.compare("201") ||
-        !status_code.compare("204")))
+        !status_code.compare("204") ||
+        !status_code.compare("999")))
     this->response_->getResponseBody() =
         getDefaultErrorBody(this->response_->getStatusCode(), this->response_->getStatusMessage());
 }
@@ -120,6 +120,7 @@ std::string ResponseHandler::getDefaultErrorBody(std::string status_code, std::s
 
 void ResponseHandler::processGetAndHeaderMethod(Request &request, LocationConfig *&location) {
   //need last modified header
+  // TODO: apply for all url when directory is given
   if (!request.getUri().compare("/")) {
     if (location->getIndex().size() == 0 ||
         (location->getIndex().size() == 1 && !location->getIndex().at(0).compare("index.html"))) {
@@ -129,7 +130,7 @@ void ResponseHandler::processGetAndHeaderMethod(Request &request, LocationConfig
         return;
       }
     } else {
-      findIndexForGetWhenOnlySlash(request.getUri(), location);
+      findIndexForGetWhenOnlySlash(request, location);
       if (!request.getUri().compare("/")) {
         setStatusLineWithCode("403");
         return;
@@ -168,10 +169,68 @@ void ResponseHandler::processPutMethod(std::string &uri, LocationConfig *&locati
   }
 }
 
-void ResponseHandler::processPostMethod(std::string &uri, LocationConfig *&location) {
-  (void)uri;
-  (void)location;
-  ;
+void ResponseHandler::processPostMethod(Request &request, LocationConfig *&location) {
+  if (!location->checkCgiExtension(request.getUri()) ||
+      location->getCgiPath().empty()) {
+    setStatusLineWithCode("405");
+    return;
+  }
+
+  // // assume query string is placed in request.entity_body_;
+
+  // // init env_set map which will be transformned into char** later
+  // char **environ;
+  // char **command;
+  // pid_t pid;
+  // int pipe_fd[2];
+  // char foo[4096];
+
+  // std::string cgi_output_temp;
+  // std::map<std::string, std::string> env_set;
+  // {
+  //   env_set["CONTENT_LENGTH"] = request.getHeaderValue("Content-Length");
+  //   env_set["QUERY_STRING"] = request.getEntityBody();
+  //   env_set["REQUEST_METHOD"] = request.getMethod();
+  //   env_set["REDIRECT_STATUS"] = "CGI";
+  //   env_set["SCRIPT_FILENAME"] = getAccessPath(request.getUri());
+  //   env_set["SERVER_PROTOCOL"] = "HTTP/1.1";
+  //   env_set["PATH_INFO"] = getAccessPath(request.getUri());
+  //   env_set["CONTENT_TYPE"] = "test/file";
+  //   env_set["GATEWAY_INTERFACE"] = "CGI/1.1";
+  //   env_set["PATH_TRANSLATED"] = getAccessPath(request.getUri());
+  //   env_set["REMOTE_ADDR"] = "127.0.0.1";
+  //   env_set["REQUEST_URI"] = getAccessPath(request.getUri());
+  //   env_set["SERVER_PORT"] = "80";
+  //   env_set["SERVER_PROTOCOL"] = "HTTP/1.1";
+  //   env_set["SERVER_SOFTWARE"] = "versbew";
+  //   env_set["SCRIPT_NAMME"] = location->getCgiPath();
+  // }
+  // environ = setEnviron(env_set);
+  // command = setCommand(location->getCgiPath(), getAccessPath(request.getUri()));
+
+  // pipe(pipe_fd);
+  // pid = fork();
+  // if (!pid) {
+  //   dup2(pipe_fd[1], STDOUT_FILENO);
+  //   close(pipe_fd[0]);
+  //   close(pipe_fd[1]);
+  //   execve(location->getCgiPath().c_str(), command, environ);
+  //   exit(1);
+  // } else {
+  //   close(pipe_fd[1]);
+  //   int nbytes;
+  //   int i = 0;
+  //   while ((nbytes = read(pipe_fd[0], foo, sizeof(foo)))) {
+  //     cgi_output_temp.append(foo);
+  //     i++;
+  //   }
+  //   std::cout << "i: " << nbytes << std::endl;
+  //   // write(STDOUT_FILENO, foo, strlen(foo));
+  //   wait(NULL);
+  // }
+
+  // this->response_->setResponseBody(cgi_output_temp);
+  setStatusLineWithCode("200");
 }
 
 void ResponseHandler::processDeleteMethod(std::string &uri, LocationConfig *&location) {
@@ -186,7 +245,7 @@ void ResponseHandler::processDeleteMethod(std::string &uri, LocationConfig *&loc
     std::string url = getAccessPath(uri);
     if (stat(url.c_str(), &this->stat_buffer_) < 0) {
       setStatusLineWithCode("405");
-      return ;
+      return;
     } else {
       if (S_ISDIR(this->stat_buffer_.st_mode)) {
         DIR *dir_ptr;
@@ -194,7 +253,7 @@ void ResponseHandler::processDeleteMethod(std::string &uri, LocationConfig *&loc
 
         if (!(dir_ptr = opendir(url.c_str()))) {
           setStatusLineWithCode("403");  // Not Allowed
-          return ;
+          return;
         }
         while ((item = readdir(dir_ptr))) {
           if (strcmp(item->d_name, ".") == 0 || strcmp(item->d_name, "..") == 0)
@@ -203,14 +262,14 @@ void ResponseHandler::processDeleteMethod(std::string &uri, LocationConfig *&loc
           new_path += item->d_name;
           if (deletePathRecursive(new_path) == -1) {
             setStatusLineWithCode("403");
-            return ;
+            return;
           }
         }
         setStatusLineWithCode("403");
       } else {
         if (remove(url.c_str()) != 0) {
           setStatusLineWithCode("403");
-          return ;
+          return;
         }
         setStatusLineWithCode("204");
       }
@@ -258,7 +317,7 @@ bool ResponseHandler::isFileExist(std::string &uri) {
 }
 
 bool ResponseHandler::isFileExist(std::string &uri, LocationConfig *&location) {
-  std::string temp = "." + location->getRoot() +"/" + uri;
+  std::string temp = "." + location->getRoot()+ "/" + uri;
   std::cout << "temp: " << temp << std::endl;
   if (stat(temp.c_str(), &this->stat_buffer_) < 0) {
     std::cout << "this doesn't work" << std::endl;
@@ -329,13 +388,13 @@ int ResponseHandler::deletePathRecursive(std::string &path) {
   return (0);
 }
 
-void ResponseHandler::findIndexForGetWhenOnlySlash(std::string &uri, LocationConfig *&location) {
+void ResponseHandler::findIndexForGetWhenOnlySlash(Request &request, LocationConfig *&location) {
   std::string temp;
   std::vector<std::string>::const_iterator it_index;
   for (it_index = location->getIndex().begin(); it_index != location->getIndex().end(); it_index++) {
     temp = *it_index;
     if (isFileExist(temp, location)) {
-      uri = *it_index;
+      request.setUri(*it_index);
       break;
     }
   }
@@ -358,5 +417,43 @@ int ResponseHandler::remove_directory(std::string directory_name) {
   std::cout << "sucess remove file " << directory_name << std::endl;
   return (0);
 }
+
+char **ResponseHandler::setEnviron(std::map<std::string, std::string> env) {
+  char **return_value;
+  std::string temp;
+
+  return_value = (char **)malloc(sizeof(char *) * (env.size() + 1));
+  int i = 0;
+  std::map<std::string, std::string>::iterator it;
+  for (it = env.begin(); it != env.end(); it++) {
+    temp = (*it).first + "=" + (*it).second;
+    char *p = (char *)malloc(temp.size() + 1);
+    strcpy(p, temp.c_str());
+    return_value[i] = p;
+    i++;
+  }
+  return_value[i] = NULL;
+  return (return_value);
+}
+
+char **ResponseHandler::setCommand(std::string command, std::string path) {
+  // TODO: leak check
+  char **return_value;
+  return_value = (char **)malloc(sizeof(char *) * (3));
+
+  char *temp;
+  // TODO: leak check
+  temp = (char *)malloc(sizeof(char) * (command.size() + 1));
+  strcpy(temp, command.c_str());
+  return_value[0] = temp;
+
+  // TODO: leak check
+  temp = (char *)malloc(sizeof(char) * (path.size() + 1));
+  strcpy(temp, path.c_str());
+  return_value[1] = temp;
+  return_value[2] = NULL;
+  return (return_value);
+}
+
 /*--------------------------EXECUTING METHODS END--------------------------------*/
 }  // namespace ft

@@ -81,8 +81,11 @@ void Kqueue::kqueueProcessEvents(SocketManager *sm) {
       } else {
         if (c->getRequest().getUri().size() > 0) {
           MessageHandler::handle_response(c);
-          if (!c->getResponse().getStatusCode().compare("404") || !c->getRequest().getHttpVersion().compare("HTTP/1.0"))
+          if (!c->getResponse().getStatusCode().compare("404") || !c->getRequest().getHttpVersion().compare("HTTP/1.0")) {
+            c->getRequest().clear();
+            c->getResponse().clear();
             sm->closeConnection(c);
+          }
           // check Connection header close
           std::cout << "=======check connection header======" << std::endl;
           std::cout << c->getResponse().getHeaderValue("Connection") << std::endl;

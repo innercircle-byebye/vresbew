@@ -121,20 +121,11 @@ std::string ResponseHandler::getDefaultErrorBody(std::string status_code, std::s
 void ResponseHandler::processGetAndHeaderMethod(Request &request, LocationConfig *&location) {
   //need last modified header
   // TODO: apply for all url when directory is given
-  if (!request.getUri().compare("/")) {
-    if (location->getIndex().size() == 0 ||
-        (location->getIndex().size() == 1 && !location->getIndex().at(0).compare("index.html"))) {
-      request.getUri() += "index.html";
-      if (!isFileExist(request.getUri(), location)) {
-        setStatusLineWithCode("403");
-        return;
-      }
-    } else {
-      findIndexForGetWhenOnlySlash(request, location);
-      if (!request.getUri().compare("/")) {
-        setStatusLineWithCode("403");
-        return;
-      }
+  if (*(request.getUri().rbegin()) == '/') {
+    findIndexForGetWhenOnlySlash(request, location);
+    if (!request.getUri().compare("/")) {
+      setStatusLineWithCode("403");
+      return;
     }
   }
   if (!isFileExist(request.getUri(), location)) {
@@ -162,7 +153,7 @@ void ResponseHandler::processPutMethod(std::string &uri, LocationConfig *&locati
     setStatusLineWithCode("500");
     return;
   }
-  if (!isFileExist(uri, location)) {
+  if (!isFileExist(uri)) {
     setStatusLineWithCode("201");
   } else {
     setStatusLineWithCode("204");
@@ -298,28 +289,34 @@ void ResponseHandler::processDeleteMethod(std::string &uri, LocationConfig *&loc
 std::string ResponseHandler::getAccessPath(std::string &uri) {
   LocationConfig *location = this->server_config_->getLocationConfig(uri);
   std::string path;
-  path = "." + location->getRoot() + uri;
+  path = location->getRoot() + uri;
   return (path);
 }
 
-std::string ResponseHandler::getAccessPath(std::string &uri, LocationConfig *&location) {
+std::string ResponseHandler::getAccessPath(const std::string &uri, LocationConfig *&location) {
   std::string path;
-  path = "." + location->getRoot() + uri;
+  path = location->getRoot() + uri;
   return (path);
 }
 
-bool ResponseHandler::isFileExist(std::string &uri) {
-  if (stat(getAccessPath(uri).c_str(), &this->stat_buffer_) < 0) {
-    std::cout << "this ain't work" << std::endl;
+// bool ResponseHandler::isFileExist(std::string &uri) {
+//   if (stat(getAccessPath(uri).c_str(), &this->stat_buffer_) < 0) {
+//     std::cout << "this ain't work" << std::endl;
+//     return (false);
+//   }
+//   return (true);
+// }
+
+bool ResponseHandler::isFileExist(const std::string &path) {
+  std::cout << "path: " << path << std::endl;
+  if (stat(path.c_str(), &this->stat_buffer_) < 0) {
+    std::cout << "this doesn't work" << std::endl;
     return (false);
   }
   return (true);
 }
-
-bool ResponseHandler::isFileExist(std::string &uri, LocationConfig *&location) {
-  std::string temp = "." + location->getRoot()+ "/" + uri;
-  std::cout << "temp: " << temp << std::endl;
-  if (stat(temp.c_str(), &this->stat_buffer_) < 0) {
+bool ResponseHandler::isFileExist(const std::string &path, LocationConfig *&location) {
+  if (stat(getAccessPath(path, location).c_str(), &this->stat_buffer_) < 0) {
     std::cout << "this doesn't work" << std::endl;
     return (false);
   }
@@ -389,14 +386,15 @@ int ResponseHandler::deletePathRecursive(std::string &path) {
 }
 
 void ResponseHandler::findIndexForGetWhenOnlySlash(Request &request, LocationConfig *&location) {
-  std::string temp;
   std::vector<std::string>::const_iterator it_index;
+  std::string temp;
   for (it_index = location->getIndex().begin(); it_index != location->getIndex().end(); it_index++) {
-    temp = *it_index;
-    if (isFileExist(temp, location)) {
-      request.setUri(*it_index);
+    temp = location->getRoot() + request.getUri() + *it_index;
+    if (isFileExist(temp)) {
+      request.getUri() += *it_index;
       break;
     }
+    temp.clear();
   }
 }
 

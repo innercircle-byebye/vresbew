@@ -1,6 +1,20 @@
 #include "webserv/config/LocationConfig.hpp"
 namespace ft {
 
+LocationConfig::LocationConfig(ServerConfig *server_config) {
+  this->uri = "/";
+
+  this->root = server_config->getRoot();
+  this->index = server_config->getIndex();
+  this->autoindex = server_config->getAutoindex();
+  this->client_max_body_size = server_config->getClientMaxBodySize();
+  this->return_code = -1;
+  this->return_value = "";
+  this->cgi_path = "";
+  
+  this->error_page = server_config->getErrorPage();
+}
+
 LocationConfig::LocationConfig(std::vector<std::string> tokens, ServerConfig *server_config) {
   // 초기화부분
   this->root = server_config->getRoot();

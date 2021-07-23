@@ -219,10 +219,21 @@ ServerConfig::ServerConfig(std::vector<std::string> tokens, HttpConfig *http_con
     }
   }
 
+  std::set<std::string> location_uri_set;
   std::vector<std::vector<std::string> >::iterator location_it = locations_tokens.begin();
   for (; location_it != locations_tokens.end(); location_it++) {
     LocationConfig *new_location = new LocationConfig(*location_it, this);
+
+    if (location_uri_set.count(new_location->getUri()) == 1)
+      throw std::runtime_error("nginx: [emerg] duplicate location \"" + new_location->getUri() + "\"");
+    location_uri_set.insert(new_location->getUri());
+
     this->location_configs.push_back(new_location);
+  }
+
+  if (location_uri_set.count("/") == 0) {
+    LocationConfig *default_location = new LocationConfig(this);
+    this->location_configs.push_back(default_location);
   }
 
   std::sort(this->location_configs.begin(), this->location_configs.end(), this->compareUriForDescendingOrderByLength);

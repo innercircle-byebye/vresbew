@@ -112,21 +112,43 @@ LocationConfig::LocationConfig(std::vector<std::string> tokens, ServerConfig *se
       it += (count + 2);
 
     } else if (*it == "client_max_body_size") {
-      // TODO : 예외처리해야함
+      if (*(it + 1) == ";" || *(it + 2) != ";")
+        throw std::runtime_error("webserv: [emerg] invalid number of arguments in \"client_max_body_size\" directive");
+
       if (check_client_max_body_size == true)
         throw std::runtime_error("webserv: [emerg] \"client_max_body_size\" directive is duplicate");
 
-      std::string size_str = *(it + 1);
+      std::string &size_str = *(it + 1);
+      int num_of_mutifly_by_2 = 0;
+      if (*size_str.rbegin() == 'k') {
+        num_of_mutifly_by_2 = 10;
+      } else if (*size_str.rbegin() == 'm') {
+        num_of_mutifly_by_2 = 20;
+      } else if (*size_str.rbegin() == 'g') {
+        num_of_mutifly_by_2 = 30;
+      }
+      if (num_of_mutifly_by_2 != 0) {
+        size_str = size_str.substr(0, size_str.length() - 1);
+      }
 
-      this->client_max_body_size = atoi(size_str.c_str());
+      if (size_str.length() > 19) {
+        throw std::runtime_error("webserv: [emerg] \"client_max_body_size\" directive invalid value");
+      }
 
-      char last_char = size_str[size_str.length() - 1];
-      if (last_char == 'k') {
-        this->client_max_body_size *= 1000;
-      } else if (last_char == 'm') {
-        this->client_max_body_size *= 1000000;
-      } else if (last_char == 'g') {
-        this->client_max_body_size *= 1000000000;
+      for (std::string::iterator i = size_str.begin(); i != size_str.end(); i++) {  // code에 숫자만 들어오는지 확인 // 함수로 빼는게 나을듯 ?
+        if (!isdigit(*i))
+          throw std::runtime_error("webserv: [emerg] \"client_max_body_size\" directive invalid value");
+      }
+
+      this->client_max_body_size = strtoul(size_str.c_str(), NULL, 0);
+      if (this->client_max_body_size > LONG_MAX) {
+        throw std::runtime_error("webserv: [emerg] \"client_max_body_size\" directive invalid value");
+      }
+      for (int i = 0; i < num_of_mutifly_by_2; i++) {
+        this->client_max_body_size *= 2;
+        if (this->client_max_body_size > LONG_MAX) {
+          throw std::runtime_error("webserv: [emerg] \"client_max_body_size\" directive invalid value");
+        }
       }
 
       check_client_max_body_size = true;

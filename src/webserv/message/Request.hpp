@@ -8,9 +8,9 @@
 namespace ft {
 
 enum MessageFromBufferStatus {
-  // MESSAGE_START_LINE_INCOMPLETE = 0,
-  // MESSAGE_START_LINE_COMPLETE,
-  MESSAGE_HEADER_INCOMPLETE = 0,
+  MESSAGE_START_LINE_INCOMPLETE = 0,
+  MESSAGE_START_LINE_COMPLETE,
+  MESSAGE_HEADER_INCOMPLETE,
   MESSAGE_HEADER_COMPLETE,
   MESSAGE_BODY_INCOMING,
   MESSAGE_BODY_COMPLETE
@@ -24,6 +24,10 @@ private:
 
   // start line
   std::string method_;
+  std::string schema_;
+  std::string host_;
+  // std::string host_ip_;
+  std::string port_;
   std::string uri_;
   std::string http_version_;
 
@@ -34,6 +38,8 @@ private:
   int content_length_;
   std::string entity_body_;
 
+  int error_num_;
+
 public:
   Request();
   ~Request();
@@ -43,21 +49,31 @@ public:
   std::string &getMsg();
   int getRecvPhase() const;
   const std::string &getMethod() const;
+  const std::string &getSchema() const;
+  const std::string &getHost() const;
+  // const std::string &getHostIp() const;
+  const std::string &getPort() const;
   std::string &getUri();
   const std::string &getHttpVersion() const;
   const std::map<std::string, std::string> &getHeaders() const;
   const std::string &getHeaderValue(const std::string &key);
   int getContentLength() const;
   const std::string &getEntityBody() const;
+  int getErrorNum() const;
 
   void setMsg(std::string msg);
   void setRecvPhase(int recv_phase);
   void setMethod(std::string method);
+  void setSchema(std::string schema);
+  void setHost(std::string host);
+  // void setHostIp(std::string host_ip);
+  void setPort(std::string port);
   void setUri(std::string uri);
   void setHttpVersion(std::string http_version);
   void setHeader(std::string key, std::string value);
   void setContentLength(int content_length);
   void setEntityBody(std::string entity_body);
+  void setErrorNum(int error_num);
 };
 
 }  // namespace ft

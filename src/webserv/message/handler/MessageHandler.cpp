@@ -11,7 +11,7 @@ MessageHandler::~MessageHandler() {}
 
 void MessageHandler::handle_request(Connection *c) {
   //RequestHandler  request_handler_;
-
+  
   // 1. recv
   size_t recv_len = recv(c->getFd(), c->buffer_, BUF_SIZE, 0);
   // 2. request_handler의 request가 c의 request가 되도록 세팅

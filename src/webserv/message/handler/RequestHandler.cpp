@@ -51,7 +51,7 @@ void RequestHandler::checkMsgForEntityBody() {
 
 /* PARSE FUNCTIONS */
 int RequestHandler::parseStartLine() {
-  // schem://host:port/uri?query
+  // schema://host:port/uri?query
 
   size_t pos = request_->getMsg().find("\r\n");
   std::string const start_line = request_->getMsg().substr(0, pos);
@@ -81,7 +81,7 @@ int RequestHandler::parseStartLine() {
 
 int RequestHandler::parseUri(std::string uri_str) {
   enum {
-    scheme = 0,
+    schema = 0,
     host,
     port,
     uri,
@@ -92,11 +92,11 @@ int RequestHandler::parseUri(std::string uri_str) {
   if (uri_str[0] == '/')
     state = uri;
   else
-    state = scheme;
+    state = schema;
   size_t pos;
   while (state != uri_complete) {
     switch (state) {
-      case scheme:
+      case schema:
         if ((pos = uri_str.find("://")) == std::string::npos)
           return PARSE_INVALID_URI;
         request_->setSchema(uri_str.substr(0, pos));

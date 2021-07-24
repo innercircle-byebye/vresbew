@@ -11,8 +11,9 @@
 
 namespace ft {
 
-#define START_LINE_DELIMITER ' '
-#define HEADER_DELIMITER ':'
+#define SPACE ' '
+// #define START_LINE_DELIMITER ' '
+// #define HEADER_DELIMITER ':'
 
 #define PARSE_VALID_URI 1
 #define PARSE_INVALID_URI 0

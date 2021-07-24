@@ -59,7 +59,7 @@ void RequestHandler::parseStartLine() {
   std::string const start_line = request_->getMsg().substr(0, pos);
   request_->getMsg().erase(0, pos + 2);
 
-  std::vector<std::string> start_line_split = RequestHandler::splitByDelimiter(start_line, START_LINE_DELIMITER);
+  std::vector<std::string> start_line_split = RequestHandler::splitByDelimiter(start_line, SPACE);
 
   if (start_line_split.size() != 3) // 404 error
     ;
@@ -211,11 +211,13 @@ void RequestHandler::parseHeaderLines() {
 }
 
 int RequestHandler::parseHeaderLine(std::string &one_header_line) {
-  std::vector<std::string> key_and_value = RequestHandler::splitByDelimiter(one_header_line, HEADER_DELIMITER);
+  std::vector<std::string> key_and_value = RequestHandler::splitByDelimiter(one_header_line, SPACE);
+  if (key_and_value.size() != 2)  // 400 Bad Request
+    ;
   std::string key, value;
 
   // parse key and validation
-  key = key_and_value[0];
+  key = key_and_value[0].erase(key_and_value[0].size() - 1);
   value = key_and_value[1];
 
   if (!key.compare("Content-Length") && request_->getMethod().compare("GET") && request_->getMethod().compare("DELETE")) {

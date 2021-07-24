@@ -2,7 +2,7 @@
 
 namespace ft {
 
-Request::Request(): recv_phase_(MESSAGE_START_LINE_INCOMPLETE), buffer_content_length_(0), port_("80"), uri_("/"){}
+Request::Request(): recv_phase_(MESSAGE_START_LINE_INCOMPLETE), buffer_content_length_(0), port_("80"), uri_("/"), is_cgi_process(false){}
 
 Request::~Request() {
   this->clear();

@@ -12,6 +12,7 @@ enum MessageFromBufferStatus {
   MESSAGE_START_LINE_COMPLETE,
   MESSAGE_HEADER_INCOMPLETE,
   MESSAGE_HEADER_COMPLETE,
+  MESSAGE_CGI_PROCESS,
   MESSAGE_BODY_INCOMING,
   MESSAGE_BODY_COMPLETE
 };
@@ -41,6 +42,7 @@ private:
   int error_num_;
 
 public:
+  bool is_cgi_process;
   Request();
   ~Request();
 

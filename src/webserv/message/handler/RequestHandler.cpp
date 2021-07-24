@@ -13,19 +13,24 @@ void RequestHandler::appendMsg(const char *buffer) {
   request_->getMsg().append(buffer);
 }
 
-void RequestHandler::processByRecvPhase() {
+void RequestHandler::processByRecvPhase(Connection *c) {
   if (request_->getRecvPhase() == MESSAGE_START_LINE_INCOMPLETE)
     checkMsgForStartLine();
   if (request_->getRecvPhase() == MESSAGE_START_LINE_COMPLETE)
     parseStartLine();
   if (request_->getRecvPhase() == MESSAGE_HEADER_INCOMPLETE)
     checkMsgForHeader();
-  if (request_->getRecvPhase() == MESSAGE_HEADER_COMPLETE)
+  if (request_->getRecvPhase() == MESSAGE_HEADER_COMPLETE) {
     parseHeaderLines();
+    checkCgiRequest(c);
+  }
+  if (request_->getRecvPhase() == MESSAGE_CGI_PROCESS) {
+    return;
+  }
   if (request_->getRecvPhase() == MESSAGE_BODY_INCOMING)
     appendMsgToEntityBody();
   if (request_->getRecvPhase() == MESSAGE_BODY_COMPLETE)
-    return ;
+    return;
 }
 
 /* CHECK FUNCTIONS */
@@ -54,7 +59,6 @@ void RequestHandler::appendMsgToEntityBody() {
     this->request_->setBufferContentLength(request_->getBufferContentLength() - request_->getMsg().size());
     this->request_->appendEntityBody(this->request_->getMsg());
   }
-
 }
 
 /* PARSE FUNCTIONS */
@@ -209,6 +213,21 @@ void RequestHandler::parseHeaderLines() {
     request_->setRecvPhase(MESSAGE_BODY_COMPLETE);
   else
     request_->setRecvPhase(MESSAGE_BODY_INCOMING);
+}
+
+void RequestHandler::checkCgiRequest(Connection *c) {
+  ServerConfig *serverconfig_test = c->getHttpConfig()->getServerConfig(c->getSockaddrToConnect().sin_port, c->getSockaddrToConnect().sin_addr.s_addr, c->getRequest().getHeaderValue("Host"));
+  LocationConfig *locationconfig_test = serverconfig_test->getLocationConfig(c->getRequest().getUri());
+  //TODO: c->getRequest().getUri().find_last_of() 부분을 메세지 헤더의 mime_types로 확인하도록 교체/ 확인 필요
+  if (!locationconfig_test->getCgiPath().empty() &&
+      (!c->getRequest().getMethod().compare("GET") ||
+       !c->getRequest().getMethod().compare("HEAD") ||
+       !c->getRequest().getMethod().compare("POST"))) {
+    if (c->getRequest().getUri().find(".php")) {
+      c->getRequest().is_cgi_process = true;
+      c->getRequest().setRecvPhase(MESSAGE_CGI_PROCESS);
+    }
+  }
 }
 
 int RequestHandler::parseHeaderLine(std::string &one_header_line) {

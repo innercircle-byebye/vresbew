@@ -19,8 +19,18 @@ void MessageHandler::handle_request(Connection *c) {
   // 2. append (이전에 request가 setting되어야함)
   request_handler_.appendMsg(c->buffer_);
   // 4. process by recv_phase
-  request_handler_.processByRecvPhase();
+  request_handler_.processByRecvPhase(c);
 
+  if (c->getRequest().getRecvPhase() == MESSAGE_CGI_PROCESS) {
+    ServerConfig *serverconfig_test = c->getHttpConfig()->getServerConfig(c->getSockaddrToConnect().sin_port, c->getSockaddrToConnect().sin_addr.s_addr, c->getRequest().getHeaderValue("Host"));
+    LocationConfig *locationconfig_test = serverconfig_test->getLocationConfig(c->getRequest().getUri());
+    handle_cgi(c, locationconfig_test);
+    if (c->getRequest().getMsg().size())
+    {
+      std::cout<< "getMsg output: "<< c->getRequest().getMsg() << std::endl;
+      write(STDOUT_FILENO, c->getRequest().getMsg().c_str(), sizeof(c->getRequest().getMsg().c_str()));
+    }
+  }
   // 5. clear c->buffer_
   memset(c->buffer_, 0, recv_len);
 }
@@ -70,9 +80,9 @@ void MessageHandler::handle_cgi(Connection *c, LocationConfig *location) {
       i++;
       memset(foo, 0, nbytes);
     }
-    // write(STDOUT_FILENO, foo, strlen(foo));
     wait(NULL);
   }
+  c->getRequest().setRecvPhase(MESSAGE_BODY_COMPLETE);
   std::string cgi_output_response_header;
   std::string cgi_output_response_body;
   {

@@ -65,12 +65,15 @@ void Kqueue::kqueueProcessEvents(SocketManager *sm) {
       } else {
         MessageHandler::handle_request(c);
         if (c->getRequest().getRecvPhase() == MESSAGE_BODY_COMPLETE) {
-          //TODO: 전반적인 정리가 필요하다
-          ServerConfig *serverconfig_test = c->getHttpConfig()->getServerConfig(c->getSockaddrToConnect().sin_port, c->getSockaddrToConnect().sin_addr.s_addr, c->getRequest().getHeaderValue("Host"));
-          LocationConfig *locationconfig_test = serverconfig_test->getLocationConfig(c->getRequest().getUri());
-          //TODO: c->getRequest().getUri().find_last_of() 부분을 메세지 헤더의 mime_types로 확인하도록 교체/ 확인 필요
-          if (!locationconfig_test->getCgiPath().empty() && (c->getRequest().getUri().find_last_of(".php") != std::string::npos))
-            MessageHandler::handle_cgi(c, locationconfig_test);
+          std::cout << "before i'm here" << std::endl;
+          // //TODO: 전반적인 정리가 필요하다
+          // {
+          //   ServerConfig *serverconfig_test = c->getHttpConfig()->getServerConfig(c->getSockaddrToConnect().sin_port, c->getSockaddrToConnect().sin_addr.s_addr, c->getRequest().getHeaderValue("Host"));
+          //   LocationConfig *locationconfig_test = serverconfig_test->getLocationConfig(c->getRequest().getUri());
+          //   //TODO: c->getRequest().getUri().find_last_of() 부분을 메세지 헤더의 mime_types로 확인하도록 교체/ 확인 필요
+          //   if (!locationconfig_test->getCgiPath().empty() && (c->getRequest().getUri().find_last_of(".php") != std::string::npos))
+          //     MessageHandler::handle_cgi(c, locationconfig_test);
+          // }
           kqueueSetEvent(c, EVFILT_WRITE, EV_ADD | EV_ONESHOT);
         }
       }
@@ -79,15 +82,14 @@ void Kqueue::kqueueProcessEvents(SocketManager *sm) {
         Logger::logError(LOG_ALERT, "%d kevent() reported about an %d reader disconnects", events, (int)event_list_[i].ident);
         sm->closeConnection(c);
       } else {
-        std::cout << "i'm here" << std::endl;
-          MessageHandler::handle_response(c);
-          if (!c->getResponse().getHeaderValue("Connection").compare("close") ||
-              !c->getRequest().getHttpVersion().compare("HTTP/1.0")) {
-            sm->closeConnection(c);
-          }
-          // TODO: 언제 삭제해야하는지 적절한 시기를 확인해야함
-          c->getRequest().clear();
-          c->getResponse().clear();
+        MessageHandler::handle_response(c);
+        if (!c->getResponse().getHeaderValue("Connection").compare("close") ||
+            !c->getRequest().getHttpVersion().compare("HTTP/1.0")) {
+          sm->closeConnection(c);
+        }
+        // TODO: 언제 삭제해야하는지 적절한 시기를 확인해야함
+        c->getRequest().clear();
+        c->getResponse().clear();
       }
     }
   }

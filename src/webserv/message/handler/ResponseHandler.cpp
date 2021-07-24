@@ -145,17 +145,13 @@ void ResponseHandler::processGetAndHeaderMethod(Request &request, LocationConfig
 }
 
 void ResponseHandler::processPutMethod(Request &request, LocationConfig *&location) {
-  std::cout << "uri: " << request.getUri() << std::endl;
   if (*(request.getUri().rbegin()) == '/') {
     setStatusLineWithCode("409");
     return;
   }
-  if (!isPathAccessable(request.getUri(), location)) {
-    setStatusLineWithCode("500");
-    return;
-  }
   if (!isFileExist(request.getUri(), location)) {
-    if (S_ISDIR(this->stat_buffer_.st_mode)) {
+    // 경로가 디렉토리 이거나, 경로에 파일을 쓸 수 없을때
+    if (S_ISDIR(this->stat_buffer_.st_mode) || (this->stat_buffer_.st_mode & S_IRWXU)){
       setStatusLineWithCode("500");
       return;
     }
@@ -164,6 +160,7 @@ void ResponseHandler::processPutMethod(Request &request, LocationConfig *&locati
     setStatusLineWithCode("204");
   }
 }
+
 
 void ResponseHandler::processPostMethod(Request &request, LocationConfig *&location) {
   if (!location->checkCgiExtension(request.getUri()) ||

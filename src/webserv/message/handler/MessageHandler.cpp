@@ -11,7 +11,7 @@ MessageHandler::~MessageHandler() {}
 
 void MessageHandler::handle_request(Connection *c) {
   //RequestHandler  request_handler_;
-  
+
   // 1. recv
   size_t recv_len = recv(c->getFd(), c->buffer_, BUF_SIZE, 0);
   // 2. request_handler의 request가 c의 request가 되도록 세팅
@@ -80,15 +80,12 @@ void MessageHandler::handle_cgi(Connection *c, LocationConfig *location) {
   c->getResponse().setResponseBody(cgi_output_temp);
 }
 
-std::string MessageHandler::parseCgiHeader(const std::string &cgi_output)
-{
-
+std::string MessageHandler::parseCgiHeader(const std::string &cgi_output) {
   return (cgi_output);
 }
 
 void MessageHandler::handle_response(Connection *c) {
   //ResponseHandler response_handler_;
-
   response_handler_.setResponse(&c->getResponse());
   response_handler_.setServerConfig(c->getHttpConfig(), c->getSockaddrToConnect(), c->getRequest().getHeaderValue("Host"));
 
@@ -107,7 +104,6 @@ void MessageHandler::handle_response(Connection *c) {
   /// executePutMEthod가 있던 자리...
   if (c->getRequest().getMethod() == "PUT" &&
       (c->getResponse().getStatusCode() == "201" || (c->getResponse().getStatusCode() == "204"))) {
-    std::cout << "in message handler it catched " << std::endl;
     // create response body
     executePutMethod(response_handler_.getAccessPath(c->getRequest().getUri()), c->getRequest().getEntityBody());
   }

@@ -25,10 +25,7 @@ void RequestHandler::processByRecvPhase() {
   if (request_->getRecvPhase() == MESSAGE_BODY_INCOMING)
     appendMsgToEntityBody();
   if (request_->getRecvPhase() == MESSAGE_BODY_COMPLETE)
-  {
-    ;
-    // parseEntityBody(); // 내용없음
-  }
+    return ;
 }
 
 /* CHECK FUNCTIONS */
@@ -49,12 +46,12 @@ void RequestHandler::checkMsgForHeader() {
 }
 
 void RequestHandler::appendMsgToEntityBody() {
-  // std::cout << "===============buffer============" << std::endl;
-  // std::cout << this->request_->getMsg() << std::endl;
-  // std::cout << "===============buffer============" << std::endl;
-  // std::cout << "buffer length:" << this->request_->getMsg().size() << std::endl;
-  // std::cout << "contentlength:" << this->request_->getBufferContentLength() << std::endl;
-  // std::cout << "===========buffer end============" << std::endl;
+  std::cout << "===============buffer============" << std::endl;
+  std::cout << this->request_->getMsg() << std::endl;
+  std::cout << "===============buffer============" << std::endl;
+  std::cout << "buffer length:" << this->request_->getMsg().size() << std::endl;
+  std::cout << "contentlength:" << this->request_->getBufferContentLength() << std::endl;
+  std::cout << "===========buffer end============" << std::endl;
   if ((size_t)request_->getBufferContentLength() <= request_->getMsg().size()) {
     this->request_->appendEntityBody(this->request_->getMsg().substr(0, (size_t)request_->getBufferContentLength()));
     this->request_->setBufferContentLength(0);
@@ -63,9 +60,9 @@ void RequestHandler::appendMsgToEntityBody() {
     this->request_->setBufferContentLength(request_->getBufferContentLength() - request_->getMsg().size());
     this->request_->appendEntityBody(this->request_->getMsg());
   }
-  // std::cout << "============entitybody============" << std::endl;
-  // std::cout << this->request_->getEntityBody() << std::endl;
-  // std::cout << "============entitybody============" << std::endl;
+  std::cout << "============entitybody============" << std::endl;
+  std::cout << this->request_->getEntityBody() << std::endl;
+  std::cout << "============entitybody============" << std::endl;
 }
 
 /* PARSE FUNCTIONS */

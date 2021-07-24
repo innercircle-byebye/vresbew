@@ -14,6 +14,9 @@ namespace ft {
 #define START_LINE_DELIMITER ' '
 #define HEADER_DELIMITER ':'
 
+#define PARSE_VALID_URI 1
+#define PARSE_INVALID_URI 0
+
 enum StartLineItem {
   RQ_METHOD,
   RQ_URI,
@@ -23,7 +26,7 @@ enum StartLineItem {
 // class HttpConfig;
 
 class RequestHandler {
-private:
+ private:
   Request *request_;
 
  public:
@@ -34,11 +37,13 @@ private:
 
   void appendMsg(const char *buffer);
   void processByRecvPhase();
-private:
+ private:
+  void checkMsgForStartLine();
   void checkMsgForHeader();
   void checkMsgForEntityBody();
 
   int parseStartLine();
+  int parseUri(std::string uri_str);
   void parseHeaderLines();
   int parseHeaderLine(std::string &one_header_line);
   void parseEntityBody();

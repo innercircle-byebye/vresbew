@@ -14,28 +14,33 @@ void RequestHandler::appendMsg(const char *buffer) {
 }
 
 void RequestHandler::processByRecvPhase() {
+  if (request_->getRecvPhase() == MESSAGE_START_LINE_INCOMPLETE)
+    checkMsgForStartLine();
+  if (request_->getRecvPhase() == MESSAGE_START_LINE_COMPLETE)
+    parseStartLine();
   if (request_->getRecvPhase() == MESSAGE_HEADER_INCOMPLETE)
     checkMsgForHeader();
-  if (request_->getRecvPhase() == MESSAGE_HEADER_COMPLETE) {
-    parseStartLine();
-    parseHeaderLines();  // 내부에서 body 필요한지 체크한 후 content_length랑 recv_phase 변경
-  }
+  if (request_->getRecvPhase() == MESSAGE_HEADER_COMPLETE)
+    parseHeaderLines();
   if (request_->getRecvPhase() == MESSAGE_BODY_INCOMING)
     checkMsgForEntityBody();
-  if (request_->getRecvPhase() == MESSAGE_BODY_COMPLETE) {  // content_length 초기화하는 부분도 추가하기
+  if (request_->getRecvPhase() == MESSAGE_BODY_COMPLETE)
     parseEntityBody();
-  }
 }
 
 /* CHECK FUNCTIONS */
+void RequestHandler::checkMsgForStartLine() {
+  size_t pos;
+  if ((pos = request_->getMsg().find("\r\n")) != std::string::npos)
+    request_->setRecvPhase(MESSAGE_START_LINE_COMPLETE);
+}
+
 void RequestHandler::checkMsgForHeader() {
   // append string first
   // check \r\n\r\n
   size_t pos;
-  if ((pos = request_->getMsg().find("\r\n\r\n")) != std::string::npos) {
-    // std::cout << "find header" << std::endl;
+  if ((pos = request_->getMsg().find("\r\n\r\n")) != std::string::npos)
     request_->setRecvPhase(MESSAGE_HEADER_COMPLETE);
-  }
 }
 
 void RequestHandler::checkMsgForEntityBody() {
@@ -46,6 +51,8 @@ void RequestHandler::checkMsgForEntityBody() {
 
 /* PARSE FUNCTIONS */
 int RequestHandler::parseStartLine() {
+  // schem://host:port/uri?query
+
   size_t pos = request_->getMsg().find("\r\n");
   std::string const start_line = request_->getMsg().substr(0, pos);
   request_->getMsg().erase(0, pos + 2);
@@ -61,13 +68,127 @@ int RequestHandler::parseStartLine() {
   request_->setMethod(start_line.substr(0, firstDelimiter));
   // if (!(this->isValidStartLine(idx, this->request_.method)))
   //   return (404);
-  request_->setUri(start_line.substr(firstDelimiter + 1, (secondDelimiter - 1) - firstDelimiter));
+  parseUri(start_line.substr(firstDelimiter + 1, secondDelimiter - firstDelimiter));  // 맨뒤에 space 포함시킴
+  // request_->setUri(start_line.substr(firstDelimiter + 1, (secondDelimiter - 1) - firstDelimiter));
   // if (!(this->isValidStartLine(idx, this->request_.uri)))
   //   return (404);
   request_->setHttpVersion(start_line.substr(secondDelimiter + 1));
   // if (!(this->isValidStartLine(idx, this->request_.version)))
   //   return (404);
+  request_->setRecvPhase(MESSAGE_HEADER_INCOMPLETE);
   return (0);  // TODO: 성공했을 때 반환할 값 정의
+}
+
+int RequestHandler::parseUri(std::string uri_str) {
+  enum {
+    scheme = 0,
+    host,
+    port,
+    uri,
+    args,
+    uri_complete
+  } state;
+
+  if (uri_str[0] == '/')
+    state = uri;
+  else
+    state = scheme;
+  size_t pos;
+  while (state != uri_complete) {
+    switch (state) {
+      case scheme:
+        if ((pos = uri_str.find("://")) == std::string::npos)
+          return PARSE_INVALID_URI;
+        request_->setSchema(uri_str.substr(0, pos));
+        uri_str.erase(0, pos + 3);
+        state = host;
+        break ;
+      case host:
+        if ((pos = uri_str.find_first_of(":/? ")) != std::string::npos) {
+          if (pos != 0)
+            request_->setHost(uri_str.substr(0, pos));
+          uri_str.erase(0, pos);
+        }
+        else
+          return PARSE_INVALID_URI;
+        switch (uri_str[0]) {
+          case ':':
+            state = port;
+            break ;
+          case '/':
+            state = uri;
+            break ;
+          case '?':
+            state = args;
+            break ;
+          case ' ':
+            state = uri_complete;
+            break ;
+          default:
+            return PARSE_INVALID_URI;
+        }
+        break ;
+      case port:
+        if ((pos = uri_str.find_first_of("/? ")) != std::string::npos) {
+          if (pos != 1)
+            request_->setPort(uri_str.substr(1, pos));
+          uri_str.erase(0, pos);
+        }
+        else
+          return PARSE_INVALID_URI;
+        switch (uri_str[0]) {
+          case '/':
+            state = uri;
+            break ;
+          case '?':
+            state = args;
+            break ;
+          case ' ':
+            state = uri_complete;
+            break ;
+          default:
+            return PARSE_INVALID_URI;
+        }
+        break ;
+      case uri:
+        if ((pos = uri_str.find_first_of("? ")) != std::string::npos) {
+          if (pos != 1)
+            request_->setUri(uri_str.substr(0, pos));     //  /넣어햐하는지??
+          uri_str.erase(0, pos);
+        }
+        else
+          return PARSE_INVALID_URI;
+        switch (uri_str[0]) {
+          case '?':
+            state = args;
+            break ;
+          case ' ':
+            state = uri_complete;
+            break ;
+          default:
+            return PARSE_INVALID_URI;
+        }
+        break ;
+      case args:
+        if ((pos = uri_str.find(" ")) != std::string::npos) {
+          if (pos != 1)
+            request_->setEntityBody(uri_str.substr(1, pos));
+          uri_str.erase(0, pos);
+        }
+        else
+          return PARSE_INVALID_URI;
+        state = uri_complete;
+        break ;
+      case uri_complete:
+        break ;
+    }
+  }
+  // std::cout << "schema: " << request_->getSchema() << std::endl;
+  // std::cout << "host: " << request_->getHost() << std::endl;
+  // std::cout << "port: " << request_->getPort() << std::endl;
+  // std::cout << "uri: " << request_->getUri() << std::endl;
+  // std::cout << "entitybody: " << request_->getEntityBody() << std::endl;
+  return (PARSE_VALID_URI);
 }
 
 void RequestHandler::parseHeaderLines() {

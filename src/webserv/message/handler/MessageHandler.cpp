@@ -68,6 +68,7 @@ void MessageHandler::handle_cgi(Connection *c, LocationConfig *location) {
     while ((nbytes = read(pipe_fd[0], foo, sizeof(foo)))) {
       cgi_output_temp.append(foo);
       i++;
+      memset(foo, 0, nbytes);
     }
     // write(STDOUT_FILENO, foo, strlen(foo));
     wait(NULL);
@@ -104,6 +105,8 @@ void MessageHandler::handle_cgi(Connection *c, LocationConfig *location) {
   // cgi_output_response_header = parseCgiHeader(cgi_output_temp);
 
   c->getResponse().setResponseBody(cgi_output_temp);
+  cgi_output_temp.clear();
+  cgi_output_response_header.clear();
 }
 
 std::string MessageHandler::parseCgiHeader(const std::string &cgi_output) {

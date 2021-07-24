@@ -87,7 +87,6 @@ void Kqueue::kqueueProcessEvents(SocketManager *sm) {
             !c->getRequest().getHttpVersion().compare("HTTP/1.0")) {
           sm->closeConnection(c);
         }
-        // TODO: 언제 삭제해야하는지 적절한 시기를 확인해야함
         c->getRequest().clear();
         c->getResponse().clear();
       }

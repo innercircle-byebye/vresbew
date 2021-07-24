@@ -25,7 +25,10 @@ void RequestHandler::processByRecvPhase() {
   if (request_->getRecvPhase() == MESSAGE_BODY_INCOMING)
     appendMsgToEntityBody();
   if (request_->getRecvPhase() == MESSAGE_BODY_COMPLETE)
-    parseEntityBody(); // 내용없음
+  {
+    ;
+    // parseEntityBody(); // 내용없음
+  }
 }
 
 /* CHECK FUNCTIONS */
@@ -215,10 +218,8 @@ void RequestHandler::parseHeaderLines() {
 
   if (request_->getBufferContentLength() == 0)
     request_->setRecvPhase(MESSAGE_BODY_COMPLETE);
-  else {
+  else
     request_->setRecvPhase(MESSAGE_BODY_INCOMING);
-    request_->setMsg(request_->getMsg().substr((pos + 4), request_->getMsg().size()));
-  }
 }
 
 int RequestHandler::parseHeaderLine(std::string &one_header_line) {

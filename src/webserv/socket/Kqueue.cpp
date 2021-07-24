@@ -79,7 +79,7 @@ void Kqueue::kqueueProcessEvents(SocketManager *sm) {
         Logger::logError(LOG_ALERT, "%d kevent() reported about an %d reader disconnects", events, (int)event_list_[i].ident);
         sm->closeConnection(c);
       } else {
-        if (c->getRequest().getUri().size() > 0) {
+        std::cout << "i'm here" << std::endl;
           MessageHandler::handle_response(c);
           if (!c->getResponse().getHeaderValue("Connection").compare("close") ||
               !c->getRequest().getHttpVersion().compare("HTTP/1.0")) {
@@ -88,7 +88,6 @@ void Kqueue::kqueueProcessEvents(SocketManager *sm) {
           // TODO: 언제 삭제해야하는지 적절한 시기를 확인해야함
           c->getRequest().clear();
           c->getResponse().clear();
-        }
       }
     }
   }

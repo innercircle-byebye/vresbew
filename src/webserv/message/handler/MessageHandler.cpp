@@ -30,7 +30,7 @@ void MessageHandler::handle_cgi(Connection *c, LocationConfig *location) {
   char **command;
   pid_t pid;
   int pipe_fd[2];
-  char foo[4096];
+  char foo[BUF_SIZE];  // 추후 수정 필요!!!
   std::map<std::string, std::string> env_set;
   {
     env_set["CONTENT_LENGTH"] = c->getRequest().getHeaderValue("Content-Length");
@@ -74,7 +74,33 @@ void MessageHandler::handle_cgi(Connection *c, LocationConfig *location) {
   }
   std::string cgi_output_response_header;
   std::string cgi_output_response_body;
+  {
+    size_t pos = cgi_output_temp.find("\r\n\r\n");
+    cgi_output_response_header = cgi_output_temp.substr(0, pos);
 
+    cgi_output_temp.erase(0, pos + 4);
+    while ((pos = cgi_output_response_header.find("\r\n")) != std::string::npos) {
+      std::string one_header_line = cgi_output_response_header.substr(0, pos);
+      std::vector<std::string> key_and_value = request_handler_.splitByDelimiter(one_header_line, SPACE);
+      // @sungyongcho: 저는 CGI 실행파일을 믿습니다...
+      // if (key_and_value.size() != 2)  // 400 Bad Request
+      //   ;
+      std::string key, value;
+
+      // parse key and validation
+      key = key_and_value[0].erase(key_and_value[0].size() - 1);
+      value = key_and_value[1];
+      std::cout << "key: " << key << std::endl;
+      std::cout << "value: " << value << std::endl;
+      c->getResponse().setHeader(key, value);
+      cgi_output_response_header.erase(0, pos + 2);
+    }
+  }
+  // std::map<std::string, std::string>::const_iterator it = c->getResponse().getHeaders().begin();
+  // for (; it != c->getResponse().getHeaders().end(); it++) {
+  //   std::cout << it->first << " " << it->second << std::endl;
+  // }
+  c->getResponse().getHeaders();
   // cgi_output_response_header = parseCgiHeader(cgi_output_temp);
 
   c->getResponse().setResponseBody(cgi_output_temp);
@@ -90,7 +116,7 @@ void MessageHandler::handle_response(Connection *c) {
   response_handler_.setServerConfig(c->getHttpConfig(), c->getSockaddrToConnect(), c->getRequest().getHeaderValue("Host"));
 
   // TODO: HTTP/1.0 일 때 로직 복구 필요
-  if (c->getRequest().getHttpVersion() == "HTTP/1.0" && !c->getRequest().getHeaders().count("Host") )
+  if (c->getRequest().getHttpVersion() == "HTTP/1.0" && !c->getRequest().getHeaders().count("Host"))
     c->getRequest().setHeader("Host", "");
 
   if (!isValidRequestMethod(c->getRequest().getMethod()) ||

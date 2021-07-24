@@ -38,6 +38,8 @@ class RequestHandler {
 
   void appendMsg(const char *buffer);
   void processByRecvPhase();
+  static std::vector<std::string> splitByDelimiter(std::string const &str, char delimiter);
+
  private:
   void checkMsgForStartLine();
   void checkMsgForHeader();
@@ -48,7 +50,7 @@ class RequestHandler {
   void parseHeaderLines();
   int parseHeaderLine(std::string &one_header_line);
   void parseEntityBody();
-  static std::vector<std::string> splitByDelimiter(std::string const &str, char delimiter);
+  // static std::vector<std::string> splitByDelimiter(std::string const &str, char delimiter);
   static bool isValidHeaderKey(std::string const &key);
   static bool isValidMethod(std::string const &method);
   static bool isValidHttpVersion(std::string const &http_version);

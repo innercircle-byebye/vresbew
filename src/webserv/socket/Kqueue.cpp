@@ -65,15 +65,22 @@ void Kqueue::kqueueProcessEvents(SocketManager *sm) {
       } else {
         MessageHandler::handle_request(c);
         if (c->getRequest().getRecvPhase() == MESSAGE_BODY_COMPLETE) {
-          std::cout << "before i'm here" << std::endl;
-          // //TODO: 전반적인 정리가 필요하다
-          // {
-          //   ServerConfig *serverconfig_test = c->getHttpConfig()->getServerConfig(c->getSockaddrToConnect().sin_port, c->getSockaddrToConnect().sin_addr.s_addr, c->getRequest().getHeaderValue("Host"));
-          //   LocationConfig *locationconfig_test = serverconfig_test->getLocationConfig(c->getRequest().getUri());
-          //   //TODO: c->getRequest().getUri().find_last_of() 부분을 메세지 헤더의 mime_types로 확인하도록 교체/ 확인 필요
-          //   if (!locationconfig_test->getCgiPath().empty() && (c->getRequest().getUri().find_last_of(".php") != std::string::npos))
-          //     MessageHandler::handle_cgi(c, locationconfig_test);
-          // }
+          //TODO: 전반적인 정리가 필요하다
+          {
+            ServerConfig *serverconfig_test = c->getHttpConfig()->getServerConfig(c->getSockaddrToConnect().sin_port, c->getSockaddrToConnect().sin_addr.s_addr, c->getRequest().getHeaderValue("Host"));
+            LocationConfig *locationconfig_test = serverconfig_test->getLocationConfig(c->getRequest().getUri());
+            //TODO: c->getRequest().getUri().find_last_of() 부분을 메세지 헤더의 mime_types로 확인하도록 교체/ 확인 필요
+            if (!locationconfig_test->getCgiPath().empty() &&
+                (!c->getRequest().getMethod().compare("GET") ||
+                 !c->getRequest().getMethod().compare("HEAD") ||
+                 !c->getRequest().getMethod().compare("POST"))) {
+              std::cout << "uri check: " << c->getRequest().getUri() << std::endl;
+              if (c->getRequest().getUri().find_last_of(".php") != std::string::npos)
+                std::cout << "niggaworld" << std::endl;
+              std::cout << "helloworld" << std::endl;
+              MessageHandler::handle_cgi(c, locationconfig_test);
+            }
+          }
           kqueueSetEvent(c, EVFILT_WRITE, EV_ADD | EV_ONESHOT);
         }
       }

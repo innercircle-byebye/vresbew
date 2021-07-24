@@ -90,8 +90,8 @@ void MessageHandler::handle_response(Connection *c) {
   response_handler_.setServerConfig(c->getHttpConfig(), c->getSockaddrToConnect(), c->getRequest().getHeaderValue("Host"));
 
   // TODO: HTTP/1.0 일 때 로직 복구 필요
-  // if (c->getRequest().getHttpVersion() == "HTTP/1.0" && !c->getRequest().getHeaders().count("Host") )
-  //   c->getRequest().setHeader("Host", "");
+  if (c->getRequest().getHttpVersion() == "HTTP/1.0" && !c->getRequest().getHeaders().count("Host") )
+    c->getRequest().setHeader("Host", "");
 
   if (!isValidRequestMethod(c->getRequest().getMethod()) ||
       !isValidRequestVersion(c->getRequest().getHttpVersion(), c->getRequest().getHeaders()))

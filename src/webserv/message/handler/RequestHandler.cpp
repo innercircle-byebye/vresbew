@@ -36,11 +36,13 @@ void RequestHandler::checkMsgForStartLine() {
 }
 
 void RequestHandler::checkMsgForHeader() {
-  // append string first
-  // check \r\n\r\n
   size_t pos;
-  if ((pos = request_->getMsg().find("\r\n\r\n")) != std::string::npos)
+
+  if ((pos = request_->getMsg().find("\r\n\r\n")) != std::string::npos) {
     request_->setRecvPhase(MESSAGE_HEADER_COMPLETE);
+    return ;
+  }
+  // TODO: header가 안들어온 경우 check
 }
 
 void RequestHandler::checkMsgForEntityBody() {
@@ -50,33 +52,29 @@ void RequestHandler::checkMsgForEntityBody() {
 }
 
 /* PARSE FUNCTIONS */
-int RequestHandler::parseStartLine() {
+void RequestHandler::parseStartLine() {
   // schema://host:port/uri?query
 
   size_t pos = request_->getMsg().find("\r\n");
   std::string const start_line = request_->getMsg().substr(0, pos);
   request_->getMsg().erase(0, pos + 2);
 
-  int delimiter_count = this->getCountOfDelimiter(start_line,
-                                                  START_LINE_DELIMITER);
-  if (delimiter_count != 2) {
-    return (404);
-  }
-  int firstDelimiter = start_line.find(START_LINE_DELIMITER);
-  int secondDelimiter = start_line.find_last_of(START_LINE_DELIMITER);
+  std::vector<std::string> start_line_split = RequestHandler::splitByDelimiter(start_line, START_LINE_DELIMITER);
 
-  request_->setMethod(start_line.substr(0, firstDelimiter));
-  // if (!(this->isValidStartLine(idx, this->request_.method)))
-  //   return (404);
-  parseUri(start_line.substr(firstDelimiter + 1, secondDelimiter - firstDelimiter));  // 맨뒤에 space 포함시킴
-  // request_->setUri(start_line.substr(firstDelimiter + 1, (secondDelimiter - 1) - firstDelimiter));
-  // if (!(this->isValidStartLine(idx, this->request_.uri)))
-  //   return (404);
-  request_->setHttpVersion(start_line.substr(secondDelimiter + 1));
-  // if (!(this->isValidStartLine(idx, this->request_.version)))
-  //   return (404);
+  if (start_line_split.size() != 3) // 404 error
+    ;
+
+  if (!RequestHandler::isValidMethod(start_line_split[0]))  // 405 Not allowed
+    ;
+  request_->setMethod(start_line_split[0]);
+  if (parseUri(start_line_split[1] + " ") == PARSE_INVALID_URI) { // 400 Bad Request
+    return ;
+  }
+  if (!RequestHandler::isValidHttpVersion(start_line_split[2]))  // 505 HTTP Version Not Supported
+    ;
+  request_->setHttpVersion(start_line_split[2]);
+
   request_->setRecvPhase(MESSAGE_HEADER_INCOMPLETE);
-  return (0);  // TODO: 성공했을 때 반환할 값 정의
 }
 
 int RequestHandler::parseUri(std::string uri_str) {
@@ -213,15 +211,13 @@ void RequestHandler::parseHeaderLines() {
 }
 
 int RequestHandler::parseHeaderLine(std::string &one_header_line) {
-  std::string key;
-  std::string value;
-  int delimiter = one_header_line.find(HEADER_DELIMITER);
+  std::vector<std::string> key_and_value = RequestHandler::splitByDelimiter(one_header_line, HEADER_DELIMITER);
+  std::string key, value;
 
   // parse key and validation
-  key = one_header_line.substr(0, delimiter);
-  value = one_header_line.substr(delimiter + 2);
-  // if (!(this->isValidHeaderKey(key)))
-  //   return (404);
+  key = key_and_value[0];
+  value = key_and_value[1];
+
   if (!key.compare("Content-Length") && request_->getMethod().compare("GET") && request_->getMethod().compare("DELETE")) {
     try {
       request_->setContentLength(stoi(value));
@@ -229,6 +225,8 @@ int RequestHandler::parseHeaderLine(std::string &one_header_line) {
       std::cout << e.what() << std::endl;
     }
   }
+  if (!key.compare("Host") && !request_->getHost().empty())
+    value = request_->getHost();
   // insert header
   this->request_->setHeader(key, value);
   return (0);
@@ -256,47 +254,23 @@ bool RequestHandler::isValidHeaderKey(std::string const &key) {
   return (true);
 }
 
-bool RequestHandler::isValidStartLine(int item_ident,
-                                      std::string const &item) {
-  switch (item_ident) {
-    case (RQ_METHOD):
-      if (!(item == "GET" || item == "POST" || item == "DELETE" ||
-            item == "PUT" || item == "HEAD"))
-        return (false);
-      break;
-
-    case (RQ_URI):
-      // TODO: URI 유효성 검사
-      break;
-
-    case (RQ_VERSION):
-      if (!(item == "HTTP/1.0" || item == "HTTP/1.1"))
-        return (false);
-      break;
-    default:
-      break;
-  }
-  return (true);
+bool RequestHandler::isValidMethod(std::string const &method) {
+  return (!method.compare("GET") || !method.compare("POST") || 
+      !method.compare("DELETE") || !method.compare("PUT") || !method.compare("HEAD"));
 }
 
-int RequestHandler::getCountOfDelimiter(std::string const &str, char delimiter) {
-  int ret = 0;
-
-  for (std::string::const_iterator it = str.begin(); it != str.end(); ++it) {
-    if ((*it) == delimiter) ++ret;
-  }
-  return (ret);
+bool RequestHandler::isValidHttpVersion(std::string const &http_version) {
+  return (!http_version.compare("HTTP/1.1") || !http_version.compare("HTTP/1.0"));
 }
 
-// void RequestHandler::clearRequest(void) {
-//   request_->msg.clear();
-//   request_->recv_phase = MESSAGE_HEADER_INCOMPLETE;
-//   request_->method.clear();
-//   request_->uri.clear();
-//   request_->version.clear();
-//   request_->headers.clear();
-//   request_->content_length = 0;
-//   request_->entity_body.clear();
-// }
+std::vector<std::string> RequestHandler::splitByDelimiter(std::string const &str, char delimiter) {
+  std::vector<std::string>  vc;
+  std::stringstream ss(str);
+  std::string temp;
 
+  while (getline(ss, temp, delimiter)) {
+      vc.push_back(temp);
+  }
+  return vc;
+}
 }  // namespace ft

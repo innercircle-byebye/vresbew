@@ -38,6 +38,8 @@ private:
   int content_length_;
   std::string entity_body_;
 
+  int error_num_;
+
 public:
   Request();
   ~Request();
@@ -57,6 +59,7 @@ public:
   const std::string &getHeaderValue(const std::string &key);
   int getContentLength() const;
   const std::string &getEntityBody() const;
+  int getErrorNum() const;
 
   void setMsg(std::string msg);
   void setRecvPhase(int recv_phase);
@@ -70,6 +73,7 @@ public:
   void setHeader(std::string key, std::string value);
   void setContentLength(int content_length);
   void setEntityBody(std::string entity_body);
+  void setErrorNum(int error_num);
 };
 
 }  // namespace ft

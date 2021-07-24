@@ -42,14 +42,15 @@ class RequestHandler {
   void checkMsgForHeader();
   void checkMsgForEntityBody();
 
-  int parseStartLine();
+  void parseStartLine();
   int parseUri(std::string uri_str);
   void parseHeaderLines();
   int parseHeaderLine(std::string &one_header_line);
   void parseEntityBody();
-  static int getCountOfDelimiter(std::string const &str, char delimiter);
+  static std::vector<std::string> splitByDelimiter(std::string const &str, char delimiter);
   static bool isValidHeaderKey(std::string const &key);
-  static bool isValidStartLine(int item_ident, std::string const &item);
+  static bool isValidMethod(std::string const &method);
+  static bool isValidHttpVersion(std::string const &http_version);
 };
 }  // namespace ft
 #endif

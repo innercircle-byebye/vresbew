@@ -2,8 +2,7 @@
 
 namespace ft {
 
-Request::Request(): recv_phase_(MESSAGE_START_LINE_INCOMPLETE), port_("80"), uri_("/"), content_length_(0)
-{}
+Request::Request(): recv_phase_(MESSAGE_START_LINE_INCOMPLETE), port_("80"), uri_("/"), content_length_(0) {}
 
 Request::~Request() {
   this->clear();

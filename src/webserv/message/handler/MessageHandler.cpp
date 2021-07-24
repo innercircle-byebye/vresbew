@@ -91,20 +91,18 @@ void MessageHandler::handle_cgi(Connection *c, LocationConfig *location) {
       // parse key and validation
       key = key_and_value[0].erase(key_and_value[0].size() - 1);
       value = key_and_value[1];
+      if (!key.compare("Status") && value.compare("404")) {
+        response_handler_.setStatusLineWithCode(value);
+      }
       std::cout << "key: " << key << std::endl;
       std::cout << "value: " << value << std::endl;
       c->getResponse().setHeader(key, value);
       cgi_output_response_header.erase(0, pos + 2);
     }
   }
-  // std::map<std::string, std::string>::const_iterator it = c->getResponse().getHeaders().begin();
-  // for (; it != c->getResponse().getHeaders().end(); it++) {
-  //   std::cout << it->first << " " << it->second << std::endl;
-  // }
-  c->getResponse().getHeaders();
-  // cgi_output_response_header = parseCgiHeader(cgi_output_temp);
-
-  c->getResponse().setResponseBody(cgi_output_temp);
+  if (c->getResponse().getStatusCode().empty() == true) {
+    c->getResponse().setResponseBody(cgi_output_temp);
+  }
   cgi_output_temp.clear();
   cgi_output_response_header.clear();
 }

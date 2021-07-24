@@ -41,7 +41,7 @@ class RequestHandler {
  private:
   void checkMsgForStartLine();
   void checkMsgForHeader();
-  void checkMsgForEntityBody();
+  void appendMsgToEntityBody();
 
   void parseStartLine();
   int parseUri(std::string uri_str);

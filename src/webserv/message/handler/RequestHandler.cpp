@@ -24,7 +24,9 @@ void RequestHandler::processByRecvPhase(Connection *c) {
     parseHeaderLines();
     checkCgiRequest(c);
   }
-  if (request_->getRecvPhase() == MESSAGE_CGI_PROCESS) {
+  if (c->getRequest().getRecvPhase() == MESSAGE_CGI_PROCESS ||
+      c->getRequest().getRecvPhase() == MESSAGE_CGI_INCOMING ||
+      c->getRequest().getRecvPhase() == MESSAGE_CGI_COMPLETE) {
     return;
   }
   if (request_->getRecvPhase() == MESSAGE_BODY_INCOMING)

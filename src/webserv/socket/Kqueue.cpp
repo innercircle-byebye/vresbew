@@ -63,30 +63,40 @@ void Kqueue::kqueueProcessEvents(SocketManager *sm) {
         Logger::logError(LOG_ALERT, "%d kevent() reported about an closed connection %d", events, (int)event_list_[i].ident);
         sm->closeConnection(c);
       } else {
-        if (c->getRequest().getRecvPhase() != MESSAGE_CGI_PROCESS ||
-            c->getRequest().getRecvPhase() != MESSAGE_CGI_INCOMING) {
+        if (!(c->getRequest().getRecvPhase() == MESSAGE_CGI_PROCESS ||
+            c->getRequest().getRecvPhase() == MESSAGE_CGI_INCOMING ||
+            c->getRequest().getRecvPhase() == MESSAGE_CGI_COMPLETE)) {
           MessageHandler::handle_request(c);
         }
         if (c->getRequest().getRecvPhase() == MESSAGE_CGI_PROCESS) {
           ServerConfig *serverconfig_test = c->getHttpConfig()->getServerConfig(c->getSockaddrToConnect().sin_port, c->getSockaddrToConnect().sin_addr.s_addr, c->getRequest().getHeaderValue("Host"));
           LocationConfig *locationconfig_test = serverconfig_test->getLocationConfig(c->getRequest().getUri());
           MessageHandler::handle_cgi(c, locationconfig_test);
-        }
-        else if (c->getRequest().getRecvPhase() == MESSAGE_CGI_INCOMING) {
+        } else if (c->getRequest().getRecvPhase() == MESSAGE_CGI_INCOMING) {
           std::cout << "i'm here" << std::endl;
-          char foo[BUF_SIZE];  // 추후 수정 필요!!!
 
           close(c->writepipe[0]);
           close(c->readpipe[1]);
           if (!c->getRequest().getMsg().empty()) {
             write(c->writepipe[1], c->getRequest().getMsg().c_str(), static_cast<size_t>(c->getRequest().getMsg().size()));
             c->getRequest().getMsg().clear();
-          } else {
-            size_t recv_len = recv(c->getFd(), c->buffer_, BUF_SIZE, 0);
-            std::cout << "buffer: " << c->buffer_ << std::endl;
-            write(c->writepipe[1], c->buffer_, BUF_SIZE);
-            memset(c->buffer_, 0, recv_len);
           }
+          size_t recv_len = recv(c->getFd(), c->buffer_, BUF_SIZE, 0);
+          c->temp_chunked.append(c->buffer_);
+          std::cout << "temp_chunked: " << c->temp_chunked << std::endl;
+          write(c->writepipe[1], c->buffer_, BUF_SIZE);
+          // if (strstr(c->buffer_, "0\r\n")) {
+          //   c->temp_chunked_checker.append("0\r\n");
+          // }
+          // if (!c->temp_chunked_checker.empty() && strstr(c->buffer_, "\r\n")) {
+          //   c->getRequest().setRecvPhase(MESSAGE_CGI_COMPLETE);
+          //   break;
+          // } else
+          //   c->temp_chunked_checker.clear();
+          memset(c->buffer_, 0, recv_len);
+        }
+        if (c->getRequest().getRecvPhase() == MESSAGE_CGI_COMPLETE) {
+          char foo[BUF_SIZE];  // 추후 수정 필요!!!
           int nbytes;
           int i = 0;
           while ((nbytes = read(c->readpipe[0], foo, sizeof(foo)))) {

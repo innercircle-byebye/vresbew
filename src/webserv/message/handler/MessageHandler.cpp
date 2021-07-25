@@ -20,7 +20,9 @@ void MessageHandler::handle_request(Connection *c) {
   request_handler_.appendMsg(c->buffer_);
   // 4. process by recv_phase
   request_handler_.processByRecvPhase(c);
-  if (c->getRequest().getRecvPhase() == MESSAGE_CGI_PROCESS) {
+  if (c->getRequest().getRecvPhase() == MESSAGE_CGI_PROCESS ||
+      c->getRequest().getRecvPhase() == MESSAGE_CGI_INCOMING ||
+      c->getRequest().getRecvPhase() == MESSAGE_CGI_COMPLETE) {
     return;
   }
   // 5. clear c->buffer_

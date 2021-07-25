@@ -64,21 +64,17 @@ void Kqueue::kqueueProcessEvents(SocketManager *sm) {
         sm->closeConnection(c);
       } else {
         if (c->getRequest().getRecvPhase() == MESSAGE_CGI_INCOMING) {
-          recv(c->getFd(), &c->buffer_, BUF_SIZE, 0);
-        }
-        else if (c->getRequest().getRecvPhase() != MESSAGE_CGI_PROCESS  ||
-                c->getRequest().getRecvPhase() != MESSAGE_CGI_INCOMING )
-        {
+          std::cout << "query_string yoyo:" << c->getRequest().getEntityBody() << std::endl;
+          std::cout << "getMsg      yoyo:" << c->getRequest().getMsg() << std::endl;
+
+        } else if (c->getRequest().getRecvPhase() != MESSAGE_CGI_PROCESS ||
+                   c->getRequest().getRecvPhase() != MESSAGE_CGI_INCOMING) {
           MessageHandler::handle_request(c);
         }
         if (c->getRequest().getRecvPhase() == MESSAGE_CGI_PROCESS) {
           ServerConfig *serverconfig_test = c->getHttpConfig()->getServerConfig(c->getSockaddrToConnect().sin_port, c->getSockaddrToConnect().sin_addr.s_addr, c->getRequest().getHeaderValue("Host"));
           LocationConfig *locationconfig_test = serverconfig_test->getLocationConfig(c->getRequest().getUri());
           MessageHandler::handle_cgi(c, locationconfig_test);
-          if (c->getRequest().getMsg().size()) {
-            std::cout << "getMsg output: " << c->getRequest().getMsg() << std::endl;
-            write(STDOUT_FILENO, c->getRequest().getMsg().c_str(), sizeof(c->getRequest().getMsg().c_str()));
-          }
         }
         if (c->getRequest().getRecvPhase() == MESSAGE_BODY_COMPLETE) {
           //TODO: 전반적인 정리가 필요하다

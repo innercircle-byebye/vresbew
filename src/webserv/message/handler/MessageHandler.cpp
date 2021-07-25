@@ -32,11 +32,13 @@ void MessageHandler::handle_cgi(Connection *c, LocationConfig *location) {
   char **command;
   pid_t pid;
   char foo[BUF_SIZE];  // 추후 수정 필요!!!
+
   std::map<std::string, std::string> env_set;
   {
     env_set["CONTENT_LENGTH"] = c->getRequest().getHeaderValue("Content-Length");
-    // if (c->getRequest().getMethod() == "GET")
+    if (c->getRequest().getMethod() == "GET") {
       env_set["QUERY_STRING"] = c->getRequest().getEntityBody();
+    }
     env_set["REQUEST_METHOD"] = c->getRequest().getMethod();
     env_set["REDIRECT_STATUS"] = "CGI";
     env_set["SCRIPT_FILENAME"] = response_handler_.getAccessPath(c->getRequest().getUri(), location);
@@ -57,13 +59,14 @@ void MessageHandler::handle_cgi(Connection *c, LocationConfig *location) {
   std::string cgi_output_temp;
   pipe(c->pipe_fd);
   pid = fork();
+
   if (!pid) {
     dup2(c->pipe_fd[1], STDOUT_FILENO);
     close(c->pipe_fd[0]);
     close(c->pipe_fd[1]);
     execve(location->getCgiPath().c_str(), command, environ);
-    exit(1);
   } else {
+      write(STDIN_FILENO, c->getRequest().getMsg().c_str(), 15);
     close(c->pipe_fd[1]);
     int nbytes;
     int i = 0;
@@ -74,6 +77,8 @@ void MessageHandler::handle_cgi(Connection *c, LocationConfig *location) {
     }
     wait(NULL);
   }
+  std::cout << cgi_output_temp << std::endl;
+
   c->getRequest().setRecvPhase(MESSAGE_BODY_COMPLETE);
   {
     {

@@ -6,7 +6,7 @@
 /*   By: sucho <sucho@student.42seoul.kr>           +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2021/06/25 19:26:26 by sucho             #+#    #+#             */
-/*   Updated: 2021/07/23 07:22:17 by sucho            ###   ########.fr       */
+/*   Updated: 2021/07/25 20:38:51 by sucho            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -174,6 +174,7 @@ int main(int argc, char *argv[]) {
       while ((nbytes = read(pipe_fd[0], foo, 512))) {
         write(STDOUT_FILENO, foo, strlen(foo));
         i++;
+        memset(foo, 0, 4096);
       }
       wait(NULL);
     }

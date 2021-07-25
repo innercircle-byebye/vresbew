@@ -8,6 +8,9 @@ cgi_practice: $(OBJS)
 
 %: %.cpp
 	$(CXX) $(CXXFLAGS) -c -o $@ $^
+bipipe:
+	$(CXX) $(CXXFLAGS) bipipe.cpp -o bipipe
 
 clean:
 	rm -rf *dSYM $(BINS) $(OBJS)
+	rm -rf bipipe

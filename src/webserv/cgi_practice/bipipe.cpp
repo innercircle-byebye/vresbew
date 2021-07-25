@@ -1,27 +1,28 @@
 /* ************************************************************************** */
 /*                                                                            */
 /*                                                        :::      ::::::::   */
-/*   bipipe.c                                           :+:      :+:    :+:   */
+/*   bipipe.cpp                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
 /*   By: sucho <sucho@student.42seoul.kr>           +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2021/07/25 08:45:32 by sucho             #+#    #+#             */
-/*   Updated: 2021/07/25 08:53:04 by sucho            ###   ########.fr       */
+/*   Updated: 2021/07/25 19:48:00 by sucho            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
+#include <string>
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
 
 #define READ 0
 #define WRITE 1
-void perror_and_exit(char *s) {
-  perror(s);
+void perror_and_exit(std::string error) {
+  perror(error.c_str());
   exit(EXIT_FAILURE);
 }
 
-int main(int argc, char **argv, char **envp) {
+int main() {
   int pipe_stdin[2];
   int pipe_stdout[2];
   int pid;

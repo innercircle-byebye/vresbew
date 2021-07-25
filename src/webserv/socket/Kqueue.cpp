@@ -63,47 +63,52 @@ void Kqueue::kqueueProcessEvents(SocketManager *sm) {
         Logger::logError(LOG_ALERT, "%d kevent() reported about an closed connection %d", events, (int)event_list_[i].ident);
         sm->closeConnection(c);
       } else {
-        MessageHandler::handle_request(c);
-        // if (c->getRequest().getRecvPhase() == MESSAGE_CGI_PROCESS) {
-        //   {
-        //     std::cout << "yoshi" << std::endl;
-        //     std::cout << "value: " << c->getRequest().getUri() << std::endl;
-        //     ServerConfig *serverconfig_test = c->getHttpConfig()->getServerConfig(c->getSockaddrToConnect().sin_port, c->getSockaddrToConnect().sin_addr.s_addr, c->getRequest().getHeaderValue("Host"));
-        //     LocationConfig *locationconfig_test = serverconfig_test->getLocationConfig(c->getRequest().getUri());
-        //     //TODO: c->getRequest().getUri().find_last_of() 부분을 메세지 헤더의 mime_types로 확인하도록 교체/ 확인 필요
-        //     if (!locationconfig_test->getCgiPath().empty() &&
-        //         (!c->getRequest().getMethod().compare("GET") ||
-        //          !c->getRequest().getMethod().compare("HEAD") ||
-        //          !c->getRequest().getMethod().compare("POST"))) {
-        //       std::cout << "uri check: " << c->getRequest().getUri() << std::endl;
-        //       if (c->getRequest().getUri().find(".php")) {
-        //         std::cout << "niggaworld" << std::endl;
-        //       }
-        //       std::cout << "helloworld" << std::endl;
-        //       std::cout << "helloworld2" << std::endl;
-        //     }
-        //   }
-        // }
-        // else
-        if (c->getRequest().getRecvPhase() == MESSAGE_BODY_COMPLETE) {
-          //TODO: 전반적인 정리가 필요하다
-          kqueueSetEvent(c, EVFILT_WRITE, EV_ADD | EV_ONESHOT);
+        if (c->getRequest().getRecvPhase() == MESSAGE_CGI_INCOMING) {
+          recv(c->getFd(), c->buffer_, sizeof(BUF_SIZE));
+        }
+        else
+          MessageHandler::handle_request(c);
+          // if (c->getRequest().getRecvPhase() == MESSAGE_CGI_PROCESS) {
+          //   {
+          //     std::cout << "yoshi" << std::endl;
+          //     std::cout << "value: " << c->getRequest().getUri() << std::endl;
+          //     ServerConfig *serverconfig_test = c->getHttpConfig()->getServerConfig(c->getSockaddrToConnect().sin_port, c->getSockaddrToConnect().sin_addr.s_addr, c->getRequest().getHeaderValue("Host"));
+          //     LocationConfig *locationconfig_test = serverconfig_test->getLocationConfig(c->getRequest().getUri());
+          //     //TODO: c->getRequest().getUri().find_last_of() 부분을 메세지 헤더의 mime_types로 확인하도록 교체/ 확인 필요
+          //     if (!locationconfig_test->getCgiPath().empty() &&
+          //         (!c->getRequest().getMethod().compare("GET") ||
+          //          !c->getRequest().getMethod().compare("HEAD") ||
+          //          !c->getRequest().getMethod().compare("POST"))) {
+          //       std::cout << "uri check: " << c->getRequest().getUri() << std::endl;
+          //       if (c->getRequest().getUri().find(".php")) {
+          //         std::cout << "niggaworld" << std::endl;
+          //       }
+          //       std::cout << "helloworld" << std::endl;
+          //       std::cout << "helloworld2" << std::endl;
+          //     }
+          //   }
+          // }
+          // else
+          if (c->getRequest().getRecvPhase() == MESSAGE_BODY_COMPLETE) {
+            //TODO: 전반적인 정리가 필요하다
+            kqueueSetEvent(c, EVFILT_WRITE, EV_ADD | EV_ONESHOT);
+          }
         }
       }
-    } else if (event_list_[i].filter == EVFILT_WRITE) {
-      if (event_list_[i].flags & EV_EOF) {
-        Logger::logError(LOG_ALERT, "%d kevent() reported about an %d reader disconnects", events, (int)event_list_[i].ident);
-        sm->closeConnection(c);
-      } else {
-        MessageHandler::handle_response(c);
-        if (!c->getResponse().getHeaderValue("Connection").compare("close") ||
-            !c->getRequest().getHttpVersion().compare("HTTP/1.0")) {
+      else if (event_list_[i].filter == EVFILT_WRITE) {
+        if (event_list_[i].flags & EV_EOF) {
+          Logger::logError(LOG_ALERT, "%d kevent() reported about an %d reader disconnects", events, (int)event_list_[i].ident);
           sm->closeConnection(c);
+        } else {
+          MessageHandler::handle_response(c);
+          if (!c->getResponse().getHeaderValue("Connection").compare("close") ||
+              !c->getRequest().getHttpVersion().compare("HTTP/1.0")) {
+            sm->closeConnection(c);
+          }
+          c->getRequest().clear();
+          c->getResponse().clear();
         }
-        c->getRequest().clear();
-        c->getResponse().clear();
       }
     }
   }
-}
 }  // namespace ft

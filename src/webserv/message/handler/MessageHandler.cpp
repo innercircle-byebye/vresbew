@@ -57,20 +57,26 @@ void MessageHandler::handle_cgi(Connection *c, LocationConfig *location) {
   command = response_handler_.setCommand(location->getCgiPath(), response_handler_.getAccessPath(c->getRequest().getUri(), location));
 
   std::string cgi_output_temp;
-  pipe(c->pipe_fd);
+  pipe(c->writepipe);
+  pipe(c->readpipe);
   pid = fork();
 
   if (!pid) {
-    dup2(c->pipe_fd[1], STDOUT_FILENO);
-    close(c->pipe_fd[0]);
-    close(c->pipe_fd[1]);
+    close(c->writepipe[1]);
+    close(c->readpipe[0]);
+    dup2(c->writepipe[0], 0);
+    close(c->writepipe[0]);
+    dup2(c->readpipe[1], 1);
+    close(c->readpipe[1]);
     execve(location->getCgiPath().c_str(), command, environ);
   } else {
-      write(STDIN_FILENO, c->getRequest().getMsg().c_str(), 15);
-    close(c->pipe_fd[1]);
+    close(c->writepipe[0]);
+    close(c->readpipe[1]);
+    if (c->getRequest().getMsg().size())
+      write(c->writepipe[1], c->getRequest().getMsg().c_str(), 15);
     int nbytes;
     int i = 0;
-    while ((nbytes = read(c->pipe_fd[0], foo, sizeof(foo)))) {
+    while ((nbytes = read(c->readpipe[0], foo, sizeof(foo)))) {
       cgi_output_temp.append(foo);
       i++;
       memset(foo, 0, nbytes);

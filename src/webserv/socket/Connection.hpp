@@ -23,7 +23,7 @@ class Connection {
   Listening *listening_;
 
   HttpConfig *httpconfig_;
-  
+
   Request   request_;
   Response  response_;
 
@@ -31,7 +31,7 @@ class Connection {
 
  public:
   char buffer_[BUF_SIZE];
-
+  int pipe_fd[2];
 
   Connection();
   ~Connection();

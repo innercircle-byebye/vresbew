@@ -31,7 +31,6 @@ void MessageHandler::handle_cgi(Connection *c, LocationConfig *location) {
   char **environ;
   char **command;
   pid_t pid;
-  int pipe_fd[2];
   char foo[BUF_SIZE];  // 추후 수정 필요!!!
   std::map<std::string, std::string> env_set;
   {
@@ -56,19 +55,19 @@ void MessageHandler::handle_cgi(Connection *c, LocationConfig *location) {
   command = response_handler_.setCommand(location->getCgiPath(), response_handler_.getAccessPath(c->getRequest().getUri(), location));
 
   std::string cgi_output_temp;
-  pipe(pipe_fd);
+  pipe(c->pipe_fd);
   pid = fork();
   if (!pid) {
-    dup2(pipe_fd[1], STDOUT_FILENO);
-    close(pipe_fd[0]);
-    close(pipe_fd[1]);
+    dup2(c->pipe_fd[1], STDOUT_FILENO);
+    close(c->pipe_fd[0]);
+    close(c->pipe_fd[1]);
     execve(location->getCgiPath().c_str(), command, environ);
     exit(1);
   } else {
-    close(pipe_fd[1]);
+    close(c->pipe_fd[1]);
     int nbytes;
     int i = 0;
-    while ((nbytes = read(pipe_fd[0], foo, sizeof(foo)))) {
+    while ((nbytes = read(c->pipe_fd[0], foo, sizeof(foo)))) {
       cgi_output_temp.append(foo);
       i++;
       memset(foo, 0, nbytes);

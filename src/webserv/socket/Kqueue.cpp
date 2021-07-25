@@ -63,18 +63,39 @@ void Kqueue::kqueueProcessEvents(SocketManager *sm) {
         Logger::logError(LOG_ALERT, "%d kevent() reported about an closed connection %d", events, (int)event_list_[i].ident);
         sm->closeConnection(c);
       } else {
-        if (c->getRequest().getRecvPhase() == MESSAGE_CGI_INCOMING) {
-          std::cout << "query_string yoyo:" << c->getRequest().getEntityBody() << std::endl;
-          std::cout << "getMsg      yoyo:" << c->getRequest().getMsg() << std::endl;
-
-        } else if (c->getRequest().getRecvPhase() != MESSAGE_CGI_PROCESS ||
-                   c->getRequest().getRecvPhase() != MESSAGE_CGI_INCOMING) {
+        if (c->getRequest().getRecvPhase() != MESSAGE_CGI_PROCESS ||
+            c->getRequest().getRecvPhase() != MESSAGE_CGI_INCOMING) {
           MessageHandler::handle_request(c);
         }
         if (c->getRequest().getRecvPhase() == MESSAGE_CGI_PROCESS) {
           ServerConfig *serverconfig_test = c->getHttpConfig()->getServerConfig(c->getSockaddrToConnect().sin_port, c->getSockaddrToConnect().sin_addr.s_addr, c->getRequest().getHeaderValue("Host"));
           LocationConfig *locationconfig_test = serverconfig_test->getLocationConfig(c->getRequest().getUri());
           MessageHandler::handle_cgi(c, locationconfig_test);
+        }
+        else if (c->getRequest().getRecvPhase() == MESSAGE_CGI_INCOMING) {
+          std::cout << "i'm here" << std::endl;
+          char foo[BUF_SIZE];  // 추후 수정 필요!!!
+
+          close(c->writepipe[0]);
+          close(c->readpipe[1]);
+          if (!c->getRequest().getMsg().empty()) {
+            write(c->writepipe[1], c->getRequest().getMsg().c_str(), static_cast<size_t>(c->getRequest().getMsg().size()));
+            c->getRequest().getMsg().clear();
+          } else {
+            size_t recv_len = recv(c->getFd(), c->buffer_, BUF_SIZE, 0);
+            std::cout << "buffer: " << c->buffer_ << std::endl;
+            write(c->writepipe[1], c->buffer_, BUF_SIZE);
+            memset(c->buffer_, 0, recv_len);
+          }
+          int nbytes;
+          int i = 0;
+          while ((nbytes = read(c->readpipe[0], foo, sizeof(foo)))) {
+            c->cgi_output_temp.append(foo);
+            i++;
+            memset(foo, 0, nbytes);
+          }
+          wait(NULL);
+          MessageHandler::process_cgi_response(c);
         }
         if (c->getRequest().getRecvPhase() == MESSAGE_BODY_COMPLETE) {
           //TODO: 전반적인 정리가 필요하다

@@ -31,7 +31,6 @@ void MessageHandler::handle_cgi(Connection *c, LocationConfig *location) {
   char **environ;
   char **command;
   pid_t pid;
-  char foo[BUF_SIZE];  // 추후 수정 필요!!!
 
   std::map<std::string, std::string> env_set;
   {
@@ -69,59 +68,45 @@ void MessageHandler::handle_cgi(Connection *c, LocationConfig *location) {
     dup2(c->readpipe[1], 1);
     close(c->readpipe[1]);
     execve(location->getCgiPath().c_str(), command, environ);
-  } else {
-    close(c->writepipe[0]);
-    close(c->readpipe[1]);
-    if (c->getRequest().getMsg().size())
-      write(c->writepipe[1], c->getRequest().getMsg().c_str(), static_cast<size_t>(c->getRequest().getMsg().size()));
-    int nbytes;
-    int i = 0;
-    while ((nbytes = read(c->readpipe[0], foo, sizeof(foo)))) {
-      cgi_output_temp.append(foo);
-      i++;
-      memset(foo, 0, nbytes);
-    }
-    wait(NULL);
   }
-  c->getRequest().setRecvPhase(MESSAGE_BODY_COMPLETE);
-  {
-    {
-      std::string cgi_output_response_header;
-      std::string cgi_output_response_body;
-      {
-        size_t pos = cgi_output_temp.find("\r\n\r\n");
-        cgi_output_response_header = cgi_output_temp.substr(0, pos);
-
-        cgi_output_temp.erase(0, pos + 4);
-        while ((pos = cgi_output_response_header.find("\r\n")) != std::string::npos) {
-          std::string one_header_line = cgi_output_response_header.substr(0, pos);
-          std::vector<std::string> key_and_value = request_handler_.splitByDelimiter(one_header_line, SPACE);
-          // @sungyongcho: 저는 CGI 실행파일을 믿습니다...
-          // if (key_and_value.size() != 2)  // 400 Bad Request
-          //   ;
-          std::string key, value;
-
-          // parse key and validation
-          key = key_and_value[0].erase(key_and_value[0].size() - 1);
-          value = key_and_value[1];
-          if (!key.compare("Status") && value.compare("404")) {
-            response_handler_.setStatusLineWithCode(value);
-          }
-          std::cout << "key: " << key << std::endl;
-          std::cout << "value: " << value << std::endl;
-          c->getResponse().setHeader(key, value);
-          cgi_output_response_header.erase(0, pos + 2);
-        }
-      }
-      if (c->getResponse().getStatusCode().empty() == true) {
-        c->getResponse().setResponseBody(cgi_output_temp);
-      }
-      cgi_output_temp.clear();
-      cgi_output_response_header.clear();
-    }
-  }
+  c->getRequest().setRecvPhase(MESSAGE_CGI_INCOMING);
 }
 
+void MessageHandler::process_cgi_response(Connection *c) {
+  std::string cgi_output_response_header;
+  {
+    size_t pos = c->cgi_output_temp.find("\r\n\r\n");
+    cgi_output_response_header = c->cgi_output_temp.substr(0, pos);
+
+    c->cgi_output_temp.erase(0, pos + 4);
+    while ((pos = cgi_output_response_header.find("\r\n")) != std::string::npos) {
+      std::string one_header_line = cgi_output_response_header.substr(0, pos);
+      std::vector<std::string> key_and_value = request_handler_.splitByDelimiter(one_header_line, SPACE);
+      // @sungyongcho: 저는 CGI 실행파일을 믿습니다...
+      // if (key_and_value.size() != 2)  // 400 Bad Request
+      //   ;
+      std::string key, value;
+
+      // parse key and validation
+      key = key_and_value[0].erase(key_and_value[0].size() - 1);
+      value = key_and_value[1];
+      if (!key.compare("Status") && value.compare("404")) {
+        response_handler_.setStatusLineWithCode(value);
+      }
+      std::cout << "key: " << key << std::endl;
+      std::cout << "value: " << value << std::endl;
+      c->getResponse().setHeader(key, value);
+      cgi_output_response_header.erase(0, pos + 2);
+    }
+  }
+  if (c->getResponse().getStatusCode().empty() == true) {
+    c->getResponse().setResponseBody(c->cgi_output_temp);
+  }
+  c->cgi_output_temp.clear();
+  cgi_output_response_header.clear();
+
+  c->getRequest().setRecvPhase(MESSAGE_BODY_COMPLETE);
+}
 std::string MessageHandler::parseCgiHeader(const std::string &cgi_output) {
   return (cgi_output);
 }

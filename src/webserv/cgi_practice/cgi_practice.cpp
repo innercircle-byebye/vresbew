@@ -6,7 +6,7 @@
 /*   By: sucho <sucho@student.42seoul.kr>           +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2021/06/25 19:26:26 by sucho             #+#    #+#             */
-/*   Updated: 2021/07/25 20:38:51 by sucho            ###   ########.fr       */
+/*   Updated: 2021/07/25 22:31:02 by sucho            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -122,13 +122,18 @@ int main(int argc, char *argv[]) {
       env_set.insert(env_temp);
     }
     {
-      env_set["QUERY_STRING"] = std::string(argv[4]);
+      if (std::string(argv[4]).size() > 0)
+      {
+        env_set["CONTENT_LENGTH"] = std::to_string(std::string(argv[4]).size());
+        env_set["QUERY_STRING"] = std::string(argv[4]);
+      }
       env_set["REQUEST_METHOD"] = std::string(argv[2]);
       env_set["REDIRECT_STATUS"] = "CGI";
       env_set["SCRIPT_FILENAME"] = std::string(argv[3]);
       env_set["SERVER_PROTOCOL"] = "HTTP/1.1";
       env_set["PATH_INFO"] = setPathInfo(argv[3]);
-      env_set["CONTENT_TYPE"] = "test/file";
+      env_set["CONTENT_TYPE"] = "application/x-www-form-urlencoded";
+      // env_set["CONTENT_TYPE"] = "text/plaine";
       env_set["GATEWAY_INTERFACE"] = "CGI/1.1";
       env_set["PATH_TRANSLATED"] = setPathTranslated(argv[3]);
       env_set["REMOTE_ADDR"] = "127.0.0.1";

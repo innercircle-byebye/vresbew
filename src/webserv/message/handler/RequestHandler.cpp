@@ -220,13 +220,9 @@ void RequestHandler::checkCgiRequest(Connection *c) {
   LocationConfig *locationconfig_test = serverconfig_test->getLocationConfig(c->getRequest().getUri());
   //TODO: c->getRequest().getUri().find_last_of() 부분을 메세지 헤더의 mime_types로 확인하도록 교체/ 확인 필요
   if (!locationconfig_test->getCgiPath().empty() &&
-      (!c->getRequest().getMethod().compare("GET") ||
-       !c->getRequest().getMethod().compare("HEAD") ||
-       !c->getRequest().getMethod().compare("POST"))) {
-    if (c->getRequest().getUri().find(".php")) {
-      c->getRequest().is_cgi_process = true;
-      c->getRequest().setRecvPhase(MESSAGE_CGI_PROCESS);
-    }
+      locationconfig_test->checkCgiExtension(c->getRequest().getUri())) {
+    c->getRequest().is_cgi_process = true;
+    c->getRequest().setRecvPhase(MESSAGE_CGI_PROCESS);
   }
 }
 

@@ -34,7 +34,8 @@ void MessageHandler::handle_cgi(Connection *c, LocationConfig *location) {
 
   std::map<std::string, std::string> env_set;
   {
-    env_set["CONTENT_LENGTH"] = c->getRequest().getHeaderValue("Content-Length");
+    if (!c->getRequest().getHeaderValue("Content-Length").empty())
+      env_set["CONTENT_LENGTH"] = c->getRequest().getHeaderValue("Content-Length");
     if (c->getRequest().getMethod() == "GET") {
       env_set["QUERY_STRING"] = c->getRequest().getEntityBody();
     }
@@ -73,6 +74,7 @@ void MessageHandler::handle_cgi(Connection *c, LocationConfig *location) {
 }
 
 void MessageHandler::process_cgi_response(Connection *c) {
+  std::cout << "testing->" << c->cgi_output_temp << std::endl;
   std::string cgi_output_response_header;
   {
     size_t pos = c->cgi_output_temp.find("\r\n\r\n");

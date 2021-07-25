@@ -73,7 +73,7 @@ void MessageHandler::handle_cgi(Connection *c, LocationConfig *location) {
     close(c->writepipe[0]);
     close(c->readpipe[1]);
     if (c->getRequest().getMsg().size())
-      write(c->writepipe[1], c->getRequest().getMsg().c_str(), 15);
+      write(c->writepipe[1], c->getRequest().getMsg().c_str(), static_cast<size_t>(c->getRequest().getMsg().size()));
     int nbytes;
     int i = 0;
     while ((nbytes = read(c->readpipe[0], foo, sizeof(foo)))) {
@@ -83,8 +83,6 @@ void MessageHandler::handle_cgi(Connection *c, LocationConfig *location) {
     }
     wait(NULL);
   }
-  std::cout << cgi_output_temp << std::endl;
-
   c->getRequest().setRecvPhase(MESSAGE_BODY_COMPLETE);
   {
     {

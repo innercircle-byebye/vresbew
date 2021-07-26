@@ -121,7 +121,7 @@ void MessageHandler::process_cgi_response(Connection *c) {
     }
   }
   // TODO: 전체 리팩토링 하면서 시점 조절이 필요
-  if (c->getResponse().getStatusCode().empty() == true) {
+  if (c->getResponse().getStatusCode() != "404") {
     c->getResponse().setResponseBody(c->cgi_output_temp);
   }
   c->cgi_output_temp.clear();

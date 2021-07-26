@@ -75,10 +75,6 @@ void Kqueue::kqueueProcessEvents(SocketManager *sm) {
         }
         if (c->getRequest().getRecvPhase() == MESSAGE_CGI_INCOMING) {
           std::cout << "i'm here" << std::endl;
-          char foo[BUF_SIZE];  // 추후 수정 필요!!!
-
-          close(c->writepipe[0]);
-          close(c->readpipe[1]);
           if (!c->getRequest().getMsg().empty()) {
             write(c->writepipe[1], c->getRequest().getMsg().c_str(), static_cast<size_t>(c->getRequest().getMsg().size()));
             c->getRequest().getMsg().clear();
@@ -88,6 +84,10 @@ void Kqueue::kqueueProcessEvents(SocketManager *sm) {
             write(c->writepipe[1], c->buffer_, recv_len);
             memset(c->buffer_, 0, recv_len);
           }
+          c->getRequest().setRecvPhase(MESSAGE_CGI_COMPLETE);
+        }
+        if (c->getRequest().getRecvPhase() == MESSAGE_CGI_COMPLETE) {
+          char foo[BUF_SIZE];
           int nbytes;
           int i = 0;
           while ((nbytes = read(c->readpipe[0], foo, sizeof(foo)))) {

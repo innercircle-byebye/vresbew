@@ -68,6 +68,9 @@ void MessageHandler::handle_cgi(Connection *c, LocationConfig *location) {
     dup2(c->readpipe[1], 1);
     close(c->readpipe[1]);
     execve(location->getCgiPath().c_str(), command, environ);
+  } else {
+    close(c->writepipe[0]);
+    close(c->readpipe[1]);
   }
   c->getRequest().setRecvPhase(MESSAGE_CGI_INCOMING);
 }

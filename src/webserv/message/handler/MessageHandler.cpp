@@ -72,8 +72,6 @@ void MessageHandler::handle_cgi(Connection *c, LocationConfig *location) {
 
   if (!c->getRequest().getMsg().empty()) {
     write(c->writepipe[1], c->getRequest().getMsg().c_str(), static_cast<size_t>(c->getRequest().getMsg().size()));
-    std::cout << "content-length: " << c->getRequest().getBufferContentLength() << std::endl;
-    std::cout << "getMsg.size(): " << c->getRequest().getMsg().size() << std::endl;
     c->getRequest().setBufferContentLength(c->getRequest().getBufferContentLength() - c->getRequest().getMsg().size());
     c->getRequest().getMsg().clear();
     if ((size_t)c->getRequest().getBufferContentLength() == 0)

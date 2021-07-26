@@ -75,18 +75,16 @@ void Kqueue::kqueueProcessEvents(SocketManager *sm) {
         }
         if (c->getRequest().getRecvPhase() == MESSAGE_CGI_INCOMING) {
           std::cout << "i'm here" << std::endl;
-            close(c->writepipe[0]);
-            close(c->readpipe[1]);
-          if (!c->getRequest().getMsg().empty()) {
-            write(c->writepipe[1], c->getRequest().getMsg().c_str(), static_cast<size_t>(c->getRequest().getMsg().size()));
-            c->getRequest().getMsg().clear();
-            std::cout << "content-length: " << c->getRequest().getBufferContentLength() << std::endl;
-            c->getRequest().setRecvPhase(MESSAGE_CGI_COMPLETE);
-          } else {
+          // 한번의 버퍼 안에 전체 메세지가 다 들어 올 경우
+          // 한번의 클라이언트 kevent에서는 버퍼를 읽어 올 게 없음...
+          if (strlen(c->buffer_) < 0)
+            return;
+          else {
             size_t recv_len = recv(c->getFd(), c->buffer_, BUF_SIZE, 0);
+
             std::cout << "content-length: " << c->getRequest().getBufferContentLength() << std::endl;
             std::cout << "buffer: " << c->buffer_ << std::endl;
-            std::cout << "recv_len: " << recv_len << std::endl;
+            std::cout << "recv_len: " << static_cast<int>(recv_len) << std::endl;
             if ((size_t)c->getRequest().getBufferContentLength() <= recv_len) {
               write(c->writepipe[1], c->buffer_, recv_len - c->getRequest().getBufferContentLength());
               c->getRequest().setBufferContentLength(0);
@@ -95,8 +93,9 @@ void Kqueue::kqueueProcessEvents(SocketManager *sm) {
               c->getRequest().setBufferContentLength(c->getRequest().getBufferContentLength() - recv_len);
               write(c->writepipe[1], c->buffer_, recv_len);
             }
-            // memset(c->buffer_, 0, recv_len);
+            memset(c->buffer_, 0, recv_len);
           }
+          // }
         }
         if (c->getRequest().getRecvPhase() == MESSAGE_CGI_COMPLETE) {
           char foo[BUF_SIZE];

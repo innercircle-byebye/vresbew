@@ -82,21 +82,44 @@ void Kqueue::kqueueProcessEvents(SocketManager *sm) {
 
           size_t recv_len = recv(c->getFd(), c->buffer_, BUF_SIZE, 0);
 
-          if (c->getRequest().getBufferContentLength() <= static_cast<int>(recv_len)) {
-            std::cout << "==========two============ " << std::endl;
+          if (static_cast<int>(recv_len) == -1)
+            break;
+
+          if (c->getRequest().getBufferContentLength() > static_cast<int>(recv_len)) {
+            std::cout << "content-length before: " << c->getRequest().getBufferContentLength() << std::endl;
+            c->getRequest().setBufferContentLength(c->getRequest().getBufferContentLength() - recv_len);
+            write(c->writepipe[1], c->buffer_, recv_len);
+            std::cout << "content-length after: " << c->getRequest().getBufferContentLength() << std::endl;
+          } else {
+            std::cout << "==========one============ " << std::endl;
             std::cout << "content-length: " << c->getRequest().getBufferContentLength() << std::endl;
             std::cout << "buffer: " << c->buffer_ << std::endl;
             std::cout << "recv_len: " << static_cast<int>(recv_len) << std::endl;
-            std::cout << "==========two============ " << std::endl;
-            std::cout << "is buffer coming #1: " << c->buffer_ << std::endl;
-            write(c->writepipe[1], c->buffer_, recv_len - c->getRequest().getBufferContentLength());
+            std::cout << "==========one============ " << std::endl;
+            write(c->writepipe[1], c->buffer_, recv_len);
             c->getRequest().setBufferContentLength(0);
             c->getRequest().setRecvPhase(MESSAGE_CGI_COMPLETE);
-          } else {
-            std::cout << "is buffer coming #2: " << c->buffer_ << std::endl;
-            c->getRequest().setBufferContentLength(c->getRequest().getBufferContentLength() - recv_len);
-            write(c->writepipe[1], c->buffer_, recv_len);
+            close(c->writepipe[1]);
           }
+          // if (c->getRequest().getBufferContentLength() > static_cast<int>(recv_len)) {
+          //   std::cout << "==========one============ " << std::endl;
+          //   std::cout << "content-length: " << c->getRequest().getBufferContentLength() << std::endl;
+          //   std::cout << "buffer: " << c->buffer_ << std::endl;
+          //   std::cout << "recv_len: " << static_cast<int>(recv_len) << std::endl;
+          //   std::cout << "==========one============ " << std::endl;
+          //   write(c->writepipe[1], c->buffer_, recv_len - c->getRequest().getBufferContentLength());
+          //   c->getRequest().setBufferContentLength(0);
+          //   c->getRequest().setRecvPhase(MESSAGE_CGI_COMPLETE);
+          //   close(c->writepipe[1]);
+          // } else {
+          //   std::cout << "==========two============ " << std::endl;
+          //   std::cout << "content-length: " << c->getRequest().getBufferContentLength() << std::endl;
+          //   std::cout << "buffer: " << c->buffer_ << std::endl;
+          //   std::cout << "recv_len: " << static_cast<int>(recv_len) << std::endl;
+          //   std::cout << "==========two============ " << std::endl;
+          //   c->getRequest().setBufferContentLength(c->getRequest().getBufferContentLength() - recv_len);
+          //   write(c->writepipe[1], c->buffer_, recv_len);
+          // }
           memset(c->buffer_, 0, recv_len);
         }
         if (c->getRequest().getRecvPhase() == MESSAGE_CGI_COMPLETE) {

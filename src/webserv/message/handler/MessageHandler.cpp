@@ -32,7 +32,8 @@ void MessageHandler::handle_cgi(Connection *c, LocationConfig *location) {
 
   std::map<std::string, std::string> env_set;
   {
-    env_set["CONTENT_LENGTH"] = c->getRequest().getHeaderValue("Content-Length");
+    if (!c->getRequest().getHeaderValue("Content-Length").empty())
+      env_set["CONTENT_LENGTH"] = c->getRequest().getHeaderValue("Content-Length");
     if (c->getRequest().getMethod() == "GET") {
       env_set["QUERY_STRING"] = c->getRequest().getEntityBody();
     }
@@ -78,7 +79,6 @@ void MessageHandler::handle_cgi(Connection *c, LocationConfig *location) {
     write(c->writepipe[1], c->getRequest().getMsg().c_str(), static_cast<size_t>(c->getRequest().getMsg().size()));
     c->getRequest().setBufferContentLength(c->getRequest().getBufferContentLength() - c->getRequest().getMsg().size());
     c->getRequest().getMsg().clear();
-    std::cout << "content_length check: " << (size_t)c->getRequest().getBufferContentLength() << std::endl;
     if ((size_t)c->getRequest().getBufferContentLength() == 0) {
       c->getRequest().setRecvPhase(MESSAGE_CGI_COMPLETE);
       return;

@@ -32,6 +32,8 @@ class Connection {
   char buffer_[BUF_SIZE];
   int writepipe[2], readpipe[2];
   std::string cgi_output_temp;
+  std::string chunked_checker;
+
   Connection();
   ~Connection();
 

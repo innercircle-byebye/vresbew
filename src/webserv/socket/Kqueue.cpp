@@ -84,22 +84,40 @@ void Kqueue::kqueueProcessEvents(SocketManager *sm) {
 
           if (static_cast<int>(recv_len = recv(c->getFd(), c->buffer_, BUF_SIZE, 0)) == -1)
             break;
+          // Transfer-Encoding : chunked 아닐 때 (= Content-Length가 있을 때)
+          if (!c->getRequest().getHeaderValue("Content-Length").empty()) {
+            if (c->getRequest().getBufferContentLength() > static_cast<int>(recv_len)) {
+              std::cout << "content-length before: " << c->getRequest().getBufferContentLength() << std::endl;
+              c->getRequest().setBufferContentLength(c->getRequest().getBufferContentLength() - recv_len);
+              write(c->writepipe[1], c->buffer_, recv_len);
+              std::cout << "content-length after: " << c->getRequest().getBufferContentLength() << std::endl;
+            } else {
+              std::cout << "==========one============ " << std::endl;
+              std::cout << "content-length: " << c->getRequest().getBufferContentLength() << std::endl;
+              std::cout << "buffer: " << c->buffer_ << std::endl;
+              std::cout << "recv_len: " << static_cast<int>(recv_len) << std::endl;
+              std::cout << "==========one============ " << std::endl;
+              write(c->writepipe[1], c->buffer_, recv_len);
+              c->getRequest().setBufferContentLength(0);
+              c->getRequest().setRecvPhase(MESSAGE_CGI_COMPLETE);
+              close(c->writepipe[1]);
+            }
+          }
+          // Request에서 Content-Length 헤더가 주어지지 않을 때
+          // (= Transfer-Encoding: chunked 헤더가 주어 젔을 때)
+          else {
+            write(c->writepipe[1], c->buffer_, recv_len);
 
-          if (c->getRequest().getBufferContentLength() > static_cast<int>(recv_len)) {
-            std::cout << "content-length before: " << c->getRequest().getBufferContentLength() << std::endl;
-            c->getRequest().setBufferContentLength(c->getRequest().getBufferContentLength() - recv_len);
-            write(c->writepipe[1], c->buffer_, recv_len);
-            std::cout << "content-length after: " << c->getRequest().getBufferContentLength() << std::endl;
-          } else {
-            std::cout << "==========one============ " << std::endl;
-            std::cout << "content-length: " << c->getRequest().getBufferContentLength() << std::endl;
             std::cout << "buffer: " << c->buffer_ << std::endl;
-            std::cout << "recv_len: " << static_cast<int>(recv_len) << std::endl;
-            std::cout << "==========one============ " << std::endl;
-            write(c->writepipe[1], c->buffer_, recv_len);
-            c->getRequest().setBufferContentLength(0);
-            c->getRequest().setRecvPhase(MESSAGE_CGI_COMPLETE);
-            close(c->writepipe[1]);
+            if (!strcmp(c->buffer_, "0\r\n")) {
+              std::cout << "yatta" << std::endl;
+              c->chunked_checker.append(c->buffer_);
+              std::cout << "chunked_checker: " << c->chunked_checker << std::endl;
+            } else if (c->chunked_checker == "0\r\n" && !strcmp(c->buffer_, "\r\n")) {
+              c->getRequest().setRecvPhase(MESSAGE_CGI_COMPLETE);
+              close(c->writepipe[1]);
+            } else
+              c->chunked_checker.clear();
           }
           memset(c->buffer_, 0, recv_len);
         }

@@ -6,12 +6,10 @@ RequestHandler MessageHandler::request_handler_ = RequestHandler();
 ResponseHandler MessageHandler::response_handler_ = ResponseHandler();
 
 MessageHandler::MessageHandler() {}
-
 MessageHandler::~MessageHandler() {}
 
 void MessageHandler::handle_request(Connection *c) {
   //RequestHandler  request_handler_;
-
   // 1. recv
   size_t recv_len = recv(c->getFd(), c->buffer_, BUF_SIZE, 0);
   // 2. request_handler의 request가 c의 request가 되도록 세팅
@@ -33,7 +31,6 @@ void MessageHandler::handle_cgi(Connection *c, LocationConfig *location) {
   char **environ;
   char **command;
   pid_t pid;
-
   std::map<std::string, std::string> env_set;
   {
     if (!c->getRequest().getHeaderValue("Content-Length").empty())
@@ -57,12 +54,10 @@ void MessageHandler::handle_cgi(Connection *c, LocationConfig *location) {
   }
   environ = response_handler_.setEnviron(env_set);
   command = response_handler_.setCommand(location->getCgiPath(), response_handler_.getAccessPath(c->getRequest().getUri(), location));
-
   std::string cgi_output_temp;
   pipe(c->writepipe);
   pipe(c->readpipe);
   pid = fork();
-
   if (!pid) {
     close(c->writepipe[1]);
     close(c->readpipe[0]);
@@ -81,7 +76,6 @@ void MessageHandler::process_cgi_response(Connection *c) {
   {
     size_t pos = c->cgi_output_temp.find("\r\n\r\n");
     cgi_output_response_header = c->cgi_output_temp.substr(0, pos);
-
     c->cgi_output_temp.erase(0, pos + 4);
     while ((pos = cgi_output_response_header.find("\r\n")) != std::string::npos) {
       std::string one_header_line = cgi_output_response_header.substr(0, pos);
@@ -90,10 +84,10 @@ void MessageHandler::process_cgi_response(Connection *c) {
       // if (key_and_value.size() != 2)  // 400 Bad Request
       //   ;
       std::string key, value;
-
       // parse key and validation
       key = key_and_value[0].erase(key_and_value[0].size() - 1);
       value = key_and_value[1];
+      MessageHandler::response_handler_.setResponse(&c->getResponse());
       if (!key.compare("Status") && value.compare("404")) {
         response_handler_.setStatusLineWithCode(value);
       }
@@ -103,48 +97,41 @@ void MessageHandler::process_cgi_response(Connection *c) {
       cgi_output_response_header.erase(0, pos + 2);
     }
   }
-  if (c->getResponse().getStatusCode().empty() == true) {
+  if (c->getResponse().getStatusCode().empty() != true) {
     c->getResponse().setResponseBody(c->cgi_output_temp);
   }
   c->cgi_output_temp.clear();
   cgi_output_response_header.clear();
-
   c->getRequest().setRecvPhase(MESSAGE_BODY_COMPLETE);
 }
+
 std::string MessageHandler::parseCgiHeader(const std::string &cgi_output) {
   return (cgi_output);
 }
-
 void MessageHandler::handle_response(Connection *c) {
   //ResponseHandler response_handler_;
   response_handler_.setResponse(&c->getResponse());
   response_handler_.setServerConfig(c->getHttpConfig(), c->getSockaddrToConnect(), c->getRequest().getHeaderValue("Host"));
-
   // TODO: HTTP/1.0 일 때 로직 복구 필요
   if (c->getRequest().getHttpVersion() == "HTTP/1.0" && !c->getRequest().getHeaders().count("Host"))
     c->getRequest().setHeader("Host", "");
-
   if (!isValidRequestMethod(c->getRequest().getMethod()) ||
       !isValidRequestVersion(c->getRequest().getHttpVersion(), c->getRequest().getHeaders()))
     response_handler_.setStatusLineWithCode("400");
   else
     response_handler_.setResponseFields(c->getRequest());
-
   response_handler_.makeResponseMsg();
-
   /// executePutMEthod가 있던 자리...
   if (c->getRequest().getMethod() == "PUT" &&
       (c->getResponse().getStatusCode() == "201" || (c->getResponse().getStatusCode() == "204"))) {
     // create response body
     executePutMethod(response_handler_.getAccessPath(c->getRequest().getUri()), c->getRequest().getEntityBody());
   }
-
   send(c->getFd(), c->getResponse().getMsg().c_str(), c->getResponse().getMsg().size(), 0);
 }
 
 void MessageHandler::executePutMethod(std::string path, std::string content) {
   std::ofstream output(path.c_str());
-
   output << content;
   output.close();
 }
@@ -166,7 +153,6 @@ bool MessageHandler::isValidRequestVersion(const std::string &http_version, cons
     //   request_->setHeader("Host", "");   // ?? 자동으로 ""되어있는거 아닌지?
     // A: 아닙니다. Response의 경우 응답 헤더들을 미리 설정 해 놓았지만 Request는 어떤 헤더가 들어 올지 모르기 때문에 설정 해주지 않았습니다.
     // HTTP/1.0 처리 하지 못하는 상황 발생하여 수정하겠습니다.
-
     return (true);
   }
   return (false);

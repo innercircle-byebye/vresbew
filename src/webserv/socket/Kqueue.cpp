@@ -1,5 +1,4 @@
 #include "webserv/socket/Kqueue.hpp"
-
 namespace ft {
 Kqueue::Kqueue() {
   kq_ = kqueue();
@@ -7,11 +6,9 @@ Kqueue::Kqueue() {
     Logger::logError(LOG_EMERG, "kqueue() failed");
     throw KqueueException();
   }
-
   nchanges_ = 0;
   max_changes_ = DEFAULT_CONNECTIONS;
   nevents_ = DEFAULT_CONNECTIONS;
-
   change_list_ = new struct kevent[max_changes_]();
   if (change_list_ == NULL) {
     Logger::logError(LOG_EMERG, "malloc(%d) failed", max_changes_);
@@ -22,11 +19,9 @@ Kqueue::Kqueue() {
     Logger::logError(LOG_EMERG, "malloc(%d) failed", max_changes_);
     throw std::bad_alloc();
   }
-
   ts_.tv_sec = 5;
   ts_.tv_nsec = 0;
 }
-
 Kqueue::~Kqueue() {
   if (close(kq_) == -1) {
     Logger::logError(LOG_ALERT, "kqueue close() failed");
@@ -35,15 +30,12 @@ Kqueue::~Kqueue() {
   delete[] change_list_;
   delete[] event_list_;
 }
-
 void Kqueue::kqueueSetEvent(Connection *c, u_short filter, u_int flags) {
   EV_SET(&change_list_[nchanges_], c->getFd(), filter, flags, 0, 0, c);  // udata = Connection
   ++nchanges_;
 }
-
 void Kqueue::kqueueProcessEvents(SocketManager *sm) {
   int events = kevent(kq_, change_list_, nchanges_, event_list_, nevents_, &ts_);
-
   nchanges_ = 0;
   if (events == -1) {
     Logger::logError(LOG_ALERT, "kevent() failed");
@@ -51,7 +43,6 @@ void Kqueue::kqueueProcessEvents(SocketManager *sm) {
   }
   for (int i = 0; i < events; ++i) {
     Connection *c = (Connection *)event_list_[i].udata;
-
     if (event_list_[i].flags & EV_ERROR) {
       Logger::logError(LOG_ALERT, "%d kevent() error on %d filter:%d", events, (int)event_list_[i].ident, (int)event_list_[i].filter);
       continue;
@@ -74,7 +65,6 @@ void Kqueue::kqueueProcessEvents(SocketManager *sm) {
           MessageHandler::handle_cgi(c, locationconfig_test);
         } else if (c->getRequest().getRecvPhase() == MESSAGE_CGI_INCOMING) {
           std::cout << "i'm here" << std::endl;
-
           close(c->writepipe[0]);
           close(c->readpipe[1]);
           if (!c->getRequest().getMsg().empty()) {
@@ -84,10 +74,14 @@ void Kqueue::kqueueProcessEvents(SocketManager *sm) {
           size_t recv_len = recv(c->getFd(), c->buffer_, BUF_SIZE, 0);
           c->temp_chunked.append(c->buffer_);
           std::cout << "temp_chunked: " << c->temp_chunked << std::endl;
-          write(c->writepipe[1], c->buffer_, BUF_SIZE);
-          // if (strstr(c->buffer_, "0\r\n")) {
-          //   c->temp_chunked_checker.append("0\r\n");
-          // }
+          write(c->writepipe[1], c->buffer_, strlen(c->buffer_) - 2);
+          if (strstr(c->temp_chunked.c_str(), "0\r\n\r\n")) {
+            std::cout << "end~~" << std::endl;
+            c->getRequest().setRecvPhase(MESSAGE_CGI_COMPLETE);
+            c->temp_chunked.clear();
+            close(c->writepipe[1]);
+            std::cout << "close 했다!!!" << std::endl;
+          }
           // if (!c->temp_chunked_checker.empty() && strstr(c->buffer_, "\r\n")) {
           //   c->getRequest().setRecvPhase(MESSAGE_CGI_COMPLETE);
           //   break;
@@ -104,7 +98,7 @@ void Kqueue::kqueueProcessEvents(SocketManager *sm) {
             i++;
             memset(foo, 0, nbytes);
           }
-          wait(NULL);
+          //wait(NULL);
           MessageHandler::process_cgi_response(c);
         }
         if (c->getRequest().getRecvPhase() == MESSAGE_BODY_COMPLETE) {

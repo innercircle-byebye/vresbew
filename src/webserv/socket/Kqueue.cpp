@@ -64,7 +64,8 @@ void Kqueue::kqueueProcessEvents(SocketManager *sm) {
         sm->closeConnection(c);
       } else {
         if (c->getRequest().getRecvPhase() != MESSAGE_CGI_PROCESS ||
-            c->getRequest().getRecvPhase() != MESSAGE_CGI_INCOMING) {
+            c->getRequest().getRecvPhase() != MESSAGE_CGI_INCOMING ||
+            c->getRequest().getRecvPhase() != MESSAGE_CGI_COMPLETE) {
           MessageHandler::handle_request(c);
         }
         if (c->getRequest().getRecvPhase() == MESSAGE_CGI_PROCESS) {
@@ -72,7 +73,7 @@ void Kqueue::kqueueProcessEvents(SocketManager *sm) {
           LocationConfig *locationconfig_test = serverconfig_test->getLocationConfig(c->getRequest().getUri());
           MessageHandler::handle_cgi(c, locationconfig_test);
         }
-         if (c->getRequest().getRecvPhase() == MESSAGE_CGI_INCOMING) {
+        if (c->getRequest().getRecvPhase() == MESSAGE_CGI_INCOMING) {
           std::cout << "i'm here" << std::endl;
           char foo[BUF_SIZE];  // 추후 수정 필요!!!
 

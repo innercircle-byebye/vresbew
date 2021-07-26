@@ -14,15 +14,13 @@ void MessageHandler::handle_request(Connection *c) {
 
   // 1. recv
   size_t recv_len = recv(c->getFd(), c->buffer_, BUF_SIZE, 0);
+  // recv(c->getFd(), c->buffer_, BUF_SIZE, 0);
   // 2. request_handler의 request가 c의 request가 되도록 세팅
   request_handler_.setRequest(&c->getRequest());
   // 2. append (이전에 request가 setting되어야함)
   request_handler_.appendMsg(c->buffer_);
   // 4. process by recv_phase
   request_handler_.processByRecvPhase(c);
-  if (c->getRequest().getRecvPhase() == MESSAGE_CGI_PROCESS) {
-    return;
-  }
   // 5. clear c->buffer_
   memset(c->buffer_, 0, recv_len);
 }
@@ -68,9 +66,21 @@ void MessageHandler::handle_cgi(Connection *c, LocationConfig *location) {
     dup2(c->readpipe[1], 1);
     close(c->readpipe[1]);
     execve(location->getCgiPath().c_str(), command, environ);
-  } else {
-    close(c->writepipe[0]);
-    close(c->readpipe[1]);
+  }
+  close(c->writepipe[0]);
+  close(c->readpipe[1]);
+
+  if (!c->getRequest().getMsg().empty()) {
+    write(c->writepipe[1], c->getRequest().getMsg().c_str(), static_cast<size_t>(c->getRequest().getMsg().size()));
+    std::cout << "content-length: " << c->getRequest().getBufferContentLength() << std::endl;
+    std::cout << "getMsg.size(): " << c->getRequest().getMsg().size() << std::endl;
+    c->getRequest().setBufferContentLength(c->getRequest().getBufferContentLength() - c->getRequest().getMsg().size());
+    c->getRequest().getMsg().clear();
+    if ((size_t)c->getRequest().getBufferContentLength() == 0)
+    {
+      c->getRequest().setRecvPhase(MESSAGE_CGI_COMPLETE);
+      return ;
+    }
   }
   c->getRequest().setRecvPhase(MESSAGE_CGI_INCOMING);
 }

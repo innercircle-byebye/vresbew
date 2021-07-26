@@ -75,16 +75,28 @@ void Kqueue::kqueueProcessEvents(SocketManager *sm) {
         }
         if (c->getRequest().getRecvPhase() == MESSAGE_CGI_INCOMING) {
           std::cout << "i'm here" << std::endl;
+            close(c->writepipe[0]);
+            close(c->readpipe[1]);
           if (!c->getRequest().getMsg().empty()) {
             write(c->writepipe[1], c->getRequest().getMsg().c_str(), static_cast<size_t>(c->getRequest().getMsg().size()));
             c->getRequest().getMsg().clear();
+            std::cout << "content-length: " << c->getRequest().getBufferContentLength() << std::endl;
+            c->getRequest().setRecvPhase(MESSAGE_CGI_COMPLETE);
           } else {
             size_t recv_len = recv(c->getFd(), c->buffer_, BUF_SIZE, 0);
+            std::cout << "content-length: " << c->getRequest().getBufferContentLength() << std::endl;
             std::cout << "buffer: " << c->buffer_ << std::endl;
-            write(c->writepipe[1], c->buffer_, recv_len);
-            memset(c->buffer_, 0, recv_len);
+            std::cout << "recv_len: " << recv_len << std::endl;
+            if ((size_t)c->getRequest().getBufferContentLength() <= recv_len) {
+              write(c->writepipe[1], c->buffer_, recv_len - c->getRequest().getBufferContentLength());
+              c->getRequest().setBufferContentLength(0);
+              c->getRequest().setRecvPhase(MESSAGE_CGI_COMPLETE);
+            } else {
+              c->getRequest().setBufferContentLength(c->getRequest().getBufferContentLength() - recv_len);
+              write(c->writepipe[1], c->buffer_, recv_len);
+            }
+            // memset(c->buffer_, 0, recv_len);
           }
-          c->getRequest().setRecvPhase(MESSAGE_CGI_COMPLETE);
         }
         if (c->getRequest().getRecvPhase() == MESSAGE_CGI_COMPLETE) {
           char foo[BUF_SIZE];
@@ -101,6 +113,7 @@ void Kqueue::kqueueProcessEvents(SocketManager *sm) {
         if (c->getRequest().getRecvPhase() == MESSAGE_BODY_COMPLETE) {
           //TODO: 전반적인 정리가 필요하다
           kqueueSetEvent(c, EVFILT_WRITE, EV_ADD | EV_ONESHOT);
+          memset(c->buffer_, 0, sizeof(c->buffer_));
         }
       }
     } else if (event_list_[i].filter == EVFILT_WRITE) {

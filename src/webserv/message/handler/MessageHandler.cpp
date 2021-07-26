@@ -105,6 +105,8 @@ void MessageHandler::process_cgi_response(Connection *c) {
       // parse key and validation
       key = key_and_value[0].erase(key_and_value[0].size() - 1);
       value = key_and_value[1];
+      // TODO: cgi의 위치를 한번 이동 할 예정...
+      // MessageHandler::response_handler_.setResponse(&c->getResponse());
       if (!key.compare("Status") && value.compare("404")) {
         response_handler_.setStatusLineWithCode(value);
       }
@@ -114,6 +116,7 @@ void MessageHandler::process_cgi_response(Connection *c) {
       cgi_output_response_header.erase(0, pos + 2);
     }
   }
+  // TODO: 전체 리팩토링 하면서 시점 조절이 필요
   if (c->getResponse().getStatusCode().empty() == true) {
     c->getResponse().setResponseBody(c->cgi_output_temp);
   }

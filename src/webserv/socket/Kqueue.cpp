@@ -80,9 +80,9 @@ void Kqueue::kqueueProcessEvents(SocketManager *sm) {
           std::cout << "i'm here" << std::endl;
           // 한번의 버퍼 안에 전체 메세지가 다 들어 올 경우
 
-          size_t recv_len = recv(c->getFd(), c->buffer_, BUF_SIZE, 0);
+          size_t recv_len;
 
-          if (static_cast<int>(recv_len) == -1)
+          if (static_cast<int>(recv_len = recv(c->getFd(), c->buffer_, BUF_SIZE, 0)) == -1)
             break;
 
           if (c->getRequest().getBufferContentLength() > static_cast<int>(recv_len)) {
@@ -101,35 +101,15 @@ void Kqueue::kqueueProcessEvents(SocketManager *sm) {
             c->getRequest().setRecvPhase(MESSAGE_CGI_COMPLETE);
             close(c->writepipe[1]);
           }
-          // if (c->getRequest().getBufferContentLength() > static_cast<int>(recv_len)) {
-          //   std::cout << "==========one============ " << std::endl;
-          //   std::cout << "content-length: " << c->getRequest().getBufferContentLength() << std::endl;
-          //   std::cout << "buffer: " << c->buffer_ << std::endl;
-          //   std::cout << "recv_len: " << static_cast<int>(recv_len) << std::endl;
-          //   std::cout << "==========one============ " << std::endl;
-          //   write(c->writepipe[1], c->buffer_, recv_len - c->getRequest().getBufferContentLength());
-          //   c->getRequest().setBufferContentLength(0);
-          //   c->getRequest().setRecvPhase(MESSAGE_CGI_COMPLETE);
-          //   close(c->writepipe[1]);
-          // } else {
-          //   std::cout << "==========two============ " << std::endl;
-          //   std::cout << "content-length: " << c->getRequest().getBufferContentLength() << std::endl;
-          //   std::cout << "buffer: " << c->buffer_ << std::endl;
-          //   std::cout << "recv_len: " << static_cast<int>(recv_len) << std::endl;
-          //   std::cout << "==========two============ " << std::endl;
-          //   c->getRequest().setBufferContentLength(c->getRequest().getBufferContentLength() - recv_len);
-          //   write(c->writepipe[1], c->buffer_, recv_len);
-          // }
           memset(c->buffer_, 0, recv_len);
         }
         if (c->getRequest().getRecvPhase() == MESSAGE_CGI_COMPLETE) {
-          char foo[BUF_SIZE];
           int nbytes;
           int i = 0;
-          while ((nbytes = read(c->readpipe[0], foo, sizeof(foo)))) {
-            c->cgi_output_temp.append(foo);
+          while ((nbytes = read(c->readpipe[0], c->buffer_, BUF_SIZE))) {
+            c->cgi_output_temp.append(c->buffer_);
             i++;
-            memset(foo, 0, nbytes);
+            memset(c->buffer_, 0, nbytes);
           }
           wait(NULL);
           MessageHandler::process_cgi_response(c);

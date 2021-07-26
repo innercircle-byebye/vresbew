@@ -2,7 +2,7 @@
 
 namespace ft {
 
-Request::Request(): recv_phase_(MESSAGE_START_LINE_INCOMPLETE), port_("80"), uri_("/"), content_length_(0) {}
+Request::Request(): recv_phase_(MESSAGE_START_LINE_INCOMPLETE), buffer_content_length_(0), port_("80"), uri_("/"), is_cgi_process(false){}
 
 Request::~Request() {
   this->clear();
@@ -19,7 +19,7 @@ void Request::clear() {
   uri_ = "/";
   http_version_.clear();
   headers_.clear();
-  content_length_ = 0;
+  buffer_content_length_ = 0;
   entity_body_.clear();
 }
 
@@ -34,7 +34,7 @@ std::string &Request::getUri() { return uri_; }
 const std::string &Request::getHttpVersion() const { return http_version_; }
 const std::map<std::string, std::string> &Request::getHeaders() const { return headers_; }
 const std::string &Request::getHeaderValue(const std::string &key) { return headers_[key]; }
-int Request::getContentLength() const { return content_length_; }
+int Request::getBufferContentLength() const { return buffer_content_length_; }
 const std::string &Request::getEntityBody() const { return entity_body_; }
 
 void Request::setMsg(std::string msg) { msg_ = msg; }
@@ -47,7 +47,8 @@ void Request::setPort(std::string port) { port_ = port; }
 void Request::setUri(std::string uri) { uri_ = uri; }
 void Request::setHttpVersion(std::string http_version) { http_version_ = http_version; }
 void Request::setHeader(std::string key, std::string value) { headers_[key] = value; }
-void Request::setContentLength(int content_length) { content_length_ = content_length; }
+void Request::setBufferContentLength(int content_length) { buffer_content_length_ = content_length; }
 void Request::setEntityBody(std::string entity_body) { entity_body_ = entity_body; }
+void Request::appendEntityBody(std::string entity_body) { entity_body_ += entity_body; }
 
 }  // namespace ft

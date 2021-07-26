@@ -139,23 +139,20 @@ void ResponseHandler::processGetAndHeaderMethod(Request &request, LocationConfig
       return;
     }
     setStatusLineWithCode("200");
-    if (request.getMethod() == "GET")
+    // body가 만들져 있지 않는 경우의 조건 추가
+    if (request.getMethod() == "GET" && !response_->getResponseBody().size())
       setResponseBodyFromFile(request.getUri(), location);
   }
 }
 
 void ResponseHandler::processPutMethod(Request &request, LocationConfig *&location) {
-  std::cout << "uri: " << request.getUri() << std::endl;
   if (*(request.getUri().rbegin()) == '/') {
     setStatusLineWithCode("409");
     return;
   }
-  if (!isPathAccessable(request.getUri(), location)) {
-    setStatusLineWithCode("500");
-    return;
-  }
   if (!isFileExist(request.getUri(), location)) {
-    if (S_ISDIR(this->stat_buffer_.st_mode)) {
+    // 경로가 디렉토리 이거나, 경로에 파일을 쓸 수 없을때
+    if (S_ISDIR(this->stat_buffer_.st_mode) || (this->stat_buffer_.st_mode & S_IRWXU)){
       setStatusLineWithCode("500");
       return;
     }
@@ -164,6 +161,7 @@ void ResponseHandler::processPutMethod(Request &request, LocationConfig *&locati
     setStatusLineWithCode("204");
   }
 }
+
 
 void ResponseHandler::processPostMethod(Request &request, LocationConfig *&location) {
   if (!location->checkCgiExtension(request.getUri()) ||
@@ -258,18 +256,17 @@ std::string ResponseHandler::getAccessPath(const std::string &uri, LocationConfi
 // }
 
 bool ResponseHandler::isFileExist(const std::string &path) {
-  std::cout << "REMINDER: THIS METHOD SHOULD ONLY BE \
-    CALLED WHEN FILE PATH IS COMBINED WITH ROOT DIRECTIVE"
-            << path << std::endl;
-  std::cout << "path: " << path << std::endl;
+  // std::cout << "REMINDER: THIS METHOD SHOULD ONLY BE \
+  //   CALLED WHEN FILE PATH IS COMBINED WITH ROOT DIRECTIVE"
+  //           << path << std::endl;
+  // std::cout << "path: " << path << std::endl;
   if (stat(path.c_str(), &this->stat_buffer_) < 0) {
-    std::cout << "this aint work" << std::endl;
+    // std::cout << "this aint work" << std::endl;
     return (false);
   }
   return (true);
 }
 bool ResponseHandler::isFileExist(const std::string &path, LocationConfig *&location) {
-  std::cout << "yo:" << getAccessPath(path, location) << std::endl;
   if (stat(getAccessPath(path, location).c_str(), &this->stat_buffer_) < 0) {
     std::cout << "this doesn't work" << std::endl;
     return (false);

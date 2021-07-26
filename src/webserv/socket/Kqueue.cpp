@@ -1,5 +1,4 @@
 #include "webserv/socket/Kqueue.hpp"
-
 namespace ft {
 Kqueue::Kqueue() {
   kq_ = kqueue();
@@ -7,11 +6,9 @@ Kqueue::Kqueue() {
     Logger::logError(LOG_EMERG, "kqueue() failed");
     throw KqueueException();
   }
-
   nchanges_ = 0;
   max_changes_ = DEFAULT_CONNECTIONS;
   nevents_ = DEFAULT_CONNECTIONS;
-
   change_list_ = new struct kevent[max_changes_]();
   if (change_list_ == NULL) {
     Logger::logError(LOG_EMERG, "malloc(%d) failed", max_changes_);
@@ -22,11 +19,9 @@ Kqueue::Kqueue() {
     Logger::logError(LOG_EMERG, "malloc(%d) failed", max_changes_);
     throw std::bad_alloc();
   }
-
   ts_.tv_sec = 5;
   ts_.tv_nsec = 0;
 }
-
 Kqueue::~Kqueue() {
   if (close(kq_) == -1) {
     Logger::logError(LOG_ALERT, "kqueue close() failed");
@@ -35,15 +30,12 @@ Kqueue::~Kqueue() {
   delete[] change_list_;
   delete[] event_list_;
 }
-
 void Kqueue::kqueueSetEvent(Connection *c, u_short filter, u_int flags) {
   EV_SET(&change_list_[nchanges_], c->getFd(), filter, flags, 0, 0, c);  // udata = Connection
   ++nchanges_;
 }
-
 void Kqueue::kqueueProcessEvents(SocketManager *sm) {
   int events = kevent(kq_, change_list_, nchanges_, event_list_, nevents_, &ts_);
-
   nchanges_ = 0;
   if (events == -1) {
     Logger::logError(LOG_ALERT, "kevent() failed");
@@ -51,7 +43,6 @@ void Kqueue::kqueueProcessEvents(SocketManager *sm) {
   }
   for (int i = 0; i < events; ++i) {
     Connection *c = (Connection *)event_list_[i].udata;
-
     if (event_list_[i].flags & EV_ERROR) {
       Logger::logError(LOG_ALERT, "%d kevent() error on %d filter:%d", events, (int)event_list_[i].ident, (int)event_list_[i].filter);
       continue;
@@ -63,14 +54,55 @@ void Kqueue::kqueueProcessEvents(SocketManager *sm) {
         Logger::logError(LOG_ALERT, "%d kevent() reported about an closed connection %d", events, (int)event_list_[i].ident);
         sm->closeConnection(c);
       } else {
-        MessageHandler::handle_request(c);
-        if (c->getRequest().getRecvPhase() == MESSAGE_BODY_COMPLETE) {
-          //TODO: 전반적인 정리가 필요하다
+        if (!(c->getRequest().getRecvPhase() == MESSAGE_CGI_PROCESS ||
+            c->getRequest().getRecvPhase() == MESSAGE_CGI_INCOMING ||
+            c->getRequest().getRecvPhase() == MESSAGE_CGI_COMPLETE)) {
+          MessageHandler::handle_request(c);
+        }
+        if (c->getRequest().getRecvPhase() == MESSAGE_CGI_PROCESS) {
           ServerConfig *serverconfig_test = c->getHttpConfig()->getServerConfig(c->getSockaddrToConnect().sin_port, c->getSockaddrToConnect().sin_addr.s_addr, c->getRequest().getHeaderValue("Host"));
           LocationConfig *locationconfig_test = serverconfig_test->getLocationConfig(c->getRequest().getUri());
-          //TODO: c->getRequest().getUri().find_last_of() 부분을 메세지 헤더의 mime_types로 확인하도록 교체/ 확인 필요
-          if (!locationconfig_test->getCgiPath().empty() && (c->getRequest().getUri().find_last_of(".php") != std::string::npos))
-            MessageHandler::handle_cgi(c, locationconfig_test);
+          MessageHandler::handle_cgi(c, locationconfig_test);
+        } else if (c->getRequest().getRecvPhase() == MESSAGE_CGI_INCOMING) {
+          std::cout << "i'm here" << std::endl;
+          close(c->writepipe[0]);
+          close(c->readpipe[1]);
+          if (!c->getRequest().getMsg().empty()) {
+            write(c->writepipe[1], c->getRequest().getMsg().c_str(), static_cast<size_t>(c->getRequest().getMsg().size()));
+            c->getRequest().getMsg().clear();
+          }
+          size_t recv_len = recv(c->getFd(), c->buffer_, BUF_SIZE, 0);
+          c->temp_chunked.append(c->buffer_);
+          std::cout << "temp_chunked: " << c->temp_chunked << std::endl;
+          write(c->writepipe[1], c->buffer_, strlen(c->buffer_) - 2);
+          if (strstr(c->temp_chunked.c_str(), "0\r\n\r\n")) {
+            std::cout << "end~~" << std::endl;
+            c->getRequest().setRecvPhase(MESSAGE_CGI_COMPLETE);
+            c->temp_chunked.clear();
+            close(c->writepipe[1]);
+            std::cout << "close 했다!!!" << std::endl;
+          }
+          // if (!c->temp_chunked_checker.empty() && strstr(c->buffer_, "\r\n")) {
+          //   c->getRequest().setRecvPhase(MESSAGE_CGI_COMPLETE);
+          //   break;
+          // } else
+          //   c->temp_chunked_checker.clear();
+          memset(c->buffer_, 0, recv_len);
+        }
+        if (c->getRequest().getRecvPhase() == MESSAGE_CGI_COMPLETE) {
+          char foo[BUF_SIZE];  // 추후 수정 필요!!!
+          int nbytes;
+          int i = 0;
+          while ((nbytes = read(c->readpipe[0], foo, sizeof(foo)))) {
+            c->cgi_output_temp.append(foo);
+            i++;
+            memset(foo, 0, nbytes);
+          }
+          //wait(NULL);
+          MessageHandler::process_cgi_response(c);
+        }
+        if (c->getRequest().getRecvPhase() == MESSAGE_BODY_COMPLETE) {
+          //TODO: 전반적인 정리가 필요하다
           kqueueSetEvent(c, EVFILT_WRITE, EV_ADD | EV_ONESHOT);
         }
       }
@@ -79,16 +111,13 @@ void Kqueue::kqueueProcessEvents(SocketManager *sm) {
         Logger::logError(LOG_ALERT, "%d kevent() reported about an %d reader disconnects", events, (int)event_list_[i].ident);
         sm->closeConnection(c);
       } else {
-        if (c->getRequest().getUri().size() > 0) {
-          MessageHandler::handle_response(c);
-          if (!c->getResponse().getHeaderValue("Connection").compare("close") ||
-              !c->getRequest().getHttpVersion().compare("HTTP/1.0")) {
-            sm->closeConnection(c);
-          }
-          // TODO: 언제 삭제해야하는지 적절한 시기를 확인해야함
-          c->getRequest().clear();
-          c->getResponse().clear();
+        MessageHandler::handle_response(c);
+        if (!c->getResponse().getHeaderValue("Connection").compare("close") ||
+            !c->getRequest().getHttpVersion().compare("HTTP/1.0")) {
+          sm->closeConnection(c);
         }
+        c->getRequest().clear();
+        c->getResponse().clear();
       }
     }
   }

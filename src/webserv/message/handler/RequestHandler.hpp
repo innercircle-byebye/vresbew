@@ -8,6 +8,7 @@
 
 #include "webserv/config/HttpConfig.hpp"
 #include "webserv/message/Request.hpp"
+#include "webserv/socket/Connection.hpp"
 
 namespace ft {
 
@@ -37,21 +38,24 @@ class RequestHandler {
   void setRequest(Request *request);
 
   void appendMsg(const char *buffer);
-  void processByRecvPhase();
+  void processByRecvPhase(Connection *c);
+  static std::vector<std::string> splitByDelimiter(std::string const &str, char delimiter);
+
  private:
   void checkMsgForStartLine();
   void checkMsgForHeader();
-  void checkMsgForEntityBody();
+  void appendMsgToEntityBody();
 
   void parseStartLine();
   int parseUri(std::string uri_str);
   void parseHeaderLines();
   int parseHeaderLine(std::string &one_header_line);
   void parseEntityBody();
-  static std::vector<std::string> splitByDelimiter(std::string const &str, char delimiter);
+  // static std::vector<std::string> splitByDelimiter(std::string const &str, char delimiter);
   static bool isValidHeaderKey(std::string const &key);
   static bool isValidMethod(std::string const &method);
   static bool isValidHttpVersion(std::string const &http_version);
+  void checkCgiRequest(Connection *c);
 };
 }  // namespace ft
 #endif

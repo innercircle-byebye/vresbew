@@ -63,9 +63,12 @@ void Kqueue::kqueueProcessEvents(SocketManager *sm) {
         Logger::logError(LOG_ALERT, "%d kevent() reported about an closed connection %d", events, (int)event_list_[i].ident);
         sm->closeConnection(c);
       } else {
-        if (c->getRequest().getRecvPhase() != MESSAGE_CGI_PROCESS ||
-            c->getRequest().getRecvPhase() != MESSAGE_CGI_INCOMING ||
-            c->getRequest().getRecvPhase() != MESSAGE_CGI_COMPLETE) {
+        if (c->getRequest().getRecvPhase() == MESSAGE_START_LINE_INCOMPLETE ||
+            c->getRequest().getRecvPhase() == MESSAGE_START_LINE_COMPLETE ||
+            c->getRequest().getRecvPhase() == MESSAGE_HEADER_INCOMPLETE ||
+            c->getRequest().getRecvPhase() == MESSAGE_HEADER_COMPLETE ||
+            c->getRequest().getRecvPhase() == MESSAGE_BODY_INCOMING ||
+            c->getRequest().getRecvPhase() == MESSAGE_BODY_COMPLETE) {
           MessageHandler::handle_request(c);
         }
         if (c->getRequest().getRecvPhase() == MESSAGE_CGI_PROCESS) {
@@ -76,26 +79,25 @@ void Kqueue::kqueueProcessEvents(SocketManager *sm) {
         if (c->getRequest().getRecvPhase() == MESSAGE_CGI_INCOMING) {
           std::cout << "i'm here" << std::endl;
           // 한번의 버퍼 안에 전체 메세지가 다 들어 올 경우
-          // 한번의 클라이언트 kevent에서는 버퍼를 읽어 올 게 없음...
-          if (strlen(c->buffer_) < 0)
-            return;
-          else {
-            size_t recv_len = recv(c->getFd(), c->buffer_, BUF_SIZE, 0);
 
+          size_t recv_len = recv(c->getFd(), c->buffer_, BUF_SIZE, 0);
+
+          if (c->getRequest().getBufferContentLength() <= static_cast<int>(recv_len)) {
+            std::cout << "==========two============ " << std::endl;
             std::cout << "content-length: " << c->getRequest().getBufferContentLength() << std::endl;
             std::cout << "buffer: " << c->buffer_ << std::endl;
             std::cout << "recv_len: " << static_cast<int>(recv_len) << std::endl;
-            if ((size_t)c->getRequest().getBufferContentLength() <= recv_len) {
-              write(c->writepipe[1], c->buffer_, recv_len - c->getRequest().getBufferContentLength());
-              c->getRequest().setBufferContentLength(0);
-              c->getRequest().setRecvPhase(MESSAGE_CGI_COMPLETE);
-            } else {
-              c->getRequest().setBufferContentLength(c->getRequest().getBufferContentLength() - recv_len);
-              write(c->writepipe[1], c->buffer_, recv_len);
-            }
-            memset(c->buffer_, 0, recv_len);
+            std::cout << "==========two============ " << std::endl;
+            std::cout << "is buffer coming #1: " << c->buffer_ << std::endl;
+            write(c->writepipe[1], c->buffer_, recv_len - c->getRequest().getBufferContentLength());
+            c->getRequest().setBufferContentLength(0);
+            c->getRequest().setRecvPhase(MESSAGE_CGI_COMPLETE);
+          } else {
+            std::cout << "is buffer coming #2: " << c->buffer_ << std::endl;
+            c->getRequest().setBufferContentLength(c->getRequest().getBufferContentLength() - recv_len);
+            write(c->writepipe[1], c->buffer_, recv_len);
           }
-          // }
+          memset(c->buffer_, 0, recv_len);
         }
         if (c->getRequest().getRecvPhase() == MESSAGE_CGI_COMPLETE) {
           char foo[BUF_SIZE];

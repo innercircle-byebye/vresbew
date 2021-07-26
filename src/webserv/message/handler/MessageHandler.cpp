@@ -70,14 +70,18 @@ void MessageHandler::handle_cgi(Connection *c, LocationConfig *location) {
   close(c->writepipe[0]);
   close(c->readpipe[1]);
 
+  if (c->getRequest().getMethod() == "GET") {
+    c->getRequest().setRecvPhase(MESSAGE_CGI_COMPLETE);
+    return;
+  }
   if (!c->getRequest().getMsg().empty()) {
     write(c->writepipe[1], c->getRequest().getMsg().c_str(), static_cast<size_t>(c->getRequest().getMsg().size()));
     c->getRequest().setBufferContentLength(c->getRequest().getBufferContentLength() - c->getRequest().getMsg().size());
     c->getRequest().getMsg().clear();
-    if ((size_t)c->getRequest().getBufferContentLength() == 0)
-    {
+    std::cout << "content_length check: " << (size_t)c->getRequest().getBufferContentLength() << std::endl;
+    if ((size_t)c->getRequest().getBufferContentLength() == 0) {
       c->getRequest().setRecvPhase(MESSAGE_CGI_COMPLETE);
-      return ;
+      return;
     }
   }
   c->getRequest().setRecvPhase(MESSAGE_CGI_INCOMING);

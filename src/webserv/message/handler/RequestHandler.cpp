@@ -21,17 +21,7 @@ void RequestHandler::processByRecvPhase(Connection *c) {
   if (request_->getRecvPhase() == MESSAGE_HEADER_INCOMPLETE)
     checkMsgForHeader();
   if (request_->getRecvPhase() == MESSAGE_HEADER_COMPLETE) {
-<<<<<<< HEAD
     parseHeaderLines(c);
-=======
-    parseHeaderLines();
-    checkCgiRequest(c);
-  }
-  if (c->getRequest().getRecvPhase() == MESSAGE_CGI_PROCESS ||
-      c->getRequest().getRecvPhase() == MESSAGE_CGI_INCOMING ||
-      c->getRequest().getRecvPhase() == MESSAGE_CGI_COMPLETE) {
-    return;
->>>>>>> master
   }
   if (request_->getRecvPhase() == MESSAGE_BODY_INCOMING)
     appendMsgToEntityBody();

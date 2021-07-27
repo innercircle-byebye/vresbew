@@ -107,41 +107,78 @@ ServerConfig::ServerConfig(std::vector<std::string> tokens, HttpConfig *http_con
 
       check_autoindex_setting = true;
       it += 3;
-    } else if (*it == "error_page") {
-      // TODO : 예외처리해야함
 
-      int count = 2;
+    } else if (*it == "error_page") {
+      int count = 0;  // error_page 지시어 뒤에오는 단어의 개수
       while (*(it + count + 1) != ";")
         count++;
 
+      if (count < 2) {  // error_page 지시어 뒤에 단어가 2개 미만으로 들어오면 에러발생
+        throw std::runtime_error("webserv: [emerg] invalid number of arguments in \"error_page\" directive");
+      }
+
       for (int i = 1; i < count; i++) {
-        int status_code = atoi((*(it + i)).c_str());
+        std::string &code = *(it + i);
+
+        for (std::string::iterator i = code.begin(); i != code.end(); i++) {  // code에 숫자만 들어오는지 확인 // 함수로 빼는게 나을듯 ?
+          if (!isdigit(*i))
+            throw std::runtime_error("webserv: [emerg] invalid value \"" + code + "\"");
+        }
+
+        int status_code = atoi(code.c_str());
+        if (status_code < 300 || status_code > 599) {  // status_code의 범위 확인
+          throw std::runtime_error("webserv: [emerg] value \"" + code + "\" must be between 300 and 599");
+        }
 
         if (this->error_page.find(status_code) == this->error_page.end()) {
           this->error_page[status_code] = *(it + count);
         }
       }
       it += (count + 2);
+
     } else if (*it == "client_max_body_size") {
-      // TODO : 예외처리해야함
+      if (*(it + 1) == ";" || *(it + 2) != ";")
+        throw std::runtime_error("webserv: [emerg] invalid number of arguments in \"client_max_body_size\" directive");
+
       if (check_client_max_body_size == true)
         throw std::runtime_error("webserv: [emerg] \"client_max_body_size\" directive is duplicate");
 
-      std::string size_str = *(it + 1);
+      std::string &size_str = *(it + 1);
+      int num_of_mutifly_by_2 = 0;
+      if (*size_str.rbegin() == 'k') {
+        num_of_mutifly_by_2 = 10;
+      } else if (*size_str.rbegin() == 'm') {
+        num_of_mutifly_by_2 = 20;
+      } else if (*size_str.rbegin() == 'g') {
+        num_of_mutifly_by_2 = 30;
+      }
+      if (num_of_mutifly_by_2 != 0) {
+        size_str = size_str.substr(0, size_str.length() - 1);
+      }
 
-      this->client_max_body_size = atoi(size_str.c_str());
+      if (size_str.length() > 19) {
+        throw std::runtime_error("webserv: [emerg] \"client_max_body_size\" directive invalid value");
+      }
 
-      char last_char = size_str[size_str.length() - 1];
-      if (last_char == 'k') {
-        this->client_max_body_size *= 1000;
-      } else if (last_char == 'm') {
-        this->client_max_body_size *= 1000000;
-      } else if (last_char == 'g') {
-        this->client_max_body_size *= 1000000000;
+      for (std::string::iterator i = size_str.begin(); i != size_str.end(); i++) {  // code에 숫자만 들어오는지 확인 // 함수로 빼는게 나을듯 ?
+        if (!isdigit(*i))
+          throw std::runtime_error("webserv: [emerg] \"client_max_body_size\" directive invalid value");
+      }
+
+      this->client_max_body_size = strtoul(size_str.c_str(), NULL, 0);
+      if (this->client_max_body_size > LONG_MAX) {
+        throw std::runtime_error("webserv: [emerg] \"client_max_body_size\" directive invalid value");
+      }
+      for (int i = 0; i < num_of_mutifly_by_2; i++) {
+        this->client_max_body_size *= 2;
+        if (this->client_max_body_size > LONG_MAX) {
+          throw std::runtime_error("webserv: [emerg] \"client_max_body_size\" directive invalid value");
+        }
       }
 
       check_client_max_body_size = true;
       it += 3;
+
     } else if (*it == "return") {
       int count = 1;
       while (*(it + count) != ";")
@@ -219,10 +256,21 @@ ServerConfig::ServerConfig(std::vector<std::string> tokens, HttpConfig *http_con
     }
   }
 
+  std::set<std::string> location_uri_set;
   std::vector<std::vector<std::string> >::iterator location_it = locations_tokens.begin();
   for (; location_it != locations_tokens.end(); location_it++) {
     LocationConfig *new_location = new LocationConfig(*location_it, this);
+
+    if (location_uri_set.count(new_location->getUri()) == 1)
+      throw std::runtime_error("nginx: [emerg] duplicate location \"" + new_location->getUri() + "\"");
+    location_uri_set.insert(new_location->getUri());
+
     this->location_configs.push_back(new_location);
+  }
+
+  if (location_uri_set.count("/") == 0) {
+    LocationConfig *default_location = new LocationConfig(this);
+    this->location_configs.push_back(default_location);
   }
 
   std::sort(this->location_configs.begin(), this->location_configs.end(), this->compareUriForDescendingOrderByLength);

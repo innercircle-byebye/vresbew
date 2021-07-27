@@ -29,6 +29,7 @@ class LocationConfig {
   std::string cgi_path;
 
  public:
+  LocationConfig(ServerConfig *server_config);
   LocationConfig(std::vector<std::string> tokens, ServerConfig *server_config);
   ~LocationConfig(void);
 

@@ -111,13 +111,13 @@ void Kqueue::kqueueProcessEvents(SocketManager *sm) {
             std::cout << "buffer: " << c->buffer_ << std::endl;
             if (!strcmp(c->buffer_, "0\r\n")) {
               std::cout << "yatta" << std::endl;
-              c->chunked_checker.append(c->buffer_);
+              c->chunked_checker = CHUNKED_ZERO_RN_RN;
               std::cout << "chunked_checker: " << c->chunked_checker << std::endl;
-            } else if (c->chunked_checker == "0\r\n" && !strcmp(c->buffer_, "\r\n")) {
+            } else if (c->chunked_checker == CHUNKED_ZERO_RN_RN && !strcmp(c->buffer_, "\r\n")) {
               c->getRequest().setRecvPhase(MESSAGE_CGI_COMPLETE);
               close(c->writepipe[1]);
             } else
-              c->chunked_checker.clear();
+              c->chunked_checker = CHUNKED_KEEP_COMING;
           }
           memset(c->buffer_, 0, recv_len);
         }

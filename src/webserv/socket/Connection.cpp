@@ -6,6 +6,7 @@ Connection::Connection()
 : listen_(false), fd_(-1), type_(SOCK_STREAM), listening_(NULL), request_(), response_() {
   sockaddr_to_connect_.sin_family = AF_INET;
   memset(buffer_, 0, BUF_SIZE);
+  chunked_checker = CHUNKED_KEEP_COMING;
 }
 
 Connection::~Connection() {}

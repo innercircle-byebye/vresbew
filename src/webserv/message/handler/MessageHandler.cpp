@@ -84,12 +84,8 @@ void MessageHandler::handle_cgi(Connection *c, LocationConfig *location) {
 }
 
 void MessageHandler::process_cgi_response(Connection *c) {
-<<<<<<< HEAD
   MessageHandler::response_handler_.setResponse(&c->getResponse());
 
-=======
-  std::cout << "testing->" << c->cgi_output_temp << std::endl;
->>>>>>> master
   std::string cgi_output_response_header;
   {
     size_t pos = c->cgi_output_temp.find("\r\n\r\n");
@@ -105,12 +101,8 @@ void MessageHandler::process_cgi_response(Connection *c) {
       // parse key and validation
       key = key_and_value[0].erase(key_and_value[0].size() - 1);
       value = key_and_value[1];
-<<<<<<< HEAD
       // TODO: cgi의 위치를 한번 이동 할 예정...
       // MessageHandler::response_handler_.setResponse(&c->getResponse());
-=======
-      MessageHandler::response_handler_.setResponse(&c->getResponse());
->>>>>>> master
       if (!key.compare("Status") && value.compare("404")) {
         response_handler_.setStatusLineWithCode(value);
       }
@@ -120,12 +112,8 @@ void MessageHandler::process_cgi_response(Connection *c) {
       cgi_output_response_header.erase(0, pos + 2);
     }
   }
-<<<<<<< HEAD
   // TODO: 전체 리팩토링 하면서 시점 조절이 필요
   if (c->getResponse().getStatusCode() != "404") {
-=======
-  if (c->getResponse().getStatusCode().empty() != true) {
->>>>>>> master
     c->getResponse().setResponseBody(c->cgi_output_temp);
   }
   c->cgi_output_temp.clear();
@@ -149,11 +137,8 @@ void MessageHandler::handle_response(Connection *c) {
   else
     response_handler_.setResponseFields(c->getRequest());
   response_handler_.makeResponseMsg();
-<<<<<<< HEAD
 
   // TODO: 이동가능
-=======
->>>>>>> master
   /// executePutMEthod가 있던 자리...
   if (c->getRequest().getMethod() == "PUT" &&
       (c->getResponse().getStatusCode() == "201" || (c->getResponse().getStatusCode() == "204"))) {

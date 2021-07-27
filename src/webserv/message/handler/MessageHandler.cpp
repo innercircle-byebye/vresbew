@@ -52,19 +52,30 @@ void MessageHandler::handle_cgi(Connection *c, LocationConfig *location) {
   environ = response_handler_.setEnviron(env_set);
   command = response_handler_.setCommand(location->getCgiPath(), response_handler_.getAccessPath(c->getRequest().getUri(), location));
   std::string cgi_output_temp;
+  // TODO: 실패 예외처리
   pipe(c->writepipe);
+  // TODO: 실패 예외처리
   pipe(c->readpipe);
   pid = fork();
   if (!pid) {
+    // TODO: 실패 예외처리
     close(c->writepipe[1]);
+    // TODO: 실패 예외처리
     close(c->readpipe[0]);
+    // TODO: 실패 예외처리
     dup2(c->writepipe[0], 0);
+    // TODO: 실패 예외처리
     close(c->writepipe[0]);
+    // TODO: 실패 예외처리
     dup2(c->readpipe[1], 1);
+    // TODO: 실패 예외처리
     close(c->readpipe[1]);
+    // TODO: 실패 예외처리
     execve(location->getCgiPath().c_str(), command, environ);
   }
+  // TODO: 실패 예외처리
   close(c->writepipe[0]);
+  // TODO: 실패 예외처리
   close(c->readpipe[1]);
 
   if (c->getRequest().getMethod() == "GET") {
@@ -81,6 +92,41 @@ void MessageHandler::handle_cgi(Connection *c, LocationConfig *location) {
     }
   }
   c->getRequest().setRecvPhase(MESSAGE_CGI_INCOMING);
+}
+
+void MessageHandler::process_cgi_header_chunked(Connection *c) {
+  MessageHandler::response_handler_.setResponse(&c->getResponse());
+
+  size_t pos = c->cgi_output_temp.find("\r\n\r\n");
+  std::string cgi_header_lines = c->cgi_output_temp.substr(0, pos);
+  {
+    size_t pos = c->cgi_output_temp.find("\r\n\r\n");
+    cgi_header_lines = c->cgi_output_temp.substr(0, pos);
+    c->cgi_output_temp.erase(0, pos + 4);
+
+    while ((pos = cgi_header_lines.find("\r\n")) != std::string::npos) {
+      std::string one_header_line = cgi_header_lines.substr(0, pos);
+      std::vector<std::string> key_and_value = request_handler_.splitByDelimiter(one_header_line, SPACE);
+      // @sungyongcho: 저는 CGI 실행파일을 믿습니다...
+      // if (key_and_value.size() != 2)  // 400 Bad Request
+      //   ;
+      std::string key, value;
+      // parse key and validation
+      key = key_and_value[0].erase(key_and_value[0].size() - 1);
+      value = key_and_value[1];
+      // TODO: cgi의 위치를 한번 이동 할 예정...
+      // MessageHandler::response_handler_.setResponse(&c->getResponse());
+      if (key.compare("Status") == 0) {
+        c->getResponse().setStatusCode(value);
+      }
+      std::cout << "keyeeee: " << key << std::endl;
+      std::cout << "valueeeee: " << value << std::endl;
+      if (key.compare("Status") != 0)
+        c->getResponse().setHeader(key, value);
+      cgi_header_lines.erase(0, pos + 2);
+    }
+  }
+  cgi_header_lines.clear();
 }
 
 void MessageHandler::process_cgi_response(Connection *c) {
@@ -103,12 +149,13 @@ void MessageHandler::process_cgi_response(Connection *c) {
       value = key_and_value[1];
       // TODO: cgi의 위치를 한번 이동 할 예정...
       // MessageHandler::response_handler_.setResponse(&c->getResponse());
-      if (!key.compare("Status") && value.compare("404")) {
+      if (key.compare("Status") == 0 && value.compare("404") == 0) {
         response_handler_.setStatusLineWithCode(value);
       }
       std::cout << "key: " << key << std::endl;
       std::cout << "value: " << value << std::endl;
-      c->getResponse().setHeader(key, value);
+      if (key.compare("Status") != 0)
+        c->getResponse().setHeader(key, value);
       cgi_output_response_header.erase(0, pos + 2);
     }
   }
@@ -118,7 +165,6 @@ void MessageHandler::process_cgi_response(Connection *c) {
   }
   c->cgi_output_temp.clear();
   cgi_output_response_header.clear();
-  c->getRequest().setRecvPhase(MESSAGE_BODY_COMPLETE);
 }
 
 std::string MessageHandler::parseCgiHeader(const std::string &cgi_output) {

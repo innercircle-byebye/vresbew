@@ -153,7 +153,7 @@ void ResponseHandler::processPutMethod(Request &request, LocationConfig *&locati
   }
   if (!isFileExist(request.getUri(), location)) {
     // 경로가 디렉토리 이거나, 경로에 파일을 쓸 수 없을때
-    if (S_ISDIR(this->stat_buffer_.st_mode) || (this->stat_buffer_.st_mode & S_IRWXU)){
+    if (S_ISDIR(this->stat_buffer_.st_mode) || (this->stat_buffer_.st_mode & S_IRWXU)) {
       setStatusLineWithCode("500");
       return;
     }
@@ -163,8 +163,12 @@ void ResponseHandler::processPutMethod(Request &request, LocationConfig *&locati
   }
 }
 
-
 void ResponseHandler::processPostMethod(Request &request, LocationConfig *&location) {
+  if (this->response_->getStatusCode() == "302") {
+    std::cout << "ssup nigga" << std::endl;
+    setStatusLineWithCode(this->response_->getStatusCode());
+    return;
+  }
   if (!location->checkCgiExtension(request.getUri()) ||
       location->getCgiPath().empty()) {
     setStatusLineWithCode("405");

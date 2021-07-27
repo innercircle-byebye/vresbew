@@ -35,6 +35,8 @@ void MessageHandler::handle_cgi(Connection *c, LocationConfig *location) {
     if (c->getRequest().getMethod() == "GET") {
       env_set["QUERY_STRING"] = c->getRequest().getEntityBody();
     }
+    std::cout << "uri:" << c->getRequest().getUri() << std::endl;
+    env_set["HTTP_HOST"] = c->getRequest().getHeaderValue("Host");
     env_set["REQUEST_METHOD"] = c->getRequest().getMethod();
     env_set["REDIRECT_STATUS"] = "CGI";
     env_set["SCRIPT_FILENAME"] = response_handler_.getAccessPath(c->getRequest().getUri(), location);
@@ -44,10 +46,10 @@ void MessageHandler::handle_cgi(Connection *c, LocationConfig *location) {
     env_set["GATEWAY_INTERFACE"] = "CGI/1.1";
     env_set["PATH_TRANSLATED"] = response_handler_.getAccessPath(c->getRequest().getUri(), location);
     env_set["REMOTE_ADDR"] = "127.0.0.1";  // TODO: ip주소 받아오는 부분 찾기
-    env_set["REQUEST_URI"] = response_handler_.getAccessPath(c->getRequest().getUri(), location);
+    env_set["REQUEST_URI"] = c->getRequest().getUri();
     env_set["SERVER_PORT"] = std::to_string(ntohs(c->getSockaddrToConnect().sin_port));  // 포트도
     env_set["SERVER_SOFTWARE"] = "versbew";
-    env_set["SCRIPT_NAMME"] = location->getCgiPath();
+    env_set["SCRIPT_NAME"] = c->getRequest().getUri();
   }
   environ = response_handler_.setEnviron(env_set);
   command = response_handler_.setCommand(location->getCgiPath(), response_handler_.getAccessPath(c->getRequest().getUri(), location));
@@ -117,6 +119,8 @@ void MessageHandler::process_cgi_header_chunked(Connection *c) {
       // TODO: cgi의 위치를 한번 이동 할 예정...
       // MessageHandler::response_handler_.setResponse(&c->getResponse());
       if (key.compare("Status") == 0) {
+        // response_handler_.setStatusLineWithCode(value);
+        std::cout << "valu222222222: " << value << std::endl;
         c->getResponse().setStatusCode(value);
       }
       std::cout << "keyeeee: " << key << std::endl;
@@ -149,8 +153,9 @@ void MessageHandler::process_cgi_response(Connection *c) {
       value = key_and_value[1];
       // TODO: cgi의 위치를 한번 이동 할 예정...
       // MessageHandler::response_handler_.setResponse(&c->getResponse());
-      if (key.compare("Status") == 0 && value.compare("404") == 0) {
+      if (key.compare("Status") == 0) {
         response_handler_.setStatusLineWithCode(value);
+        c->getResponse().setStatusCode(value);
       }
       std::cout << "key: " << key << std::endl;
       std::cout << "value: " << value << std::endl;
@@ -160,7 +165,8 @@ void MessageHandler::process_cgi_response(Connection *c) {
     }
   }
   // TODO: 전체 리팩토링 하면서 시점 조절이 필요
-  if (c->getResponse().getStatusCode() != "404") {
+  if (c->getResponse().getStatusCode() != "404" ||
+      c->getResponse().getStatusCode() != "302") {
     c->getResponse().setResponseBody(c->cgi_output_temp);
   }
   c->cgi_output_temp.clear();

@@ -78,16 +78,9 @@ void Kqueue::kqueueProcessEvents(SocketManager *sm) {
           // Transfer-Encoding : chunked 아닐 때 (= Content-Length가 있을 때)
           if (!c->getRequest().getHeaderValue("Content-Length").empty()) {
             if (c->getRequest().getBufferContentLength() > static_cast<int>(recv_len)) {
-              // std::cout << "content-length before: " << c->getRequest().getBufferContentLength() << std::endl;
               c->getRequest().setBufferContentLength(c->getRequest().getBufferContentLength() - recv_len);
               write(c->writepipe[1], c->buffer_, recv_len);
-              // std::cout << "content-length after: " << c->getRequest().getBufferContentLength() << std::endl;
             } else {
-              // std::cout << "==========one============ " << std::endl;
-              // std::cout << "content-length: " << c->getRequest().getBufferContentLength() << std::endl;
-              // std::cout << "buffer: " << c->buffer_ << std::endl;
-              // std::cout << "recv_len: " << static_cast<int>(recv_len) << std::endl;
-              // std::cout << "==========one============ " << std::endl;
               write(c->writepipe[1], c->buffer_, recv_len);
               c->getRequest().setBufferContentLength(0);
               c->getRequest().setRecvPhase(MESSAGE_CGI_COMPLETE);
@@ -109,7 +102,8 @@ void Kqueue::kqueueProcessEvents(SocketManager *sm) {
           }
           memset(c->buffer_, 0, recv_len);
         }
-        if (c->getRequest().getRecvPhase() == MESSAGE_BODY_COMPLETE || c->getRequest().getRecvPhase() == MESSAGE_CGI_COMPLETE) {
+        if (c->getRequest().getRecvPhase() == MESSAGE_BODY_COMPLETE
+        || c->getRequest().getRecvPhase() == MESSAGE_CGI_COMPLETE) {
           //TODO: 전반적인 정리가 필요하다
           kqueueSetEvent(c, EVFILT_WRITE, EV_ADD | EV_ONESHOT);
           memset(c->buffer_, 0, sizeof(c->buffer_));
@@ -121,12 +115,12 @@ void Kqueue::kqueueProcessEvents(SocketManager *sm) {
         sm->closeConnection(c);
       } else {
         // TODO: CGI 프로세스의 결과값을 읽어 오는 부분을
-        // event queue, fd 와 연계해서 처리
-        // responsehandler와 현재 엮여 있어 정신 맑을때 해야함...
+        // event queue, fd 와 연계해서 처리함
         if (c->getRequest().getRecvPhase() == MESSAGE_CGI_COMPLETE) {
           int nbytes;
-          // int i = 0;
-          // 이 조건문이 제대로 동작하는지 안하는지 모르겠음
+          // TODO: header 에 Transfer-encoding: chunked 일 때로 조건 변경
+          // content-length가 없을때 : chunked 요청
+          // chunked로 응답도..
           if (c->getRequest().getHeaderValue("Content-Length").empty()) {
             while ((nbytes = read(c->readpipe[0], c->buffer_, BUF_SIZE))) {
               if (c->getResponse().getStatusCode().empty()) {

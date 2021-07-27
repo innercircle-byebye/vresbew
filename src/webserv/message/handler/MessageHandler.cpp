@@ -52,19 +52,30 @@ void MessageHandler::handle_cgi(Connection *c, LocationConfig *location) {
   environ = response_handler_.setEnviron(env_set);
   command = response_handler_.setCommand(location->getCgiPath(), response_handler_.getAccessPath(c->getRequest().getUri(), location));
   std::string cgi_output_temp;
+  // TODO: 실패 예외처리
   pipe(c->writepipe);
+  // TODO: 실패 예외처리
   pipe(c->readpipe);
   pid = fork();
   if (!pid) {
+    // TODO: 실패 예외처리
     close(c->writepipe[1]);
+    // TODO: 실패 예외처리
     close(c->readpipe[0]);
+    // TODO: 실패 예외처리
     dup2(c->writepipe[0], 0);
+    // TODO: 실패 예외처리
     close(c->writepipe[0]);
+    // TODO: 실패 예외처리
     dup2(c->readpipe[1], 1);
+    // TODO: 실패 예외처리
     close(c->readpipe[1]);
+    // TODO: 실패 예외처리
     execve(location->getCgiPath().c_str(), command, environ);
   }
+  // TODO: 실패 예외처리
   close(c->writepipe[0]);
+  // TODO: 실패 예외처리
   close(c->readpipe[1]);
 
   if (c->getRequest().getMethod() == "GET") {

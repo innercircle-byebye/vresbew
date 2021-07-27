@@ -21,6 +21,7 @@ class LocationConfig;
 
 class HttpConfig {
  private:
+  std::string program_name;
   std::multimap<in_port_t, in_addr_t> must_listens;
 
   std::string root;
@@ -32,8 +33,10 @@ class HttpConfig {
   std::map<in_port_t, std::map<in_addr_t, std::vector<ServerConfig *> > > server_configs;
 
  public:
-  HttpConfig(std::string config_file_path);
+  HttpConfig(std::string program_name, std::string config_file_path);
   ~HttpConfig();
+
+  const std::string &getProgramName(void) const;
 
   ServerConfig *getServerConfig(in_port_t port, in_addr_t ip_addr, std::string server_name);
   LocationConfig *getLocationConfig(in_port_t port, in_addr_t ip_addr, std::string server_name, std::string request_uri);

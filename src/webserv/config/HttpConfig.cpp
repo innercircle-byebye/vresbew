@@ -1,7 +1,15 @@
 #include "webserv/config/HttpConfig.hpp"
 
 namespace ft {
-HttpConfig::HttpConfig(std::string config_file_path) {
+HttpConfig::HttpConfig(std::string program_name, std::string config_file_path) {
+
+  size_t program_name_start_pos;
+  if ((program_name_start_pos = program_name.rfind('/')) != std::string::npos) {
+    this->program_name = program_name.substr(program_name_start_pos + 1);
+  } else {
+    this->program_name = program_name;
+  }
+  
   // 초기화부분
   this->root = "html";
   this->index.push_back("index.html");
@@ -201,6 +209,10 @@ HttpConfig::~HttpConfig() {
   std::cout << "~HttpConfig() 호출~~~" << std::endl;
 }
 
+const std::string &HttpConfig::getProgramName(void) const {
+  return this->program_name;
+}
+
 ServerConfig *HttpConfig::getServerConfig(in_port_t port, in_addr_t ip_addr, std::string server_name) {
   if (this->server_configs.find(port) == this->server_configs.end())
     return NULL;
@@ -296,6 +308,9 @@ void HttpConfig::print_all_server_location_for_debug(void)  // TODO : remove
 void HttpConfig::print_status_for_debug(std::string prefix) {  // TODO : remove
   std::cout << prefix;
   std::cout << "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ HttpConfig ~~~~~~~~~~~~~~~~~~~~~~~~~" << std::endl;
+
+  std::cout << prefix;
+  std::cout << "program_name : " << this->program_name << std::endl;
 
   std::cout << prefix;
   std::cout << "root : " << this->root << std::endl;

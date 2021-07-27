@@ -33,7 +33,6 @@ void MessageHandler::handle_cgi(Connection *c, LocationConfig *location) {
   std::map<std::string, std::string> env_set;
   {
     if (!c->getRequest().getHeaderValue("Content-Length").empty()) {
-      std::cout << c->getRequest().getHeaderValue("Content-Length") << std::endl;
       env_set["CONTENT_LENGTH"] = c->getRequest().getHeaderValue("Content-Length");
     }
     if (c->getRequest().getMethod() == "GET") {

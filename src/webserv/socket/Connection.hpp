@@ -10,6 +10,12 @@
 
 namespace ft {
 
+enum ChunkedMessageStatus {
+  CHUNKED_KEEP_COMING = 0,
+  CHUNKED_ZERO_RN_RN,
+  CHUNKED_END //  필요없긴함
+};
+
 class Connection {
  private:
   bool listen_;
@@ -33,6 +39,8 @@ class Connection {
   int writepipe[2], readpipe[2];
   std::string temp_chunked;
   std::string cgi_output_temp;
+  int chunked_checker;
+
   Connection();
   ~Connection();
 

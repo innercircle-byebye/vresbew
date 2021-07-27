@@ -21,6 +21,9 @@ void RequestHandler::processByRecvPhase(Connection *c) {
   if (request_->getRecvPhase() == MESSAGE_HEADER_INCOMPLETE)
     checkMsgForHeader();
   if (request_->getRecvPhase() == MESSAGE_HEADER_COMPLETE) {
+<<<<<<< HEAD
+    parseHeaderLines(c);
+=======
     parseHeaderLines();
     checkCgiRequest(c);
   }
@@ -28,6 +31,7 @@ void RequestHandler::processByRecvPhase(Connection *c) {
       c->getRequest().getRecvPhase() == MESSAGE_CGI_INCOMING ||
       c->getRequest().getRecvPhase() == MESSAGE_CGI_COMPLETE) {
     return;
+>>>>>>> master
   }
   if (request_->getRecvPhase() == MESSAGE_BODY_INCOMING)
     appendMsgToEntityBody();
@@ -196,7 +200,7 @@ int RequestHandler::parseUri(std::string uri_str) {
   return (PARSE_VALID_URI);
 }
 
-void RequestHandler::parseHeaderLines() {
+void RequestHandler::parseHeaderLines(Connection *c) {
   size_t pos = request_->getMsg().find("\r\n\r\n");
   std::string header_lines = request_->getMsg().substr(0, pos);
 
@@ -211,6 +215,9 @@ void RequestHandler::parseHeaderLines() {
   if (this->parseHeaderLine(header_lines) != 0)  // TODO: 반환값(0) 확인 필요
     request_->clear();
 
+  checkCgiRequest(c);
+  if (request_->getRecvPhase() == MESSAGE_CGI_PROCESS)
+    return ;
   if (request_->getBufferContentLength() == 0)
     request_->setRecvPhase(MESSAGE_BODY_COMPLETE);
   else

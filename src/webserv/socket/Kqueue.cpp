@@ -54,56 +54,65 @@ void Kqueue::kqueueProcessEvents(SocketManager *sm) {
         Logger::logError(LOG_ALERT, "%d kevent() reported about an closed connection %d", events, (int)event_list_[i].ident);
         sm->closeConnection(c);
       } else {
-        if (!(c->getRequest().getRecvPhase() == MESSAGE_CGI_PROCESS ||
-            c->getRequest().getRecvPhase() == MESSAGE_CGI_INCOMING ||
-            c->getRequest().getRecvPhase() == MESSAGE_CGI_COMPLETE)) {
+        if (c->getRequest().getRecvPhase() == MESSAGE_START_LINE_INCOMPLETE ||
+            c->getRequest().getRecvPhase() == MESSAGE_START_LINE_COMPLETE ||
+            c->getRequest().getRecvPhase() == MESSAGE_HEADER_INCOMPLETE ||
+            c->getRequest().getRecvPhase() == MESSAGE_HEADER_COMPLETE ||
+            c->getRequest().getRecvPhase() == MESSAGE_BODY_INCOMING ||
+            c->getRequest().getRecvPhase() == MESSAGE_BODY_COMPLETE) {
           MessageHandler::handle_request(c);
         }
         if (c->getRequest().getRecvPhase() == MESSAGE_CGI_PROCESS) {
           ServerConfig *serverconfig_test = c->getHttpConfig()->getServerConfig(c->getSockaddrToConnect().sin_port, c->getSockaddrToConnect().sin_addr.s_addr, c->getRequest().getHeaderValue("Host"));
           LocationConfig *locationconfig_test = serverconfig_test->getLocationConfig(c->getRequest().getUri());
           MessageHandler::handle_cgi(c, locationconfig_test);
-        } else if (c->getRequest().getRecvPhase() == MESSAGE_CGI_INCOMING) {
+        }
+        if (c->getRequest().getRecvPhase() == MESSAGE_CGI_INCOMING) {
           std::cout << "i'm here" << std::endl;
-          close(c->writepipe[0]);
-          close(c->readpipe[1]);
-          if (!c->getRequest().getMsg().empty()) {
-            write(c->writepipe[1], c->getRequest().getMsg().c_str(), static_cast<size_t>(c->getRequest().getMsg().size()));
-            c->getRequest().getMsg().clear();
+          // 한번의 버퍼 안에 전체 메세지가 다 들어 올 경우
+
+          size_t recv_len;
+
+          if (static_cast<int>(recv_len = recv(c->getFd(), c->buffer_, BUF_SIZE, 0)) == -1)
+            break;
+          // Transfer-Encoding : chunked 아닐 때 (= Content-Length가 있을 때)
+          if (!c->getRequest().getHeaderValue("Content-Length").empty()) {
+            if (c->getRequest().getBufferContentLength() > static_cast<int>(recv_len)) {
+              // std::cout << "content-length before: " << c->getRequest().getBufferContentLength() << std::endl;
+              c->getRequest().setBufferContentLength(c->getRequest().getBufferContentLength() - recv_len);
+              write(c->writepipe[1], c->buffer_, recv_len);
+              // std::cout << "content-length after: " << c->getRequest().getBufferContentLength() << std::endl;
+            } else {
+              // std::cout << "==========one============ " << std::endl;
+              // std::cout << "content-length: " << c->getRequest().getBufferContentLength() << std::endl;
+              // std::cout << "buffer: " << c->buffer_ << std::endl;
+              // std::cout << "recv_len: " << static_cast<int>(recv_len) << std::endl;
+              // std::cout << "==========one============ " << std::endl;
+              write(c->writepipe[1], c->buffer_, recv_len);
+              c->getRequest().setBufferContentLength(0);
+              c->getRequest().setRecvPhase(MESSAGE_CGI_COMPLETE);
+              close(c->writepipe[1]);
+            }
           }
-          size_t recv_len = recv(c->getFd(), c->buffer_, BUF_SIZE, 0);
-          c->temp_chunked.append(c->buffer_);
-          std::cout << "temp_chunked: " << c->temp_chunked << std::endl;
-          write(c->writepipe[1], c->buffer_, strlen(c->buffer_) - 2);
-          if (strstr(c->temp_chunked.c_str(), "0\r\n\r\n")) {
-            std::cout << "end~~" << std::endl;
-            c->getRequest().setRecvPhase(MESSAGE_CGI_COMPLETE);
-            c->temp_chunked.clear();
-            close(c->writepipe[1]);
-            std::cout << "close 했다!!!" << std::endl;
+          // Request에서 Content-Length 헤더가 주어지지 않을 때
+          // (= Transfer-Encoding: chunked 헤더가 주어 젔을 때)
+          else {
+            write(c->writepipe[1], c->buffer_, recv_len);
+            std::cout << "buffer: " << c->buffer_ << std::endl;
+            if (!strcmp(c->buffer_, "0\r\n")) {
+              c->chunked_checker = CHUNKED_ZERO_RN_RN;
+            } else if (c->chunked_checker == CHUNKED_ZERO_RN_RN && !strcmp(c->buffer_, "\r\n")) {
+              c->getRequest().setRecvPhase(MESSAGE_CGI_COMPLETE);
+              close(c->writepipe[1]);
+            } else
+              c->chunked_checker = CHUNKED_KEEP_COMING;
           }
-          // if (!c->temp_chunked_checker.empty() && strstr(c->buffer_, "\r\n")) {
-          //   c->getRequest().setRecvPhase(MESSAGE_CGI_COMPLETE);
-          //   break;
-          // } else
-          //   c->temp_chunked_checker.clear();
           memset(c->buffer_, 0, recv_len);
         }
-        if (c->getRequest().getRecvPhase() == MESSAGE_CGI_COMPLETE) {
-          char foo[BUF_SIZE];  // 추후 수정 필요!!!
-          int nbytes;
-          int i = 0;
-          while ((nbytes = read(c->readpipe[0], foo, sizeof(foo)))) {
-            c->cgi_output_temp.append(foo);
-            i++;
-            memset(foo, 0, nbytes);
-          }
-          //wait(NULL);
-          MessageHandler::process_cgi_response(c);
-        }
-        if (c->getRequest().getRecvPhase() == MESSAGE_BODY_COMPLETE) {
+        if (c->getRequest().getRecvPhase() == MESSAGE_BODY_COMPLETE || c->getRequest().getRecvPhase() == MESSAGE_CGI_COMPLETE) {
           //TODO: 전반적인 정리가 필요하다
           kqueueSetEvent(c, EVFILT_WRITE, EV_ADD | EV_ONESHOT);
+          memset(c->buffer_, 0, sizeof(c->buffer_));
         }
       }
     } else if (event_list_[i].filter == EVFILT_WRITE) {
@@ -111,6 +120,20 @@ void Kqueue::kqueueProcessEvents(SocketManager *sm) {
         Logger::logError(LOG_ALERT, "%d kevent() reported about an %d reader disconnects", events, (int)event_list_[i].ident);
         sm->closeConnection(c);
       } else {
+        // TODO: CGI 프로세스의 결과값을 읽어 오는 부분을
+        // event queue, fd 와 연계해서 처리
+        // responsehandler와 현재 엮여 있어 정신 맑을때 해야함...
+        if (c->getRequest().getRecvPhase() == MESSAGE_CGI_COMPLETE) {
+          int nbytes;
+          int i = 0;
+          while ((nbytes = read(c->readpipe[0], c->buffer_, BUF_SIZE))) {
+            c->cgi_output_temp.append(c->buffer_);
+            i++;
+            memset(c->buffer_, 0, nbytes);
+          }
+          wait(NULL);
+          MessageHandler::process_cgi_response(c);
+        }
         MessageHandler::handle_response(c);
         if (!c->getResponse().getHeaderValue("Connection").compare("close") ||
             !c->getRequest().getHttpVersion().compare("HTTP/1.0")) {

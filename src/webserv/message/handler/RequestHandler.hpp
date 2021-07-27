@@ -48,7 +48,7 @@ class RequestHandler {
 
   void parseStartLine();
   int parseUri(std::string uri_str);
-  void parseHeaderLines();
+  void parseHeaderLines(Connection *c);
   int parseHeaderLine(std::string &one_header_line);
   void parseEntityBody();
   // static std::vector<std::string> splitByDelimiter(std::string const &str, char delimiter);

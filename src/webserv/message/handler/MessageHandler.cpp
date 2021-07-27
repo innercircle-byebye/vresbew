@@ -12,17 +12,13 @@ void MessageHandler::handle_request(Connection *c) {
   //RequestHandler  request_handler_;
   // 1. recv
   size_t recv_len = recv(c->getFd(), c->buffer_, BUF_SIZE, 0);
+  // recv(c->getFd(), c->buffer_, BUF_SIZE, 0);
   // 2. request_handler의 request가 c의 request가 되도록 세팅
   request_handler_.setRequest(&c->getRequest());
   // 2. append (이전에 request가 setting되어야함)
   request_handler_.appendMsg(c->buffer_);
   // 4. process by recv_phase
   request_handler_.processByRecvPhase(c);
-  if (c->getRequest().getRecvPhase() == MESSAGE_CGI_PROCESS ||
-      c->getRequest().getRecvPhase() == MESSAGE_CGI_INCOMING ||
-      c->getRequest().getRecvPhase() == MESSAGE_CGI_COMPLETE) {
-    return;
-  }
   // 5. clear c->buffer_
   memset(c->buffer_, 0, recv_len);
 }
@@ -33,8 +29,9 @@ void MessageHandler::handle_cgi(Connection *c, LocationConfig *location) {
   pid_t pid;
   std::map<std::string, std::string> env_set;
   {
-    if (!c->getRequest().getHeaderValue("Content-Length").empty())
+    if (!c->getRequest().getHeaderValue("Content-Length").empty()) {
       env_set["CONTENT_LENGTH"] = c->getRequest().getHeaderValue("Content-Length");
+    }
     if (c->getRequest().getMethod() == "GET") {
       env_set["QUERY_STRING"] = c->getRequest().getEntityBody();
     }
@@ -67,11 +64,32 @@ void MessageHandler::handle_cgi(Connection *c, LocationConfig *location) {
     close(c->readpipe[1]);
     execve(location->getCgiPath().c_str(), command, environ);
   }
+  close(c->writepipe[0]);
+  close(c->readpipe[1]);
+
+  if (c->getRequest().getMethod() == "GET") {
+    c->getRequest().setRecvPhase(MESSAGE_CGI_COMPLETE);
+    return;
+  }
+  if (!c->getRequest().getMsg().empty()) {
+    write(c->writepipe[1], c->getRequest().getMsg().c_str(), static_cast<size_t>(c->getRequest().getMsg().size()));
+    c->getRequest().setBufferContentLength(c->getRequest().getBufferContentLength() - c->getRequest().getMsg().size());
+    c->getRequest().getMsg().clear();
+    if ((size_t)c->getRequest().getBufferContentLength() == 0) {
+      c->getRequest().setRecvPhase(MESSAGE_CGI_COMPLETE);
+      return;
+    }
+  }
   c->getRequest().setRecvPhase(MESSAGE_CGI_INCOMING);
 }
 
 void MessageHandler::process_cgi_response(Connection *c) {
+<<<<<<< HEAD
+  MessageHandler::response_handler_.setResponse(&c->getResponse());
+
+=======
   std::cout << "testing->" << c->cgi_output_temp << std::endl;
+>>>>>>> master
   std::string cgi_output_response_header;
   {
     size_t pos = c->cgi_output_temp.find("\r\n\r\n");
@@ -87,7 +105,12 @@ void MessageHandler::process_cgi_response(Connection *c) {
       // parse key and validation
       key = key_and_value[0].erase(key_and_value[0].size() - 1);
       value = key_and_value[1];
+<<<<<<< HEAD
+      // TODO: cgi의 위치를 한번 이동 할 예정...
+      // MessageHandler::response_handler_.setResponse(&c->getResponse());
+=======
       MessageHandler::response_handler_.setResponse(&c->getResponse());
+>>>>>>> master
       if (!key.compare("Status") && value.compare("404")) {
         response_handler_.setStatusLineWithCode(value);
       }
@@ -97,7 +120,12 @@ void MessageHandler::process_cgi_response(Connection *c) {
       cgi_output_response_header.erase(0, pos + 2);
     }
   }
+<<<<<<< HEAD
+  // TODO: 전체 리팩토링 하면서 시점 조절이 필요
+  if (c->getResponse().getStatusCode() != "404") {
+=======
   if (c->getResponse().getStatusCode().empty() != true) {
+>>>>>>> master
     c->getResponse().setResponseBody(c->cgi_output_temp);
   }
   c->cgi_output_temp.clear();
@@ -121,6 +149,11 @@ void MessageHandler::handle_response(Connection *c) {
   else
     response_handler_.setResponseFields(c->getRequest());
   response_handler_.makeResponseMsg();
+<<<<<<< HEAD
+
+  // TODO: 이동가능
+=======
+>>>>>>> master
   /// executePutMEthod가 있던 자리...
   if (c->getRequest().getMethod() == "PUT" &&
       (c->getResponse().getStatusCode() == "201" || (c->getResponse().getStatusCode() == "204"))) {

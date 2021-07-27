@@ -121,6 +121,17 @@ void Kqueue::kqueueProcessEvents(SocketManager *sm) {
           }
           memset(c->buffer_, 0, recv_len);
         }
+        if (c->getRequest().getRecvPhase() == MESSAGE_BODY_COMPLETE || c->getRequest().getRecvPhase() == MESSAGE_CGI_COMPLETE) {
+          //TODO: 전반적인 정리가 필요하다
+          kqueueSetEvent(c, EVFILT_WRITE, EV_ADD | EV_ONESHOT);
+          memset(c->buffer_, 0, sizeof(c->buffer_));
+        }
+      }
+    } else if (event_list_[i].filter == EVFILT_WRITE) {
+      if (event_list_[i].flags & EV_EOF) {
+        Logger::logError(LOG_ALERT, "%d kevent() reported about an %d reader disconnects", events, (int)event_list_[i].ident);
+        sm->closeConnection(c);
+      } else {
         if (c->getRequest().getRecvPhase() == MESSAGE_CGI_COMPLETE) {
           int nbytes;
           int i = 0;
@@ -132,17 +143,6 @@ void Kqueue::kqueueProcessEvents(SocketManager *sm) {
           wait(NULL);
           MessageHandler::process_cgi_response(c);
         }
-        if (c->getRequest().getRecvPhase() == MESSAGE_BODY_COMPLETE) {
-          //TODO: 전반적인 정리가 필요하다
-          kqueueSetEvent(c, EVFILT_WRITE, EV_ADD | EV_ONESHOT);
-          memset(c->buffer_, 0, sizeof(c->buffer_));
-        }
-      }
-    } else if (event_list_[i].filter == EVFILT_WRITE) {
-      if (event_list_[i].flags & EV_EOF) {
-        Logger::logError(LOG_ALERT, "%d kevent() reported about an %d reader disconnects", events, (int)event_list_[i].ident);
-        sm->closeConnection(c);
-      } else {
         MessageHandler::handle_response(c);
         if (!c->getResponse().getHeaderValue("Connection").compare("close") ||
             !c->getRequest().getHttpVersion().compare("HTTP/1.0")) {

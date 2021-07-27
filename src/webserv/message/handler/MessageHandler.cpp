@@ -149,6 +149,7 @@ void MessageHandler::handle_response(Connection *c) {
 
   response_handler_.makeResponseMsg();
 
+  // TODO: 이동가능
   /// executePutMEthod가 있던 자리...
   if (c->getRequest().getMethod() == "PUT" &&
       (c->getResponse().getStatusCode() == "201" || (c->getResponse().getStatusCode() == "204"))) {

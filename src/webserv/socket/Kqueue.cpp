@@ -125,16 +125,35 @@ void Kqueue::kqueueProcessEvents(SocketManager *sm) {
         // responsehandler와 현재 엮여 있어 정신 맑을때 해야함...
         if (c->getRequest().getRecvPhase() == MESSAGE_CGI_COMPLETE) {
           int nbytes;
-          int i = 0;
-          while ((nbytes = read(c->readpipe[0], c->buffer_, BUF_SIZE))) {
-            c->cgi_output_temp.append(c->buffer_);
-            i++;
-            memset(c->buffer_, 0, nbytes);
+          // int i = 0;
+          // 이 조건문이 제대로 동작하는지 안하는지 모르겠음
+          if (c->getRequest().getHeaderValue("Content-Length").empty()) {
+            while ((nbytes = read(c->readpipe[0], c->buffer_, BUF_SIZE))) {
+              if (c->getResponse().getStatusCode().empty()) {
+                c->cgi_output_temp.append(c->buffer_);
+                if (c->cgi_output_temp.find("\r\n\r\n") != std::string::npos) {
+                  MessageHandler::process_cgi_header_chunked(c);
+                  MessageHandler::handle_response(c);
+                  write(c->getFd(), c->cgi_output_temp.c_str(), (size_t)(c->cgi_output_temp.size()));
+                  c->cgi_output_temp.clear();
+                }
+              } else
+                write(c->getFd(), c->buffer_, nbytes);
+              memset(c->buffer_, 0, nbytes);
+            }
+          } else {
+            while ((nbytes = read(c->readpipe[0], c->buffer_, BUF_SIZE))) {
+              c->cgi_output_temp.append(c->buffer_);
+              memset(c->buffer_, 0, nbytes);
+            }
+            MessageHandler::process_cgi_response(c);
+            MessageHandler::handle_response(c);
           }
+          c->cgi_output_temp.clear();
           wait(NULL);
-          MessageHandler::process_cgi_response(c);
-        }
-        MessageHandler::handle_response(c);
+        } else
+          MessageHandler::handle_response(c);
+
         if (!c->getResponse().getHeaderValue("Connection").compare("close") ||
             !c->getRequest().getHttpVersion().compare("HTTP/1.0")) {
           sm->closeConnection(c);

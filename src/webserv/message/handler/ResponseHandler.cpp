@@ -119,7 +119,7 @@ std::string ResponseHandler::getDefaultErrorBody(std::string status_code, std::s
 
 void ResponseHandler::processGetAndHeaderMethod(Request &request, LocationConfig *&location) {
   //need last modified header
-  // TODO: apply for all url when directory is given
+  // TODO: REQUEST에서 처리 해야될 수도 있을것같음
   if (*(request.getUri().rbegin()) == '/') {
     findIndexForGetWhenOnlySlash(request, location);
     if (!request.getUri().compare("/")) {
@@ -134,6 +134,7 @@ void ResponseHandler::processGetAndHeaderMethod(Request &request, LocationConfig
     if (S_ISDIR(this->stat_buffer_.st_mode)) {
       setStatusLineWithCode("301");
       // TODO: string 을 생성 하지 않도록 수정하는 작업 필요
+      // std::string temp_url = "http://" + request.getHeaderValue("Host") + request.getUri();
       std::string temp_url = "http://" + request.getHeaderValue("Host") + request.getUri() + "/";
       this->response_->setHeader("Location", temp_url);
       return;

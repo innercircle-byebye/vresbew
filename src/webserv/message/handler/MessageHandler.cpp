@@ -118,9 +118,13 @@ void MessageHandler::init_cgi_child(Connection *c) {
   {
     write(c->writepipe[1], c->getBodyBuf().c_str(), (size_t)c->getBodyBuf().size());
     c->setStringBufferContentLength(c->getStringBufferContentLength() - c->getBodyBuf().size());
+    c->getBodyBuf().clear();// 뒤에서 또 쓰일걸 대비해 혹시몰라 초기화.. #2
   }
   if (c->getStringBufferContentLength() <= 0)
+  {
+    c->setStringBufferContentLength(0); // 뒤에서 또 쓰일걸 대비해 혹시몰라 초기화.. #2
     c->setRecvPhase(MESSAGE_CGI_COMPLETE);
+  }
   else
     c->setRecvPhase(MESSAGE_CGI_INCOMING);
 

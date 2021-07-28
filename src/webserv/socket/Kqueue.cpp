@@ -155,7 +155,7 @@ void Kqueue::kqueueProcessEvents(SocketManager *sm) {
         // event queue, fd 와 연계해서 처리함
         if (c->getRequest().getRecvPhase() == MESSAGE_CGI_COMPLETE) {
           std::cout << "am i even working" << std::endl;
-          int nbytes;
+          size_t nbytes;
           // TODO: header 에 Transfer-encoding: chunked 일 때로 조건 변경
           // content-length가 없을때 : chunked 요청
           // chunked로 응답도..
@@ -166,11 +166,11 @@ void Kqueue::kqueueProcessEvents(SocketManager *sm) {
                 if (c->cgi_output_temp.find("\r\n\r\n") != std::string::npos) {
                   MessageHandler::process_cgi_header_chunked(c);
                   MessageHandler::handle_response(c);
-                  write(c->getFd(), c->cgi_output_temp.c_str(), (size_t)(c->cgi_output_temp.size()));
+                  send(c->getFd(), c->cgi_output_temp.c_str(), (size_t)(c->cgi_output_temp.size()), 0);
                   c->cgi_output_temp.clear();
                 }
               } else
-                write(c->getFd(), c->buffer_, nbytes);
+                send(c->getFd(), c->buffer_, nbytes, 0);
               memset(c->buffer_, 0, nbytes);
             }
           } else {
@@ -181,7 +181,12 @@ void Kqueue::kqueueProcessEvents(SocketManager *sm) {
             MessageHandler::process_cgi_response(c);
             MessageHandler::handle_response(c);
           }
+          close(c->readpipe[0]);
+          close(c->readpipe[1]);
+          close(c->writepipe[0]);
+          close(c->writepipe[1]);
           c->cgi_output_temp.clear();
+          // send(c->getFd(), &"0", 1, 0);
           wait(NULL);
         } else
           MessageHandler::handle_response(c);

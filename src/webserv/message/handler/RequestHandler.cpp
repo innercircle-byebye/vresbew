@@ -23,10 +23,10 @@ void RequestHandler::processByRecvPhase(Connection *c) {
   if (request_->getRecvPhase() == MESSAGE_HEADER_COMPLETE) {
     parseHeaderLines(c);
   }
-  if (request_->getRecvPhase() == MESSAGE_BODY_INCOMING)
-    appendMsgToEntityBody();
-  if (request_->getRecvPhase() == MESSAGE_BODY_COMPLETE)
-    return;
+  // if (request_->getRecvPhase() == MESSAGE_BODY_INCOMING)
+  //   appendMsgToEntityBody();
+  // if (request_->getRecvPhase() == MESSAGE_BODY_COMPLETE)
+  //   return;
 }
 
 /* CHECK FUNCTIONS */
@@ -46,16 +46,16 @@ void RequestHandler::checkMsgForHeader() {
   // TODO: header가 안들어온 경우 check
 }
 
-void RequestHandler::appendMsgToEntityBody() {
-  if ((size_t)request_->getBufferContentLength() <= request_->getMsg().size()) {
-    this->request_->appendEntityBody(this->request_->getMsg().substr(0, (size_t)request_->getBufferContentLength()));
-    this->request_->setBufferContentLength(0);
-    request_->setRecvPhase(MESSAGE_BODY_COMPLETE);
-  } else {
-    this->request_->setBufferContentLength(request_->getBufferContentLength() - request_->getMsg().size());
-    this->request_->appendEntityBody(this->request_->getMsg());
-  }
-}
+// void RequestHandler::appendMsgToEntityBody() {
+//   if ((size_t)request_->getBufferContentLength() <= request_->getMsg().size()) {
+//     this->request_->appendEntityBody(this->request_->getMsg().substr(0, (size_t)request_->getBufferContentLength()));
+//     this->request_->setBufferContentLength(0);
+//     request_->setRecvPhase(MESSAGE_BODY_COMPLETE);
+//   } else {
+//     this->request_->setBufferContentLength(request_->getBufferContentLength() - request_->getMsg().size());
+//     this->request_->appendEntityBody(this->request_->getMsg());
+//   }
+// }
 
 /* PARSE FUNCTIONS */
 void RequestHandler::parseStartLine() {

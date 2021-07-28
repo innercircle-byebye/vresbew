@@ -77,7 +77,8 @@ public:
   void setHeader(std::string key, std::string value);
   void setBufferContentLength(int buffer_content_length);
   void setEntityBody(std::string entity_body);
-  void appendEntityBody(std::string entity_body);
+  void appendEntityBody(char *buffer);
+  void appendEntityBody(char *buffer, size_t size);
   void setErrorNum(int error_num);
 };
 

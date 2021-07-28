@@ -49,6 +49,7 @@ void Request::setHttpVersion(std::string http_version) { http_version_ = http_ve
 void Request::setHeader(std::string key, std::string value) { headers_[key] = value; }
 void Request::setBufferContentLength(int content_length) { buffer_content_length_ = content_length; }
 void Request::setEntityBody(std::string entity_body) { entity_body_ = entity_body; }
-void Request::appendEntityBody(std::string entity_body) { entity_body_ += entity_body; }
+void Request::appendEntityBody(char *buffer) { entity_body_.append(buffer); }
+void Request::appendEntityBody(char *buffer, size_t size) { entity_body_.append(buffer, size); }
 
 }  // namespace ft

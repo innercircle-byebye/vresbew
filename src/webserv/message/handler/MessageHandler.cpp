@@ -10,8 +10,11 @@ MessageHandler::~MessageHandler() {}
 
 void MessageHandler::handle_request(Connection *c) {
   //RequestHandler  request_handler_;
-  // 1. recv
-  size_t recv_len = recv(c->getFd(), c->buffer_, BUF_SIZE, 0);
+  ;
+  std::cout << "==========check_buffer=========" << std::endl;
+  std::cout << c->buffer_ << std::endl;
+  std::cout << "==========check_buffer=========" << std::endl;
+
   // recv(c->getFd(), c->buffer_, BUF_SIZE, 0);
   // 2. request_handler의 request가 c의 request가 되도록 세팅
   request_handler_.setRequest(&c->getRequest());
@@ -20,7 +23,18 @@ void MessageHandler::handle_request(Connection *c) {
   // 4. process by recv_phase
   request_handler_.processByRecvPhase(c);
   // 5. clear c->buffer_
-  memset(c->buffer_, 0, recv_len);
+}
+
+void MessageHandler::handle_request_body(Connection *c) {
+
+  if ((size_t)c->getRequest().getBufferContentLength() <= strlen(c->buffer_)) {
+    c->getRequest().appendEntityBody(c->buffer_, c->getRequest().getBufferContentLength());
+    c->getRequest().setBufferContentLength(0);
+    c->getRequest().setRecvPhase(MESSAGE_BODY_COMPLETE);
+  } else {
+    c->getRequest().setBufferContentLength(c->getRequest().getBufferContentLength() - c->getRequest().getMsg().size());
+    c->getRequest().appendEntityBody(c->buffer_);
+  }
 }
 
 void MessageHandler::handle_cgi(Connection *c, LocationConfig *location) {
@@ -85,11 +99,11 @@ void MessageHandler::handle_cgi(Connection *c, LocationConfig *location) {
     return;
   }
   if (!c->getRequest().getMsg().empty() &&
-        !c->getRequest().getHeaderValue("Content-Length").empty() ){
+      !c->getRequest().getHeaderValue("Content-Length").empty()) {
     write(c->writepipe[1], c->getRequest().getMsg().c_str(), static_cast<size_t>(c->getRequest().getMsg().size()));
     c->getRequest().setBufferContentLength(c->getRequest().getBufferContentLength() - c->getRequest().getMsg().size());
     c->getRequest().getMsg().clear();
-    if ((size_t)c->getRequest().getBufferContentLength() == 0 ) {
+    if ((size_t)c->getRequest().getBufferContentLength() == 0) {
       c->getRequest().setRecvPhase(MESSAGE_CGI_COMPLETE);
       return;
     }

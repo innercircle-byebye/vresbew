@@ -54,14 +54,18 @@ void Kqueue::kqueueProcessEvents(SocketManager *sm) {
         Logger::logError(LOG_ALERT, "%d kevent() reported about an closed connection %d", events, (int)event_list_[i].ident);
         sm->closeConnection(c);
       } else {
+        // 1. recv
+        size_t recv_len = recv(c->getFd(), c->buffer_, BUF_SIZE, 0);
         if (c->getRequest().getRecvPhase() == MESSAGE_START_LINE_INCOMPLETE ||
             c->getRequest().getRecvPhase() == MESSAGE_START_LINE_COMPLETE ||
             c->getRequest().getRecvPhase() == MESSAGE_HEADER_INCOMPLETE ||
-            c->getRequest().getRecvPhase() == MESSAGE_HEADER_COMPLETE ||
-            c->getRequest().getRecvPhase() == MESSAGE_BODY_INCOMING ||
-            c->getRequest().getRecvPhase() == MESSAGE_BODY_COMPLETE) {
+            c->getRequest().getRecvPhase() == MESSAGE_HEADER_COMPLETE) {
           MessageHandler::handle_request(c);
         }
+        if (c->getRequest().getRecvPhase() == MESSAGE_BODY_INCOMING) {
+          MessageHandler::handle_request_body(c);
+        }
+
         if (c->getRequest().getRecvPhase() == MESSAGE_CGI_PROCESS) {
           ServerConfig *serverconfig_test = c->getHttpConfig()->getServerConfig(c->getSockaddrToConnect().sin_port, c->getSockaddrToConnect().sin_addr.s_addr, c->getRequest().getHeaderValue("Host"));
           LocationConfig *locationconfig_test = serverconfig_test->getLocationConfig(c->getRequest().getUri());
@@ -91,6 +95,7 @@ void Kqueue::kqueueProcessEvents(SocketManager *sm) {
           // (= Transfer-Encoding: chunked 헤더가 주어 젔을 때)
           else {
             if (!c->getRequest().getMsg().empty()) {
+              std::cout << "hihi" << std::endl;
               size_t pos;
 
               while (c->getRequest().getMsg().find("\r\n") != std::string::npos) {
@@ -106,7 +111,6 @@ void Kqueue::kqueueProcessEvents(SocketManager *sm) {
                   //   c->getRequest().setRecvPhase(MESSAGE_CGI_COMPLETE);
                   //   close(c->writepipe[1]);
                 } else if (c->chunked_checker == CHUNKED_ZERO_RN_RN && temp_msg == "\r\n") {
-                  c->chunked_checker =CHUNKED_END;
                   c->getRequest().setRecvPhase(MESSAGE_CGI_COMPLETE);
                   close(c->writepipe[1]);
                 } else {
@@ -118,30 +122,30 @@ void Kqueue::kqueueProcessEvents(SocketManager *sm) {
               }
               c->getRequest().getMsg().clear();
             }
-            if (c->chunked_checker != CHUNKED_END) {
-              std::cout << "aftermath: " << c->buffer_ << std::endl;
-              write(c->writepipe[1], c->buffer_, recv_len);
-              if (!strcmp(c->buffer_, "0\r\n")) {
-                c->chunked_checker = CHUNKED_ZERO_RN_RN;
-                // } else if (!strcmp(c->buffer_, "0\r\n\r\n")) {
-                //   c->getRequest().setRecvPhase(MESSAGE_CGI_COMPLETE);
-                //   close(c->writepipe[1]);
-              } else if (c->chunked_checker == CHUNKED_ZERO_RN_RN && !strcmp(c->buffer_, "\r\n")) {
-                c->getRequest().setRecvPhase(MESSAGE_CGI_COMPLETE);
-                close(c->writepipe[1]);
-              } else
-                c->chunked_checker = CHUNKED_KEEP_COMING;
+            if (c->chunked_checker == CHUNKED_ZERO_RN_RN) {
+              std::cout << "hi" << std::endl;
             }
+            std::cout << "aftermath: " << c->buffer_ << std::endl;
+            write(c->writepipe[1], c->buffer_, recv_len);
+            if (!strcmp(c->buffer_, "0\r\n")) {
+              c->chunked_checker = CHUNKED_ZERO_RN_RN;
+              // } else if (!strcmp(c->buffer_, "0\r\n\r\n")) {
+              //   c->getRequest().setRecvPhase(MESSAGE_CGI_COMPLETE);
+              //   close(c->writepipe[1]);
+            } else if (c->chunked_checker == CHUNKED_ZERO_RN_RN && !strcmp(c->buffer_, "\r\n")) {
+              c->getRequest().setRecvPhase(MESSAGE_CGI_COMPLETE);
+              close(c->writepipe[1]);
+            } else
+              c->chunked_checker = CHUNKED_KEEP_COMING;
           }
           memset(c->buffer_, 0, recv_len);
         }
         if (c->getRequest().getRecvPhase() == MESSAGE_BODY_COMPLETE || c->getRequest().getRecvPhase() == MESSAGE_CGI_COMPLETE) {
           //TODO: 전반적인 정리가 필요하다
           std::cout << "am i even working" << std::endl;
-
           kqueueSetEvent(c, EVFILT_WRITE, EV_ADD | EV_ONESHOT);
-          memset(c->buffer_, 0, sizeof(c->buffer_));
         }
+        memset(c->buffer_, 0, recv_len);
       }
     } else if (event_list_[i].filter == EVFILT_WRITE) {
       if (event_list_[i].flags & EV_EOF) {

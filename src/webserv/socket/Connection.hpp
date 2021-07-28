@@ -53,11 +53,13 @@ class Connection {
 
  public:
   char buffer_[BUF_SIZE];
-  std::string msg_;
+  std::string body_buf_;
   int writepipe[2], readpipe[2];
   int chunked_checker;
+  std::string status_code_;
+
   std::string temp_chunked;     //TODO: remove
-  std::string cgi_output_temp;  //TODO: remove
+  // std::string cgi_output_temp;  //TODO: remove
 
   Connection();
   ~Connection();
@@ -89,6 +91,11 @@ class Connection {
   int getStringBufferContentLength() const;
   void setRecvPhase(int recv_phase);
   void setStringBufferContentLength(int buffer_content_length);
+
+  std::string &getBodyBuf();
+  void setBodyBuf(std::string body_buf_);
+  void appendBodyBuf(char *buffer);
+  void appendBodyBuf(char *buffer, size_t size);
 };
 }  // namespace ft
 #endif

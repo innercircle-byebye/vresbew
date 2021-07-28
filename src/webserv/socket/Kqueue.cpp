@@ -66,17 +66,13 @@ void Kqueue::kqueueProcessEvents(SocketManager *sm) {
               c->setStringBufferContentLength(stoi(c->getRequest().getHeaderValue("Content-Length")));
             MessageHandler::check_cgi_request(c);
             if (c->getRecvPhase() == MESSAGE_CGI_PROCESS)
-            {
               MessageHandler::init_cgi_child(c);
-            }
             else
               MessageHandler::check_body_status(c);
           }
-        }
-        else if (c->getRecvPhase() == MESSAGE_BODY_INCOMING) {
+        } else if (c->getRecvPhase() == MESSAGE_BODY_INCOMING) {
           MessageHandler::handle_request_body(c);
-        }
-        else if (c->getRecvPhase() == MESSAGE_CGI_INCOMING) {
+        } else if (c->getRecvPhase() == MESSAGE_CGI_INCOMING) {
           std::cout << "i'm here" << std::endl;
           // 한번의 버퍼 안에 전체 메세지가 다 들어 올 경우
 
@@ -162,46 +158,44 @@ void Kqueue::kqueueProcessEvents(SocketManager *sm) {
           // TODO: header 에 Transfer-encoding: chunked 일 때로 조건 변경
           // content-length가 없을때 : chunked 요청
           // chunked로 응답도..
-          if (c->getRequest().getHeaderValue("Content-Length").empty()) {
-            while ((nbytes = read(c->readpipe[0], c->buffer_, BUF_SIZE))) {
-              if (c->getResponse().getStatusCode().empty()) {
-                c->cgi_output_temp.append(c->buffer_);
-                if (c->cgi_output_temp.find("\r\n\r\n") != std::string::npos) {
-                  MessageHandler::process_cgi_header_chunked(c);
-                  MessageHandler::handle_response(c);
-                  send(c->getFd(), c->cgi_output_temp.c_str(), (size_t)(c->cgi_output_temp.size()), 0);
-                  c->cgi_output_temp.clear();
-                }
-              } else
-                send(c->getFd(), c->buffer_, nbytes, 0);
-              memset(c->buffer_, 0, nbytes);
-            }
-          } else {
-            while ((nbytes = read(c->readpipe[0], c->buffer_, BUF_SIZE))) {
-              c->cgi_output_temp.append(c->buffer_);
-              memset(c->buffer_, 0, nbytes);
-            }
-            MessageHandler::process_cgi_response(c);
-            MessageHandler::handle_response(c);
+          // if (c->getRequest().getHeaderValue("Content-Length").empty()) {
+          //   while ((nbytes = read(c->readpipe[0], c->buffer_, BUF_SIZE))) {
+          //     if (c->getResponse().getStatusCode().empty()) {
+          //       c->appendBodyBuf(c->buffer_);
+          //       if (c->cgi_output_temp.find("\r\n\r\n") != std::string::npos) {
+          //         MessageHandler::process_cgi_header_chunked(c);
+          //         MessageHandler::handle_response(c);
+          //         send(c->getFd(), c->cgi_output_temp.c_str(), (size_t)(c->cgi_output_temp.size()), 0);
+          //         c->cgi_output_temp.clear();
+          //       }
+          //     } else
+          //       send(c->getFd(), c->buffer_, nbytes, 0);
+          //     memset(c->buffer_, 0, nbytes);
+          //   }
+          // } else {
+          while ((nbytes = read(c->readpipe[0], c->buffer_, BUF_SIZE))) {
+            c->appendBodyBuf(c->buffer_);
+            memset(c->buffer_, 0, nbytes);
           }
-          close(c->readpipe[0]);
-          close(c->readpipe[1]);
-          close(c->writepipe[0]);
-          close(c->writepipe[1]);
-          c->cgi_output_temp.clear();
-          // send(c->getFd(), &"0", 1, 0);
-          wait(NULL);
-        } else
-          MessageHandler::handle_response(c);
-
-        if (!c->getResponse().getHeaderValue("Connection").compare("close") ||
-            !c->getRequest().getHttpVersion().compare("HTTP/1.0")) {
-          sm->closeConnection(c);
+          MessageHandler::process_cgi_header(c);
         }
-        c->getRequest().clear();
-        c->getResponse().clear();
+        close(c->readpipe[0]);
+        close(c->readpipe[1]);
+        close(c->writepipe[0]);
+        close(c->writepipe[1]);
+        // send(c->getFd(), &"0", 1, 0);
+        wait(NULL);
       }
+      MessageHandler::handle_response(c);
+
+      if (!c->getResponse().getHeaderValue("Connection").compare("close") ||
+          !c->getRequest().getHttpVersion().compare("HTTP/1.0")) {
+        sm->closeConnection(c);
+      }
+      c->getRequest().clear();
+      c->getResponse().clear();
     }
   }
 }
+
 }  // namespace ft

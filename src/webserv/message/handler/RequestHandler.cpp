@@ -184,6 +184,10 @@ void RequestHandler::parseHeaderLines(Connection *c) {
   std::string header_lines = request_->getMsg().substr(0, pos);
 
   request_->getMsg().erase(0, pos + 4);
+  if (!request_->getMsg().empty()) {
+    c->setBodyBuf(request_->getMsg());
+    request_->getMsg().clear();
+  }
 
   while ((pos = header_lines.find("\r\n")) != std::string::npos) {
     std::string one_header_line = header_lines.substr(0, pos);
@@ -206,7 +210,6 @@ int RequestHandler::parseHeaderLine(std::string &one_header_line) {
   // parse key and validation
   key = key_and_value[0].erase(key_and_value[0].size() - 1);
   value = key_and_value[1];
-
 
   if (!key.compare("Host") && !request_->getHost().empty())
     value = request_->getHost();

@@ -114,7 +114,12 @@ void MessageHandler::init_cgi_child(Connection *c) {
   // TODO: 실패 예외처리
   close(c->readpipe[1]);
 
-  if (c->getRequest().getMethod() == "GET")
+  if (!c->getBodyBuf().empty())
+  {
+    write(c->writepipe[1], c->getBodyBuf().c_str(), (size_t)c->getBodyBuf().size());
+    c->setStringBufferContentLength(c->getStringBufferContentLength() - c->getBodyBuf().size());
+  }
+  if (c->getStringBufferContentLength() <= 0)
     c->setRecvPhase(MESSAGE_CGI_COMPLETE);
   else
     c->setRecvPhase(MESSAGE_CGI_INCOMING);

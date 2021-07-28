@@ -23,6 +23,12 @@ void ResponseHandler::setResponseFields(Request &request) {
     return;
   }
 
+  if (this->response_->getHeaderValue("X-Powered-By") == "PHP/8.0.7" &&
+      this->response_->getHeaderValue("Status").empty()) {
+    setStatusLineWithCode("200");
+    return ;
+  }
+
   if (request.getMethod() == "GET" || request.getMethod() == "HEAD")
     processGetAndHeaderMethod(request, location);
   else if (request.getMethod() == "PUT")

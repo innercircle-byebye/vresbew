@@ -61,7 +61,6 @@ void MessageHandler::init_cgi_child(Connection *c) {
   pid_t pid;
   std::map<std::string, std::string> env_set;
   {
-    std::cout << "entity_body" << c->getRequest().getEntityBody() << std::endl;
     if (!c->getRequest().getHeaderValue("Content-Length").empty()) {
       env_set["CONTENT_LENGTH"] = c->getRequest().getHeaderValue("Content-Length");
     }
@@ -200,7 +199,7 @@ void MessageHandler::process_cgi_header(Connection *c) {
       cgi_output_response_header.erase(0, pos + 2);
     }
   }
-  c->getResponse().setResponseBody(c->getBodyBuf());
+  // c->getResponse().setResponseBody(c->getBodyBuf());
   // TODO: 전체 리팩토링 하면서 시점 조절이 필요
   // if (!c->cgi_output_temp.empty()) {
   //   c->getResponse().setResponseBody(c->cgi_output_temp);
@@ -211,6 +210,37 @@ void MessageHandler::process_cgi_header(Connection *c) {
 std::string MessageHandler::parseCgiHeader(const std::string &cgi_output) {
   return (cgi_output);
 }
+
+// void MessageHandler::handle_response(Connection *c) {
+//   //ResponseHandler response_handler_;
+//   response_handler_.setResponse(&c->getResponse());
+//   response_handler_.setServerConfig(c->getHttpConfig(), c->getSockaddrToConnect(), c->getRequest().getHeaderValue("Host"));
+//   // TODO: HTTP/1.0 일 때 로직 복구 필요
+//   // request에서 처리할지, response에서 처리할지 결정 필요
+
+//   // if (c->getRequest().getHttpVersion() == "HTTP/1.0" && !c->getRequest().getHeaders().count("Host"))
+//   //   c->getRequest().setHeader("Host", "");
+//   // if (!isValidRequestMethod(c->getRequest().getMethod()) ||
+//   //     !isValidRequestVersion(c->getRequest().getHttpVersion(), c->getRequest().getHeaders()))
+//   //   response_handler_.setStatusLineWithCode("400");
+//   // // else if (c->getBodyBuf().size() > 0)
+//   // // {
+//   // //   std::cout << "nigga" << std::endl;
+//   // //   response_handler_.setStatusLineWithCode(c->status_code_);
+//   // // }
+//   // else
+//     response_handler_.setResponseFields(c->getRequest());
+//   response_handler_.makeResponseMsg();
+
+//   // TODO: 이동가능
+//   /// executePutMEthod가 있던 자리...
+//   if (c->getRequest().getMethod() == "PUT" &&
+//       (c->getResponse().getStatusCode() == "201" || (c->getResponse().getStatusCode() == "204"))) {
+//     // create response body
+//     executePutMethod(response_handler_.getAccessPath(c->getRequest().getUri()), c->getRequest().getEntityBody());
+//   }
+//   send(c->getFd(), c->getResponse().getMsg().c_str(), c->getResponse().getMsg().size(), 0);
+// }
 
 void MessageHandler::handle_response(Connection *c) {
   //ResponseHandler response_handler_;
@@ -240,6 +270,11 @@ void MessageHandler::handle_response(Connection *c) {
     // create response body
     executePutMethod(response_handler_.getAccessPath(c->getRequest().getUri()), c->getRequest().getEntityBody());
   }
+
+  // if (c->getResponse().getHeaderValue("X-Powered-By") == "PHP/8.0.7" &&
+  //     c->getResponse().getHeaderValue("Status").empty()) {
+  //   return;
+  // } else
   send(c->getFd(), c->getResponse().getMsg().c_str(), c->getResponse().getMsg().size(), 0);
 }
 

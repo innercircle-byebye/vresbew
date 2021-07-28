@@ -140,7 +140,6 @@ void Kqueue::kqueueProcessEvents(SocketManager *sm) {
         }
         if (c->getRecvPhase() == MESSAGE_BODY_COMPLETE || c->getRecvPhase() == MESSAGE_CGI_COMPLETE) {
           //TODO: 전반적인 정리가 필요하다
-          std::cout << "am i even working" << std::endl;
           kqueueSetEvent(c, EVFILT_WRITE, EV_ADD | EV_ONESHOT);
         }
         memset(c->buffer_, 0, recv_len);
@@ -155,6 +154,7 @@ void Kqueue::kqueueProcessEvents(SocketManager *sm) {
         if (c->getRecvPhase() == MESSAGE_CGI_COMPLETE) {
           std::cout << "am i even working" << std::endl;
           size_t nbytes;
+          bool isHeaderParsed = false;
           // TODO: header 에 Transfer-encoding: chunked 일 때로 조건 변경
           // content-length가 없을때 : chunked 요청
           // chunked로 응답도..
@@ -174,19 +174,30 @@ void Kqueue::kqueueProcessEvents(SocketManager *sm) {
           //   }
           // } else {
           while ((nbytes = read(c->readpipe[0], c->buffer_, BUF_SIZE))) {
-            c->appendBodyBuf(c->buffer_);
+            if (isHeaderParsed == false) {
+              c->appendBodyBuf(c->buffer_);
+              MessageHandler::process_cgi_header(c);
+              MessageHandler::handle_response(c);
+              if (!c->getBodyBuf().empty())
+              {
+                send(c->getFd(), c->getBodyBuf().c_str(), (size_t)c->getBodyBuf().size(), 0);
+                c->getBodyBuf().clear();
+              }
+              isHeaderParsed = true;
+            } else {
+              send(c->getFd(), c->buffer_, nbytes, 0);
+            }
             memset(c->buffer_, 0, nbytes);
           }
-          MessageHandler::process_cgi_header(c);
-        }
-        close(c->readpipe[0]);
-        close(c->readpipe[1]);
-        close(c->writepipe[0]);
-        close(c->writepipe[1]);
-        // send(c->getFd(), &"0", 1, 0);
-        wait(NULL);
+          close(c->readpipe[0]);
+          close(c->readpipe[1]);
+          close(c->writepipe[0]);
+          close(c->writepipe[1]);
+          // send(c->getFd(), &"0", 1, 0);
+          wait(NULL);
+        } else
+          MessageHandler::handle_response(c);
       }
-      MessageHandler::handle_response(c);
 
       if (!c->getResponse().getHeaderValue("Connection").compare("close") ||
           !c->getRequest().getHttpVersion().compare("HTTP/1.0")) {

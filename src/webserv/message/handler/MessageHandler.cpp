@@ -132,7 +132,7 @@ void MessageHandler::init_cgi_child(Connection *c) {
 }
 
 void MessageHandler::process_cgi_header(Connection *c) {
-  MessageHandler::response_handler_.setResponse(&c->getResponse());
+  MessageHandler::response_handler_.setResponse(&c->getResponse(), &c->getBodyBuf());
 
   std::string cgi_output_response_header;
   {
@@ -239,7 +239,7 @@ void MessageHandler::process_cgi_header(Connection *c) {
 
 void MessageHandler::set_response_header(Connection *c) {
   //ResponseHandler response_handler_;
-  response_handler_.setResponse(&c->getResponse());
+  response_handler_.setResponse(&c->getResponse(), &c->getBodyBuf());
   response_handler_.setServerConfig(c->getHttpConfig(), c->getSockaddrToConnect(), c->getRequest().getHeaderValue("Host"));
   // TODO: HTTP/1.0 일 때 로직 복구 필요
   // request에서 처리할지, response에서 처리할지 결정 필요
@@ -255,14 +255,16 @@ void MessageHandler::set_response_header(Connection *c) {
 
 void MessageHandler::set_response_body(Connection *c) {
   std::cout << "========response body before=============" << std::endl;
-  std::cout << c->getResponse().getMsg() << std::endl;
-  std::cout << "===========response body after==========" << std::endl;
+  std::cout << c->getBodyBuf() << std::endl;
+  std::cout << "===========response body before==========" << std::endl;
 
   if (c->getRecvPhase() == MESSAGE_CGI_COMPLETE) {
     size_t nbytes;
     // content-length가 없을때 : chunked 요청, client로 바로 쏴줌
     // chunked로 응답도..
-    if (c->getRequest().getHeaderValue("Content-Length").empty()) {
+    if (c->getRequest().getMethod() == "POST" &&
+        c->getRequest().getHeaderValue("Content-Length").empty()) {
+      response_handler_.makeResponseHeader();
       send(c->getFd(), c->getResponse().getMsg().c_str(), c->getResponse().getMsg().size(), 0);
       send(c->getFd(), c->getBodyBuf().c_str(), (size_t)c->getBodyBuf().size(), 0);
       while ((nbytes = read(c->readpipe[0], c->buffer_, BUF_SIZE))) {
@@ -290,17 +292,13 @@ void MessageHandler::set_response_body(Connection *c) {
     close(c->writepipe[1]);
     // send(c->getFd(), &"0", 1, 0);
     wait(NULL);
-    c->getResponse().setHeader("Content-Length",
-                               std::to_string(c->getBodyBuf().size()));
-    response_handler_.makeResponseHeader();
-
-  } else {
-  c->getResponse().setHeader("Content-Length",
-                             std::to_string(c->getResponse().getResponseBody().size()));
-    response_handler_.makeResponseHeader();
   }
+  c->getResponse().setHeader("Content-Length",
+                             std::to_string(c->getBodyBuf().size()));
+  response_handler_.makeResponseHeader();
+
   std::cout << "========response body after=============" << std::endl;
-  std::cout << c->getResponse().getMsg() << std::endl;
+  std::cout << c->getBodyBuf() << std::endl;
   std::cout << "===========response body after==========" << std::endl;
 }
 
@@ -338,10 +336,7 @@ void MessageHandler::send_response_to_client(Connection *c) {
   //                            std::to_string(c->getResponse().getResponseBody().size()));
   // response_handler_.setResponseBody();
   send(c->getFd(), c->getResponse().getMsg().c_str(), c->getResponse().getMsg().size(), 0);
-  if (!c->getBodyBuf().empty())
-    send(c->getFd(), c->getBodyBuf().c_str(), c->getBodyBuf().size(), 0);
-  else
-    send(c->getFd(), c->getResponse().getResponseBody().c_str(), c->getResponse().getResponseBody().size(), 0);
+  send(c->getFd(), c->getBodyBuf().c_str(), c->getBodyBuf().size(), 0);
 }
 
 void MessageHandler::executePutMethod(std::string path, std::string content) {

@@ -17,12 +17,14 @@
 #include "webserv/message/Request.hpp"
 #include "webserv/message/Response.hpp"
 #include "webserv/message/StatusMessage.hpp"
+#include "webserv/socket/Connection.hpp"
 
 namespace ft {
 
 class ResponseHandler {
   Response *response_;
   ServerConfig *server_config_;
+  std::string *msg_body_buf_;
 
   struct stat stat_buffer_;
 
@@ -30,7 +32,7 @@ class ResponseHandler {
   ResponseHandler();
   ~ResponseHandler();
 
-  void setResponse(Response *response);
+  void setResponse(Response *response, std::string *msg_body_buf);
   void setServerConfig(HttpConfig *http_config, struct sockaddr_in &addr, const std::string &host);
   void setResponseFields(Request &request);
   void makeResponseMsg();

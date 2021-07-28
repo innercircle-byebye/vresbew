@@ -6,7 +6,10 @@ ResponseHandler::ResponseHandler() {}
 
 ResponseHandler::~ResponseHandler() {}
 
-void ResponseHandler::setResponse(Response *response) { response_ = response; }
+void ResponseHandler::setResponse(Response *response, std::string *msg_body_buf) {
+  response_ = response;
+  msg_body_buf_ = msg_body_buf;
+}
 
 //TODO: setLocationConfig로 바꿔도 될지 확인해보기
 //      일단 안하는게 맞는걸로 확인되는데 다시 확인 필요...
@@ -79,7 +82,7 @@ void ResponseHandler::setResponseHeader() {
 }
 void ResponseHandler::setResponseBody() {
   if (response_->getResponseBody().size()) {
-    response_->getMsg() += response_->getResponseBody();
+    msg_body_buf_->append(response_->getResponseBody());
   }
 }
 
@@ -307,10 +310,10 @@ void ResponseHandler::setResponseBodyFromFile(std::string &uri, LocationConfig *
   std::ifstream file(getAccessPath(uri, location).c_str());
 
   file.seekg(0, std::ios::end);
-  this->response_->getResponseBody().reserve(file.tellg());
+  msg_body_buf_->reserve(file.tellg());
   file.seekg(0, std::ios::beg);
 
-  this->response_->getResponseBody().assign((std::istreambuf_iterator<char>(file)),
+  msg_body_buf_->assign((std::istreambuf_iterator<char>(file)),
                                             std::istreambuf_iterator<char>());
 }
 

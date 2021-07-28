@@ -14,13 +14,13 @@ void RequestHandler::appendMsg(const char *buffer) {
 }
 
 void RequestHandler::processByRecvPhase(Connection *c) {
-  if (request_->getRecvPhase() == MESSAGE_START_LINE_INCOMPLETE)
-    checkMsgForStartLine();
-  if (request_->getRecvPhase() == MESSAGE_START_LINE_COMPLETE)
-    parseStartLine();
-  if (request_->getRecvPhase() == MESSAGE_HEADER_INCOMPLETE)
-    checkMsgForHeader();
-  if (request_->getRecvPhase() == MESSAGE_HEADER_COMPLETE) {
+  if (c->getRecvPhase() == MESSAGE_START_LINE_INCOMPLETE)
+    checkMsgForStartLine(c);
+  if (c->getRecvPhase() == MESSAGE_START_LINE_COMPLETE)
+    parseStartLine(c);
+  if (c->getRecvPhase() == MESSAGE_HEADER_INCOMPLETE)
+    checkMsgForHeader(c);
+  if (c->getRecvPhase() == MESSAGE_HEADER_COMPLETE) {
     parseHeaderLines(c);
   }
   // if (request_->getRecvPhase() == MESSAGE_BODY_INCOMING)
@@ -30,35 +30,24 @@ void RequestHandler::processByRecvPhase(Connection *c) {
 }
 
 /* CHECK FUNCTIONS */
-void RequestHandler::checkMsgForStartLine() {
+void RequestHandler::checkMsgForStartLine(Connection *c) {
   size_t pos;
   if ((pos = request_->getMsg().find("\r\n")) != std::string::npos)
-    request_->setRecvPhase(MESSAGE_START_LINE_COMPLETE);
+    c->setRecvPhase(MESSAGE_START_LINE_COMPLETE);
 }
 
-void RequestHandler::checkMsgForHeader() {
+void RequestHandler::checkMsgForHeader(Connection *c) {
   size_t pos;
 
   if ((pos = request_->getMsg().find("\r\n\r\n")) != std::string::npos) {
-    request_->setRecvPhase(MESSAGE_HEADER_COMPLETE);
+    c->setRecvPhase(MESSAGE_HEADER_COMPLETE);
     return;
   }
   // TODO: header가 안들어온 경우 check
 }
 
-// void RequestHandler::appendMsgToEntityBody() {
-//   if ((size_t)request_->getBufferContentLength() <= request_->getMsg().size()) {
-//     this->request_->appendEntityBody(this->request_->getMsg().substr(0, (size_t)request_->getBufferContentLength()));
-//     this->request_->setBufferContentLength(0);
-//     request_->setRecvPhase(MESSAGE_BODY_COMPLETE);
-//   } else {
-//     this->request_->setBufferContentLength(request_->getBufferContentLength() - request_->getMsg().size());
-//     this->request_->appendEntityBody(this->request_->getMsg());
-//   }
-// }
-
 /* PARSE FUNCTIONS */
-void RequestHandler::parseStartLine() {
+void RequestHandler::parseStartLine(Connection *c) {
   // schema://host:port/uri?query
 
   size_t pos = request_->getMsg().find("\r\n");
@@ -79,7 +68,7 @@ void RequestHandler::parseStartLine() {
     ;
   request_->setHttpVersion(start_line_split[2]);
 
-  request_->setRecvPhase(MESSAGE_HEADER_INCOMPLETE);
+  c->setRecvPhase(MESSAGE_HEADER_INCOMPLETE);
 }
 
 int RequestHandler::parseUri(std::string uri_str) {
@@ -205,24 +194,7 @@ void RequestHandler::parseHeaderLines(Connection *c) {
   if (this->parseHeaderLine(header_lines) != 0)  // TODO: 반환값(0) 확인 필요
     request_->clear();
 
-  checkCgiRequest(c);
-  if (request_->getRecvPhase() == MESSAGE_CGI_PROCESS)
-    return ;
-  if (request_->getBufferContentLength() == 0)
-    request_->setRecvPhase(MESSAGE_BODY_COMPLETE);
-  else
-    request_->setRecvPhase(MESSAGE_BODY_INCOMING);
-}
-
-void RequestHandler::checkCgiRequest(Connection *c) {
-  ServerConfig *serverconfig_test = c->getHttpConfig()->getServerConfig(c->getSockaddrToConnect().sin_port, c->getSockaddrToConnect().sin_addr.s_addr, c->getRequest().getHeaderValue("Host"));
-  LocationConfig *locationconfig_test = serverconfig_test->getLocationConfig(c->getRequest().getUri());
-  //TODO: c->getRequest().getUri().find_last_of() 부분을 메세지 헤더의 mime_types로 확인하도록 교체/ 확인 필요
-  if (!locationconfig_test->getCgiPath().empty() &&
-      locationconfig_test->checkCgiExtension(c->getRequest().getUri())) {
-    c->getRequest().is_cgi_process = true;
-    c->getRequest().setRecvPhase(MESSAGE_CGI_PROCESS);
-  }
+  c->setRecvPhase(MESSAGE_HEADER_PARSED);
 }
 
 int RequestHandler::parseHeaderLine(std::string &one_header_line) {
@@ -235,17 +207,12 @@ int RequestHandler::parseHeaderLine(std::string &one_header_line) {
   key = key_and_value[0].erase(key_and_value[0].size() - 1);
   value = key_and_value[1];
 
-  if (!key.compare("Content-Length"))
-    request_->setBufferContentLength(stoi(value));
+
   if (!key.compare("Host") && !request_->getHost().empty())
     value = request_->getHost();
   // insert header
   this->request_->setHeader(key, value);
   return (0);
-}
-
-void RequestHandler::parseEntityBody() {
-  ;
 }
 
 /* UTILS */

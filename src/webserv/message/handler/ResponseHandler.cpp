@@ -141,8 +141,7 @@ void ResponseHandler::processGetAndHeaderMethod(Request &request, LocationConfig
     }
     setStatusLineWithCode("200");
     // body가 만들져 있지 않는 경우의 조건 추가
-    if (request.getMethod() == "GET" && !response_->getResponseBody().size() &&
-      request.getRecvPhase() != MESSAGE_CGI_COMPLETE)
+    if (request.getMethod() == "GET" && !response_->getResponseBody().size() )
       setResponseBodyFromFile(request.getUri(), location);
   }
 }

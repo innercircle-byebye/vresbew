@@ -10,10 +10,23 @@
 
 namespace ft {
 
+enum MessageFromBufferStatus {
+  MESSAGE_START_LINE_INCOMPLETE = 0,
+  MESSAGE_START_LINE_COMPLETE,
+  MESSAGE_HEADER_INCOMPLETE,
+  MESSAGE_HEADER_COMPLETE,
+  MESSAGE_HEADER_PARSED,
+  MESSAGE_CGI_PROCESS,
+  MESSAGE_CGI_INCOMING,
+  MESSAGE_CGI_COMPLETE,
+  MESSAGE_BODY_INCOMING,
+  MESSAGE_BODY_COMPLETE
+};
+
 enum ChunkedMessageStatus {
   CHUNKED_KEEP_COMING = 0,
   CHUNKED_ZERO_RN_RN,
-  CHUNKED_END //  필요없긴함
+  CHUNKED_END  //  필요없긴함
 };
 
 class Connection {
@@ -34,12 +47,17 @@ class Connection {
 
   Connection *next_;
 
+  // std::string msg_;  // buffer append시킬 string
+  int recv_phase_;  // msg가 얼마나 setting되었는지 알 수 있는 변수
+  int string_buffer_content_length_;
+
  public:
   char buffer_[BUF_SIZE];
+  std::string msg_;
   int writepipe[2], readpipe[2];
-  std::string temp_chunked;
-  std::string cgi_output_temp;
   int chunked_checker;
+  std::string temp_chunked;     //TODO: remove
+  std::string cgi_output_temp;  //TODO: remove
 
   Connection();
   ~Connection();
@@ -65,6 +83,12 @@ class Connection {
   Response &getResponse();
   HttpConfig *getHttpConfig();
   struct sockaddr_in &getSockaddrToConnect();
+
+  // 이전
+  int getRecvPhase() const;
+  int getStringBufferContentLength() const;
+  void setRecvPhase(int recv_phase);
+  void setStringBufferContentLength(int buffer_content_length);
 };
 }  // namespace ft
 #endif

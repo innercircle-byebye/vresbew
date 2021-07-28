@@ -42,11 +42,11 @@ class RequestHandler {
   static std::vector<std::string> splitByDelimiter(std::string const &str, char delimiter);
 
  private:
-  void checkMsgForStartLine();
-  void checkMsgForHeader();
+  void checkMsgForStartLine(Connection *c);
+  void checkMsgForHeader(Connection *c);
   void appendMsgToEntityBody();
 
-  void parseStartLine();
+  void parseStartLine(Connection *c);
   int parseUri(std::string uri_str);
   void parseHeaderLines(Connection *c);
   int parseHeaderLine(std::string &one_header_line);

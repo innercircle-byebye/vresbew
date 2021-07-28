@@ -8,9 +8,8 @@ ResponseHandler MessageHandler::response_handler_ = ResponseHandler();
 MessageHandler::MessageHandler() {}
 MessageHandler::~MessageHandler() {}
 
-void MessageHandler::handle_request(Connection *c) {
+void MessageHandler::handle_request_header(Connection *c) {
   //RequestHandler  request_handler_;
-  ;
   std::cout << "==========check_buffer=========" << std::endl;
   std::cout << c->buffer_ << std::endl;
   std::cout << "==========check_buffer=========" << std::endl;
@@ -26,45 +25,43 @@ void MessageHandler::handle_request(Connection *c) {
   // memset(c->buffer_, 0, BUF_SIZE);
 }
 
+void MessageHandler::check_cgi_request(Connection *c) {
+  ServerConfig *serverconfig_test = c->getHttpConfig()->getServerConfig(c->getSockaddrToConnect().sin_port, c->getSockaddrToConnect().sin_addr.s_addr, c->getRequest().getHeaderValue("Host"));
+  LocationConfig *locationconfig_test = serverconfig_test->getLocationConfig(c->getRequest().getUri());
+  //TODO: c->getRequest().getUri().find_last_of() 부분을 메세지 헤더의 mime_types로 확인하도록 교체/ 확인 필요
+  if (!locationconfig_test->getCgiPath().empty() &&
+      locationconfig_test->checkCgiExtension(c->getRequest().getUri())) {
+    c->setRecvPhase(MESSAGE_CGI_PROCESS);
+  }
+}
+
+void MessageHandler::check_body_status(Connection *c) {
+  if (c->getStringBufferContentLength() == 0)
+    c->setRecvPhase(MESSAGE_BODY_COMPLETE);
+  else
+    c->setRecvPhase(MESSAGE_BODY_INCOMING);
+}
+
 void MessageHandler::handle_request_body(Connection *c) {
-  if ((size_t)c->getRequest().getBufferContentLength() <= strlen(c->buffer_)) {
-    c->getRequest().appendEntityBody(c->buffer_, c->getRequest().getBufferContentLength());
-    c->getRequest().setBufferContentLength(0);
-    c->getRequest().setRecvPhase(MESSAGE_BODY_COMPLETE);
+  if ((size_t)c->getStringBufferContentLength() <= strlen(c->buffer_)) {
+    c->getRequest().appendEntityBody(c->buffer_, c->getStringBufferContentLength());
+    c->setStringBufferContentLength(0);
+    c->setRecvPhase(MESSAGE_BODY_COMPLETE);
   } else {
-    c->getRequest().setBufferContentLength(c->getRequest().getBufferContentLength() - c->getRequest().getMsg().size());
+    c->setStringBufferContentLength(c->getStringBufferContentLength() - strlen(c->buffer_));
     c->getRequest().appendEntityBody(c->buffer_);
   }
 }
 
-void MessageHandler::handle_cgi(Connection *c, LocationConfig *location) {
+void MessageHandler::init_cgi_child(Connection *c) {
+  ServerConfig *server_config = c->getHttpConfig()->getServerConfig(c->getSockaddrToConnect().sin_port, c->getSockaddrToConnect().sin_addr.s_addr, c->getRequest().getHeaderValue("Host"));
+  LocationConfig *location = server_config->getLocationConfig(c->getRequest().getUri());
   char **environ;
   char **command;
   pid_t pid;
   std::map<std::string, std::string> env_set;
   {
-    // if (!c->getRequest().getHeaderValue("Content-Length").empty()) {
-    //   env_set["CONTENT_LENGTH"] = c->getRequest().getHeaderValue("Content-Length");
-    // }
-    // if (c->getRequest().getMethod() == "GET") {
-    //   env_set["QUERY_STRING"] = c->getRequest().getEntityBody();
-    // }
-    // std::cout << "uri:" << c->getRequest().getUri() << std::endl;
-    // env_set["HTTP_HOST"] = c->getRequest().getHeaderValue("Host");
-    // env_set["REQUEST_METHOD"] = c->getRequest().getMethod();
-    // env_set["REDIRECT_STATUS"] = "CGI";
-    // env_set["SCRIPT_FILENAME"] = response_handler_.getAccessPath(c->getRequest().getUri(), location);
-    // env_set["SERVER_PROTOCOL"] = "HTTP/1.1";
-    // env_set["PATH_INFO"] = response_handler_.getAccessPath(c->getRequest().getUri(), location);
-    // env_set["CONTENT_TYPE"] = "application/x-www-form-urlencoded";
-    // env_set["GATEWAY_INTERFACE"] = "CGI/1.1";
-    // env_set["PATH_TRANSLATED"] = response_handler_.getAccessPath(c->getRequest().getUri(), location);
-    // env_set["REMOTE_ADDR"] = "127.0.0.1";  // TODO: ip주소 받아오는 부분 찾기
-
-    // env_set["REQUEST_URI"] = c->getRequest().getUri();
-    // env_set["SERVER_PORT"] = std::to_string(ntohs(c->getSockaddrToConnect().sin_port));  // 포트도
-    // env_set["SERVER_SOFTWARE"] = "versbew";
-    // env_set["SCRIPT_NAME"] = c->getRequest().getUri();
+    std::cout << "entity_body" << c->getRequest().getEntityBody() << std::endl;
     if (!c->getRequest().getHeaderValue("Content-Length").empty()) {
       env_set["CONTENT_LENGTH"] = c->getRequest().getHeaderValue("Content-Length");
     }
@@ -118,21 +115,21 @@ void MessageHandler::handle_cgi(Connection *c, LocationConfig *location) {
   // TODO: 실패 예외처리
   close(c->readpipe[1]);
 
-  if (c->getRequest().getMethod() == "GET") {
-    c->getRequest().setRecvPhase(MESSAGE_CGI_COMPLETE);
-    return;
-  }
-  if (!c->getRequest().getMsg().empty() &&
-      !c->getRequest().getHeaderValue("Content-Length").empty()) {
-    write(c->writepipe[1], c->getRequest().getMsg().c_str(), static_cast<size_t>(c->getRequest().getMsg().size()));
-    c->getRequest().setBufferContentLength(c->getRequest().getBufferContentLength() - c->getRequest().getMsg().size());
-    c->getRequest().getMsg().clear();
-    if ((size_t)c->getRequest().getBufferContentLength() == 0) {
-      c->getRequest().setRecvPhase(MESSAGE_CGI_COMPLETE);
-      return;
-    }
-  }
-  c->getRequest().setRecvPhase(MESSAGE_CGI_INCOMING);
+  if (c->getRequest().getMethod() == "GET")
+    c->setRecvPhase(MESSAGE_CGI_COMPLETE);
+  else
+    c->setRecvPhase(MESSAGE_CGI_INCOMING);
+
+  // if (!c->getRequest().getMsg().empty() &&
+  //     !c->getRequest().getHeaderValue("Content-Length").empty()) {
+  //   write(c->writepipe[1], c->getRequest().getMsg().c_str(), static_cast<size_t>(c->getRequest().getMsg().size()));
+  //   c->getRequest().setBufferContentLength(c->getRequest().getBufferContentLength() - c->getRequest().getMsg().size());
+  //   c->getRequest().getMsg().clear();
+  //   if ((size_t)c->getRequest().getBufferContentLength() == 0) {
+  //     c->getRequest().setRecvPhase(MESSAGE_CGI_COMPLETE);
+  //     return;
+  //   }
+  // }
 }
 
 void MessageHandler::process_cgi_header_chunked(Connection *c) {

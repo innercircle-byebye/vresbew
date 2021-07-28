@@ -23,10 +23,12 @@ class MessageHandler {
   ~MessageHandler();
 
  public:
-  static void handle_request(Connection *c);
+  static void handle_request_header(Connection *c);
+  static void check_cgi_request(Connection *c);
+  static void check_body_status(Connection *c);
   static void handle_request_body(Connection *c);
   static void handle_response(Connection *c);
-  static void handle_cgi(Connection *c, LocationConfig *location);
+  static void init_cgi_child(Connection *c);
   static void process_cgi_response(Connection *c);
   static void process_cgi_header_chunked(Connection *c);
 

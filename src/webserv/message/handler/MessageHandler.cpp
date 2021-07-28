@@ -114,19 +114,18 @@ void MessageHandler::init_cgi_child(Connection *c) {
   // TODO: 실패 예외처리
   close(c->readpipe[1]);
 
-  if (!c->getBodyBuf().empty())
-  {
+  if (!c->getBodyBuf().empty()) {
     write(c->writepipe[1], c->getBodyBuf().c_str(), (size_t)c->getBodyBuf().size());
     c->setStringBufferContentLength(c->getStringBufferContentLength() - c->getBodyBuf().size());
-    c->getBodyBuf().clear();// 뒤에서 또 쓰일걸 대비해 혹시몰라 초기화.. #2
+    c->getBodyBuf().clear();  // 뒤에서 또 쓰일걸 대비해 혹시몰라 초기화.. #2
   }
-  if (c->getStringBufferContentLength() <= 0)
-  {
-    c->setStringBufferContentLength(0); // 뒤에서 또 쓰일걸 대비해 혹시몰라 초기화.. #2
+  if ((c->getRequest().getMethod() == "POST" && c->getRequest().getHeaderValue("Content-Length").empty()) ||
+      c->getStringBufferContentLength() > 0)  // POST 요청에 request 헤더에 Content-Length가 안 주어 졌다
+    c->setRecvPhase(MESSAGE_CGI_INCOMING);
+  else {
+    c->setStringBufferContentLength(0);  // 뒤에서 또 쓰일걸 대비해 혹시몰라 초기화.. #2
     c->setRecvPhase(MESSAGE_CGI_COMPLETE);
   }
-  else
-    c->setRecvPhase(MESSAGE_CGI_INCOMING);
 
   // if (!c->getRequest().getMsg().empty() &&
   //     !c->getRequest().getHeaderValue("Content-Length").empty()) {

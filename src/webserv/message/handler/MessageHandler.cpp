@@ -60,6 +60,7 @@ void MessageHandler::handle_cgi(Connection *c, LocationConfig *location) {
     // env_set["GATEWAY_INTERFACE"] = "CGI/1.1";
     // env_set["PATH_TRANSLATED"] = response_handler_.getAccessPath(c->getRequest().getUri(), location);
     // env_set["REMOTE_ADDR"] = "127.0.0.1";  // TODO: ip주소 받아오는 부분 찾기
+
     // env_set["REQUEST_URI"] = c->getRequest().getUri();
     // env_set["SERVER_PORT"] = std::to_string(ntohs(c->getSockaddrToConnect().sin_port));  // 포트도
     // env_set["SERVER_SOFTWARE"] = "versbew";
@@ -79,10 +80,14 @@ void MessageHandler::handle_cgi(Connection *c, LocationConfig *location) {
     env_set["GATEWAY_INTERFACE"] = "CGI/1.1";
     env_set["PATH_TRANSLATED"] = response_handler_.getAccessPath(c->getRequest().getUri(), location);
     env_set["REMOTE_ADDR"] = "127.0.0.1";  // TODO: ip주소 받아오는 부분 찾기
-    env_set["REQUEST_URI"] = response_handler_.getAccessPath(c->getRequest().getUri(), location);
+    if (c->getRequest().getMethod() == "GET")
+      env_set["REQUEST_URI"] = c->getRequest().getUri() + "?" + c->getRequest().getEntityBody();
+    else
+      env_set["REQUEST_URI"] = response_handler_.getAccessPath(c->getRequest().getUri(), location);
+    env_set["HTTP_HOST"] = c->getRequest().getHeaderValue("Host");
     env_set["SERVER_PORT"] = std::to_string(ntohs(c->getSockaddrToConnect().sin_port));  // 포트도
     env_set["SERVER_SOFTWARE"] = "versbew";
-    env_set["SCRIPT_NAMME"] = location->getCgiPath();
+    env_set["SCRIPT_NAME"] = location->getCgiPath();
   }
   environ = response_handler_.setEnviron(env_set);
   command = response_handler_.setCommand(location->getCgiPath(), response_handler_.getAccessPath(c->getRequest().getUri(), location));

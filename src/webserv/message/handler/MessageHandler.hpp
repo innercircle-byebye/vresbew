@@ -32,6 +32,7 @@ class MessageHandler {
   static void process_cgi_header(Connection *c);
   static void process_cgi_header_chunked(Connection *c);
   static void set_response_header(Connection *c);
+  static void set_response_body(Connection *c);
   static void send_response_to_client(Connection *c);
 
  private:

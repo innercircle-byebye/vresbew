@@ -75,7 +75,6 @@ void Kqueue::kqueueProcessEvents(SocketManager *sm) {
         } else if (c->getRecvPhase() == MESSAGE_CGI_INCOMING) {
           std::cout << "i'm here" << std::endl;
           // 한번의 버퍼 안에 전체 메세지가 다 들어 올 경우
-
           if (static_cast<int>(recv_len) == -1)
             break;
           // Transfer-Encoding : chunked 아닐 때 (= Content-Length가 있을 때)
@@ -139,7 +138,6 @@ void Kqueue::kqueueProcessEvents(SocketManager *sm) {
           }
         }
         if (c->getRecvPhase() == MESSAGE_BODY_COMPLETE || c->getRecvPhase() == MESSAGE_CGI_COMPLETE) {
-          //TODO: 전반적인 정리가 필요하다
           kqueueSetEvent(c, EVFILT_WRITE, EV_ADD | EV_ONESHOT);
         }
         memset(c->buffer_, 0, recv_len);
@@ -157,14 +155,12 @@ void Kqueue::kqueueProcessEvents(SocketManager *sm) {
           nbytes = read(c->readpipe[0], c->buffer_, BUF_SIZE);
           c->appendBodyBuf(c->buffer_);
           MessageHandler::process_cgi_header(c);
-          // ***********************
-          // cgi 에러 처리를 여기서??
-          // **********************
           memset(c->buffer_, 0, nbytes);
         }
         // MessageHandler::handle_response(c);
         // TODO: 리네임 (이 함수에서 서버 내부 동작도 처리함)
         MessageHandler::set_response_header(c);
+        MessageHandler::set_response_body(c);
 
         // TODO:
         MessageHandler::send_response_to_client(c);

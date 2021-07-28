@@ -10,9 +10,9 @@ MessageHandler::~MessageHandler() {}
 
 void MessageHandler::handle_request_header(Connection *c) {
   //RequestHandler  request_handler_;
-  std::cout << "==========check_buffer=========" << std::endl;
-  std::cout << c->buffer_ << std::endl;
-  std::cout << "==========check_buffer=========" << std::endl;
+  // std::cout << "==========check_buffer=========" << std::endl;
+  // std::cout << c->buffer_ << std::endl;
+  // std::cout << "==========check_buffer=========" << std::endl;
 
   // recv(c->getFd(), c->buffer_, BUF_SIZE, 0);
   // 2. request_handler의 request가 c의 request가 되도록 세팅

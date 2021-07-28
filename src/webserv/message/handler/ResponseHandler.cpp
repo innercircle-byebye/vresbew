@@ -23,12 +23,6 @@ void ResponseHandler::setResponseFields(Request &request) {
     return;
   }
 
-  if (this->response_->getHeaderValue("X-Powered-By") == "PHP/8.0.7" &&
-      this->response_->getHeaderValue("Status").empty()) {
-    setStatusLineWithCode("200");
-    return ;
-  }
-
   if (request.getMethod() == "GET" || request.getMethod() == "HEAD")
     processGetAndHeaderMethod(request, location);
   else if (request.getMethod() == "PUT")
@@ -48,10 +42,16 @@ void ResponseHandler::setResponseFields(Request &request) {
 /*-----------------------MAKING RESPONSE MESSAGE-----------------------------*/
 
 // 흐름상 가장 아래에 위치함
-void ResponseHandler::makeResponseMsg() {
+// void ResponseHandler::makeResponseMsg() {
+//   setResponseStatusLine();
+//   setResponseHeader();
+//   // setResponseBody();
+// }
+
+void ResponseHandler::makeResponseHeader() {
   setResponseStatusLine();
   setResponseHeader();
-  setResponseBody();
+  // setResponseBody();
 }
 
 // Response::response_ setter begin
@@ -125,6 +125,14 @@ std::string ResponseHandler::getDefaultErrorBody(std::string status_code, std::s
 
 void ResponseHandler::processGetAndHeaderMethod(Request &request, LocationConfig *&location) {
   //need last modified header
+
+  // TODO: connection의 status_code를 보고 결정하도록...
+  if (this->response_->getHeaderValue("X-Powered-By") == "PHP/8.0.7" &&
+      this->response_->getHeaderValue("Status").empty()) {
+    setStatusLineWithCode("200");
+    return;
+  }
+
   // TODO: REQUEST에서 처리 해야될 수도 있을것같음
   if (*(request.getUri().rbegin()) == '/') {
     findIndexForGetWhenOnlySlash(request, location);

@@ -131,43 +131,6 @@ void MessageHandler::init_cgi_child(Connection *c) {
   // }
 }
 
-// void MessageHandler::process_cgi_header_chunked(Connection *c) {
-//   MessageHandler::response_handler_.setResponse(&c->getResponse());
-
-//   size_t pos = c->cgi_output_temp.find("\r\n\r\n");
-//   std::string cgi_header_lines = c->cgi_output_temp.substr(0, pos);
-//   {
-//     size_t pos = c->cgi_output_temp.find("\r\n\r\n");
-//     cgi_header_lines = c->cgi_output_temp.substr(0, pos);
-//     c->cgi_output_temp.erase(0, pos + 4);
-
-//     while ((pos = cgi_header_lines.find("\r\n")) != std::string::npos) {
-//       std::string one_header_line = cgi_header_lines.substr(0, pos);
-//       std::vector<std::string> key_and_value = request_handler_.splitByDelimiter(one_header_line, SPACE);
-//       // @sungyongcho: 저는 CGI 실행파일을 믿습니다...
-//       // if (key_and_value.size() != 2)  // 400 Bad Request
-//       //   ;
-//       std::string key, value;
-//       // parse key and validation
-//       key = key_and_value[0].erase(key_and_value[0].size() - 1);
-//       value = key_and_value[1];
-//       // TODO: cgi의 위치를 한번 이동 할 예정...
-//       // MessageHandler::response_handler_.setResponse(&c->getResponse());
-//       if (key.compare("Status") == 0) {
-//         // response_handler_.setStatusLineWithCode(value);
-//         std::cout << "valu222222222: " << value << std::endl;
-//         c->getResponse().setStatusCode(value);
-//       }
-//       std::cout << "keyeeee: " << key << std::endl;
-//       std::cout << "valueeeee: " << value << std::endl;
-//       if (key.compare("Status") != 0)
-//         c->getResponse().setHeader(key, value);
-//       cgi_header_lines.erase(0, pos + 2);
-//     }
-//   }
-//   cgi_header_lines.clear();
-// }
-
 void MessageHandler::process_cgi_header(Connection *c) {
   MessageHandler::response_handler_.setResponse(&c->getResponse());
 
@@ -207,10 +170,6 @@ void MessageHandler::process_cgi_header(Connection *c) {
   // c->cgi_output_temp.clear();
 }
 
-std::string MessageHandler::parseCgiHeader(const std::string &cgi_output) {
-  return (cgi_output);
-}
-
 // void MessageHandler::handle_response(Connection *c) {
 //   //ResponseHandler response_handler_;
 //   response_handler_.setResponse(&c->getResponse());
@@ -242,39 +201,90 @@ std::string MessageHandler::parseCgiHeader(const std::string &cgi_output) {
 //   send(c->getFd(), c->getResponse().getMsg().c_str(), c->getResponse().getMsg().size(), 0);
 // }
 
-void MessageHandler::handle_response(Connection *c) {
+// void MessageHandler::handle_response(Connection *c) {
+//   //ResponseHandler response_handler_;
+//   response_handler_.setResponse(&c->getResponse());
+//   response_handler_.setServerConfig(c->getHttpConfig(), c->getSockaddrToConnect(), c->getRequest().getHeaderValue("Host"));
+//   // TODO: HTTP/1.0 일 때 로직 복구 필요
+//   // request에서 처리할지, response에서 처리할지 결정 필요
+
+//   if (c->getRequest().getHttpVersion() == "HTTP/1.0" && !c->getRequest().getHeaders().count("Host"))
+//     c->getRequest().setHeader("Host", "");
+//   if (!isValidRequestMethod(c->getRequest().getMethod()) ||
+//       !isValidRequestVersion(c->getRequest().getHttpVersion(), c->getRequest().getHeaders()))
+//     response_handler_.setStatusLineWithCode("400");
+//   // else if (c->getBodyBuf().size() > 0)
+//   // {
+//   //   std::cout << "nigga" << std::endl;
+//   //   response_handler_.setStatusLineWithCode(c->status_code_);
+//   // }
+//   else
+//     response_handler_.setResponseFields(c->getRequest());
+//   response_handler_.makeResponseMsg();
+
+//   // TODO: 이동가능
+//   /// executePutMEthod가 있던 자리...
+//   if (c->getRequest().getMethod() == "PUT" &&
+//       (c->getResponse().getStatusCode() == "201" || (c->getResponse().getStatusCode() == "204"))) {
+//     // create response body
+//     executePutMethod(response_handler_.getAccessPath(c->getRequest().getUri()), c->getRequest().getEntityBody());
+//   }
+
+//   // if (c->getResponse().getHeaderValue("X-Powered-By") == "PHP/8.0.7" &&
+//   //     c->getResponse().getHeaderValue("Status").empty()) {
+//   //   return;
+//   // } else
+//   send(c->getFd(), c->getResponse().getMsg().c_str(), c->getResponse().getMsg().size(), 0);
+// }
+
+void MessageHandler::set_response_header(Connection *c) {
   //ResponseHandler response_handler_;
   response_handler_.setResponse(&c->getResponse());
   response_handler_.setServerConfig(c->getHttpConfig(), c->getSockaddrToConnect(), c->getRequest().getHeaderValue("Host"));
   // TODO: HTTP/1.0 일 때 로직 복구 필요
   // request에서 처리할지, response에서 처리할지 결정 필요
 
-  if (c->getRequest().getHttpVersion() == "HTTP/1.0" && !c->getRequest().getHeaders().count("Host"))
-    c->getRequest().setHeader("Host", "");
-  if (!isValidRequestMethod(c->getRequest().getMethod()) ||
-      !isValidRequestVersion(c->getRequest().getHttpVersion(), c->getRequest().getHeaders()))
-    response_handler_.setStatusLineWithCode("400");
-  // else if (c->getBodyBuf().size() > 0)
-  // {
-  //   std::cout << "nigga" << std::endl;
-  //   response_handler_.setStatusLineWithCode(c->status_code_);
-  // }
-  else
-    response_handler_.setResponseFields(c->getRequest());
-  response_handler_.makeResponseMsg();
+  response_handler_.setResponseFields(c->getRequest());
 
-  // TODO: 이동가능
-  /// executePutMEthod가 있던 자리...
   if (c->getRequest().getMethod() == "PUT" &&
       (c->getResponse().getStatusCode() == "201" || (c->getResponse().getStatusCode() == "204"))) {
     // create response body
     executePutMethod(response_handler_.getAccessPath(c->getRequest().getUri()), c->getRequest().getEntityBody());
   }
+}
 
-  // if (c->getResponse().getHeaderValue("X-Powered-By") == "PHP/8.0.7" &&
-  //     c->getResponse().getHeaderValue("Status").empty()) {
-  //   return;
-  // } else
+void MessageHandler::send_response_to_client(Connection *c) {
+  response_handler_.makeResponseHeader();
+  if (c->getRecvPhase() == MESSAGE_CGI_COMPLETE) {
+    size_t nbytes;
+    // content-length가 없을때 : chunked 요청, client로 바로 쏴줌
+    // chunked로 응답도..
+    if (c->getRequest().getHeaderValue("Content-Length").empty()) {
+      send(c->getFd(), c->getResponse().getMsg().c_str(), c->getResponse().getMsg().size(), 0);
+      send(c->getFd(), c->getBodyBuf().c_str(), (size_t)c->getBodyBuf().size(), 0);
+      while ((nbytes = read(c->readpipe[0], c->buffer_, BUF_SIZE))) {
+        send(c->getFd(), c->buffer_, nbytes, 0);
+        memset(c->buffer_, 0, nbytes);
+      }
+    }
+    // content-length가 없을때 : request의 body 에 값 저장
+    else {
+      c->getResponse().getResponseBody().append(c->getBodyBuf());
+      while ((nbytes = read(c->readpipe[0], c->buffer_, BUF_SIZE))) {
+        c->getResponse().getResponseBody().append(c->buffer_);
+        memset(c->buffer_, 0, nbytes);
+      }
+    }
+    close(c->readpipe[0]);
+    close(c->readpipe[1]);
+    close(c->writepipe[0]);
+    close(c->writepipe[1]);
+    // send(c->getFd(), &"0", 1, 0);
+    wait(NULL);
+  }
+  if (c->getRequest().getHeaderValue("Content-Length").empty())
+    return;
+  response_handler_.setResponseBody();
   send(c->getFd(), c->getResponse().getMsg().c_str(), c->getResponse().getMsg().size(), 0);
 }
 

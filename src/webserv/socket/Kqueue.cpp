@@ -150,61 +150,32 @@ void Kqueue::kqueueProcessEvents(SocketManager *sm) {
         sm->closeConnection(c);
       } else {
         // TODO: CGI 프로세스의 결과값을 읽어 오는 부분을
-        // event queue, fd 와 연계해서 처리함
+        // cgi 자식 프로세스에서 header만 읽어 와 처리
         if (c->getRecvPhase() == MESSAGE_CGI_COMPLETE) {
           std::cout << "am i even working" << std::endl;
           size_t nbytes;
-          bool isHeaderParsed = false;
-          // TODO: header 에 Transfer-encoding: chunked 일 때로 조건 변경
-          // content-length가 없을때 : chunked 요청
-          // chunked로 응답도..
-          // if (c->getRequest().getHeaderValue("Content-Length").empty()) {
-          //   while ((nbytes = read(c->readpipe[0], c->buffer_, BUF_SIZE))) {
-          //     if (c->getResponse().getStatusCode().empty()) {
-          //       c->appendBodyBuf(c->buffer_);
-          //       if (c->cgi_output_temp.find("\r\n\r\n") != std::string::npos) {
-          //         MessageHandler::process_cgi_header_chunked(c);
-          //         MessageHandler::handle_response(c);
-          //         send(c->getFd(), c->cgi_output_temp.c_str(), (size_t)(c->cgi_output_temp.size()), 0);
-          //         c->cgi_output_temp.clear();
-          //       }
-          //     } else
-          //       send(c->getFd(), c->buffer_, nbytes, 0);
-          //     memset(c->buffer_, 0, nbytes);
-          //   }
-          // } else {
-          while ((nbytes = read(c->readpipe[0], c->buffer_, BUF_SIZE))) {
-            if (isHeaderParsed == false) {
-              c->appendBodyBuf(c->buffer_);
-              MessageHandler::process_cgi_header(c);
-              MessageHandler::handle_response(c);
-              if (!c->getBodyBuf().empty())
-              {
-                send(c->getFd(), c->getBodyBuf().c_str(), (size_t)c->getBodyBuf().size(), 0);
-                c->getBodyBuf().clear();
-              }
-              isHeaderParsed = true;
-            } else {
-              send(c->getFd(), c->buffer_, nbytes, 0);
-            }
-            memset(c->buffer_, 0, nbytes);
-          }
-          close(c->readpipe[0]);
-          close(c->readpipe[1]);
-          close(c->writepipe[0]);
-          close(c->writepipe[1]);
-          // send(c->getFd(), &"0", 1, 0);
-          wait(NULL);
-        } else
-          MessageHandler::handle_response(c);
-      }
+          nbytes = read(c->readpipe[0], c->buffer_, BUF_SIZE);
+          c->appendBodyBuf(c->buffer_);
+          MessageHandler::process_cgi_header(c);
+          // ***********************
+          // cgi 에러 처리를 여기서??
+          // **********************
+          memset(c->buffer_, 0, nbytes);
+        }
+        // MessageHandler::handle_response(c);
+        // TODO: 리네임 (이 함수에서 서버 내부 동작도 처리함)
+        MessageHandler::set_response_header(c);
 
-      if (!c->getResponse().getHeaderValue("Connection").compare("close") ||
-          !c->getRequest().getHttpVersion().compare("HTTP/1.0")) {
-        sm->closeConnection(c);
+        // TODO:
+        MessageHandler::send_response_to_client(c);
+
+        if (!c->getResponse().getHeaderValue("Connection").compare("close") ||
+            !c->getRequest().getHttpVersion().compare("HTTP/1.0")) {
+          sm->closeConnection(c);
+        }
+        c->getRequest().clear();
+        c->getResponse().clear();
       }
-      c->getRequest().clear();
-      c->getResponse().clear();
     }
   }
 }

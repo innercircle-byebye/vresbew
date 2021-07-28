@@ -31,12 +31,13 @@ class MessageHandler {
   static void init_cgi_child(Connection *c);
   static void process_cgi_header(Connection *c);
   static void process_cgi_header_chunked(Connection *c);
+  static void set_response_header(Connection *c);
+  static void send_response_to_client(Connection *c);
 
-private:
+ private:
   static void executePutMethod(std::string path, std::string content);
   static bool isValidRequestMethod(const std::string &method);
   static bool isValidRequestVersion(const std::string &http_version, const std::map<std::string, std::string> &headers);
-  std::string parseCgiHeader(const std::string &cgi_output);
 };
 }  // namespace ft
 #endif

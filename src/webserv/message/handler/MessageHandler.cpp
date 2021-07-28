@@ -84,11 +84,12 @@ void MessageHandler::handle_cgi(Connection *c, LocationConfig *location) {
     c->getRequest().setRecvPhase(MESSAGE_CGI_COMPLETE);
     return;
   }
-  if (!c->getRequest().getMsg().empty()) {
+  if (!c->getRequest().getMsg().empty() &&
+        !c->getRequest().getHeaderValue("Content-Length").empty() ){
     write(c->writepipe[1], c->getRequest().getMsg().c_str(), static_cast<size_t>(c->getRequest().getMsg().size()));
     c->getRequest().setBufferContentLength(c->getRequest().getBufferContentLength() - c->getRequest().getMsg().size());
     c->getRequest().getMsg().clear();
-    if ((size_t)c->getRequest().getBufferContentLength() == 0) {
+    if ((size_t)c->getRequest().getBufferContentLength() == 0 ) {
       c->getRequest().setRecvPhase(MESSAGE_CGI_COMPLETE);
       return;
     }

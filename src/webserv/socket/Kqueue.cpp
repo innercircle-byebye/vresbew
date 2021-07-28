@@ -90,21 +90,55 @@ void Kqueue::kqueueProcessEvents(SocketManager *sm) {
           // Request에서 Content-Length 헤더가 주어지지 않을 때
           // (= Transfer-Encoding: chunked 헤더가 주어 젔을 때)
           else {
-            write(c->writepipe[1], c->buffer_, recv_len);
-            std::cout << "buffer: " << c->buffer_ << std::endl;
-            if (!strcmp(c->buffer_, "0\r\n")) {
-              c->chunked_checker = CHUNKED_ZERO_RN_RN;
-            } else if (c->chunked_checker == CHUNKED_ZERO_RN_RN && !strcmp(c->buffer_, "\r\n")) {
-              c->getRequest().setRecvPhase(MESSAGE_CGI_COMPLETE);
-              close(c->writepipe[1]);
-            } else
-              c->chunked_checker = CHUNKED_KEEP_COMING;
+            if (!c->getRequest().getMsg().empty()) {
+              size_t pos;
+
+              while (c->getRequest().getMsg().find("\r\n") != std::string::npos) {
+                pos = c->getRequest().getMsg().find("\r\n");
+                std::string temp_msg = c->getRequest().getMsg().substr(0, pos + 2);
+                std::cout << "tempsize: " << pos << std::endl;
+
+                std::cout << "before: " << temp_msg << std::endl;
+                write(c->writepipe[1], temp_msg.c_str(), (size_t)temp_msg.size());
+                if (temp_msg == "0\r\n") {
+                  c->chunked_checker = CHUNKED_ZERO_RN_RN;
+                  // } else if (c->getRequest().getMsg().substr(0, pos) == "0\r\n\r\n") {
+                  //   c->getRequest().setRecvPhase(MESSAGE_CGI_COMPLETE);
+                  //   close(c->writepipe[1]);
+                } else if (c->chunked_checker == CHUNKED_ZERO_RN_RN && temp_msg == "\r\n") {
+                  c->chunked_checker =CHUNKED_END;
+                  c->getRequest().setRecvPhase(MESSAGE_CGI_COMPLETE);
+                  close(c->writepipe[1]);
+                } else {
+                  c->chunked_checker = CHUNKED_KEEP_COMING;
+                }
+                c->getRequest().getMsg().erase(0, pos + 2);
+                temp_msg.clear();
+                // std::cout << "after: " << c->getRequest().getMsg() << std::endl;
+              }
+              c->getRequest().getMsg().clear();
+            }
+            if (c->chunked_checker != CHUNKED_END) {
+              std::cout << "aftermath: " << c->buffer_ << std::endl;
+              write(c->writepipe[1], c->buffer_, recv_len);
+              if (!strcmp(c->buffer_, "0\r\n")) {
+                c->chunked_checker = CHUNKED_ZERO_RN_RN;
+                // } else if (!strcmp(c->buffer_, "0\r\n\r\n")) {
+                //   c->getRequest().setRecvPhase(MESSAGE_CGI_COMPLETE);
+                //   close(c->writepipe[1]);
+              } else if (c->chunked_checker == CHUNKED_ZERO_RN_RN && !strcmp(c->buffer_, "\r\n")) {
+                c->getRequest().setRecvPhase(MESSAGE_CGI_COMPLETE);
+                close(c->writepipe[1]);
+              } else
+                c->chunked_checker = CHUNKED_KEEP_COMING;
+            }
           }
           memset(c->buffer_, 0, recv_len);
         }
-        if (c->getRequest().getRecvPhase() == MESSAGE_BODY_COMPLETE
-        || c->getRequest().getRecvPhase() == MESSAGE_CGI_COMPLETE) {
+        if (c->getRequest().getRecvPhase() == MESSAGE_BODY_COMPLETE || c->getRequest().getRecvPhase() == MESSAGE_CGI_COMPLETE) {
           //TODO: 전반적인 정리가 필요하다
+          std::cout << "am i even working" << std::endl;
+
           kqueueSetEvent(c, EVFILT_WRITE, EV_ADD | EV_ONESHOT);
           memset(c->buffer_, 0, sizeof(c->buffer_));
         }
@@ -117,6 +151,7 @@ void Kqueue::kqueueProcessEvents(SocketManager *sm) {
         // TODO: CGI 프로세스의 결과값을 읽어 오는 부분을
         // event queue, fd 와 연계해서 처리함
         if (c->getRequest().getRecvPhase() == MESSAGE_CGI_COMPLETE) {
+          std::cout << "am i even working" << std::endl;
           int nbytes;
           // TODO: header 에 Transfer-encoding: chunked 일 때로 조건 변경
           // content-length가 없을때 : chunked 요청

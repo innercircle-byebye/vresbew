@@ -65,7 +65,6 @@ void Kqueue::kqueueProcessEvents(SocketManager *sm) {
         if (c->getRequest().getRecvPhase() == MESSAGE_BODY_INCOMING) {
           MessageHandler::handle_request_body(c);
         }
-
         if (c->getRequest().getRecvPhase() == MESSAGE_CGI_PROCESS) {
           ServerConfig *serverconfig_test = c->getHttpConfig()->getServerConfig(c->getSockaddrToConnect().sin_port, c->getSockaddrToConnect().sin_addr.s_addr, c->getRequest().getHeaderValue("Host"));
           LocationConfig *locationconfig_test = serverconfig_test->getLocationConfig(c->getRequest().getUri());

@@ -23,10 +23,10 @@ void MessageHandler::handle_request(Connection *c) {
   // 4. process by recv_phase
   request_handler_.processByRecvPhase(c);
   // 5. clear c->buffer_
+  // memset(c->buffer_, 0, BUF_SIZE);
 }
 
 void MessageHandler::handle_request_body(Connection *c) {
-
   if ((size_t)c->getRequest().getBufferContentLength() <= strlen(c->buffer_)) {
     c->getRequest().appendEntityBody(c->buffer_, c->getRequest().getBufferContentLength());
     c->getRequest().setBufferContentLength(0);
@@ -43,14 +43,33 @@ void MessageHandler::handle_cgi(Connection *c, LocationConfig *location) {
   pid_t pid;
   std::map<std::string, std::string> env_set;
   {
+    // if (!c->getRequest().getHeaderValue("Content-Length").empty()) {
+    //   env_set["CONTENT_LENGTH"] = c->getRequest().getHeaderValue("Content-Length");
+    // }
+    // if (c->getRequest().getMethod() == "GET") {
+    //   env_set["QUERY_STRING"] = c->getRequest().getEntityBody();
+    // }
+    // std::cout << "uri:" << c->getRequest().getUri() << std::endl;
+    // env_set["HTTP_HOST"] = c->getRequest().getHeaderValue("Host");
+    // env_set["REQUEST_METHOD"] = c->getRequest().getMethod();
+    // env_set["REDIRECT_STATUS"] = "CGI";
+    // env_set["SCRIPT_FILENAME"] = response_handler_.getAccessPath(c->getRequest().getUri(), location);
+    // env_set["SERVER_PROTOCOL"] = "HTTP/1.1";
+    // env_set["PATH_INFO"] = response_handler_.getAccessPath(c->getRequest().getUri(), location);
+    // env_set["CONTENT_TYPE"] = "application/x-www-form-urlencoded";
+    // env_set["GATEWAY_INTERFACE"] = "CGI/1.1";
+    // env_set["PATH_TRANSLATED"] = response_handler_.getAccessPath(c->getRequest().getUri(), location);
+    // env_set["REMOTE_ADDR"] = "127.0.0.1";  // TODO: ip주소 받아오는 부분 찾기
+    // env_set["REQUEST_URI"] = c->getRequest().getUri();
+    // env_set["SERVER_PORT"] = std::to_string(ntohs(c->getSockaddrToConnect().sin_port));  // 포트도
+    // env_set["SERVER_SOFTWARE"] = "versbew";
+    // env_set["SCRIPT_NAME"] = c->getRequest().getUri();
     if (!c->getRequest().getHeaderValue("Content-Length").empty()) {
       env_set["CONTENT_LENGTH"] = c->getRequest().getHeaderValue("Content-Length");
     }
     if (c->getRequest().getMethod() == "GET") {
       env_set["QUERY_STRING"] = c->getRequest().getEntityBody();
     }
-    std::cout << "uri:" << c->getRequest().getUri() << std::endl;
-    env_set["HTTP_HOST"] = c->getRequest().getHeaderValue("Host");
     env_set["REQUEST_METHOD"] = c->getRequest().getMethod();
     env_set["REDIRECT_STATUS"] = "CGI";
     env_set["SCRIPT_FILENAME"] = response_handler_.getAccessPath(c->getRequest().getUri(), location);
@@ -60,10 +79,10 @@ void MessageHandler::handle_cgi(Connection *c, LocationConfig *location) {
     env_set["GATEWAY_INTERFACE"] = "CGI/1.1";
     env_set["PATH_TRANSLATED"] = response_handler_.getAccessPath(c->getRequest().getUri(), location);
     env_set["REMOTE_ADDR"] = "127.0.0.1";  // TODO: ip주소 받아오는 부분 찾기
-    env_set["REQUEST_URI"] = c->getRequest().getUri();
+    env_set["REQUEST_URI"] = response_handler_.getAccessPath(c->getRequest().getUri(), location);
     env_set["SERVER_PORT"] = std::to_string(ntohs(c->getSockaddrToConnect().sin_port));  // 포트도
     env_set["SERVER_SOFTWARE"] = "versbew";
-    env_set["SCRIPT_NAME"] = c->getRequest().getUri();
+    env_set["SCRIPT_NAMME"] = location->getCgiPath();
   }
   environ = response_handler_.setEnviron(env_set);
   command = response_handler_.setCommand(location->getCgiPath(), response_handler_.getAccessPath(c->getRequest().getUri(), location));

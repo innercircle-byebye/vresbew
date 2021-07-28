@@ -171,6 +171,8 @@ void Kqueue::kqueueProcessEvents(SocketManager *sm) {
         }
         c->getRequest().clear();
         c->getResponse().clear();
+        c->getBodyBuf().clear();
+        c->setRecvPhase(MESSAGE_START_LINE_INCOMPLETE);
       }
     }
   }

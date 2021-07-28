@@ -80,11 +80,11 @@ void ResponseHandler::setResponseHeader() {
   }
   response_->getMsg() += "\r\n";
 }
-void ResponseHandler::setResponseBody() {
-  if (response_->getResponseBody().size()) {
-    msg_body_buf_->append(response_->getResponseBody());
-  }
-}
+// void ResponseHandler::setResponseBody() {
+//   if (response_->getResponseBody().size()) {
+//     msg_body_buf_->append(response_->getResponseBody());
+//   }
+// }
 
 // Response::response_ setter end
 
@@ -97,10 +97,8 @@ void ResponseHandler::setStatusLineWithCode(const std::string &status_code) {
   // TODO: fix this garbage conditional statement...
   if (!(!status_code.compare("200") ||
         !status_code.compare("201") ||
-        !status_code.compare("204") ||
-        !status_code.compare("999")))
-    this->response_->getResponseBody() =
-        getDefaultErrorBody(this->response_->getStatusCode(), this->response_->getStatusMessage());
+        !status_code.compare("204") ))
+    msg_body_buf_->append(getDefaultErrorBody(this->response_->getStatusCode(), this->response_->getStatusMessage()));
 }
 
 std::string ResponseHandler::getDefaultErrorBody(std::string status_code, std::string status_message) {
@@ -158,7 +156,7 @@ void ResponseHandler::processGetAndHeaderMethod(Request &request, LocationConfig
     }
     setStatusLineWithCode("200");
     // body가 만들져 있지 않는 경우의 조건 추가
-    if (request.getMethod() == "GET" && !response_->getResponseBody().size())
+    if (request.getMethod() == "GET" && msg_body_buf_->empty())
       setResponseBodyFromFile(request.getUri(), location);
   }
 }

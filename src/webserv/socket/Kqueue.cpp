@@ -74,9 +74,8 @@ void Kqueue::kqueueProcessEvents(SocketManager *sm) {
           std::cout << "i'm here" << std::endl;
           // 한번의 버퍼 안에 전체 메세지가 다 들어 올 경우
 
-          size_t recv_len;
 
-          if (static_cast<int>(recv_len = recv(c->getFd(), c->buffer_, BUF_SIZE, 0)) == -1)
+          if (static_cast<int>(recv_len) == -1)
             break;
           // Transfer-Encoding : chunked 아닐 때 (= Content-Length가 있을 때)
           if (!c->getRequest().getHeaderValue("Content-Length").empty()) {

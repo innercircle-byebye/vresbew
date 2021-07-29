@@ -84,24 +84,28 @@ void Kqueue::kqueueProcessEvents(SocketManager *sm) {
         Logger::logError(LOG_ALERT, "%d kevent() reported about an %d reader disconnects", events, (int)event_list_[i].ident);
         sm->closeConnection(c);
       } else {
-        // TODO: CGI 프로세스의 결과값을 읽어 오는 부분을
-        // cgi 자식 프로세스에서 header만 읽어 와 처리
         if (c->getRecvPhase() == MESSAGE_CGI_COMPLETE) {
-          std::cout << "am i even working" << std::endl;
-          size_t nbytes;
-          nbytes = read(c->readpipe[0], c->buffer_, BUF_SIZE);
-          c->appendBodyBuf(c->buffer_);
           CgiHandler::handle_cgi_header(c);
-          memset(c->buffer_, 0, nbytes);
+          if (c->getRequest().getMethod() == "POST" &&
+              c->getRequest().getHeaderValue("Content-Length").empty()) {
+            CgiHandler::send_chunked_cgi_response_to_client_and_close(c);
+            c->clear();
+            if (!c->getResponse().getHeaderValue("Connection").compare("close") ||
+                !c->getRequest().getHttpVersion().compare("HTTP/1.0")) {
+              sm->closeConnection(c);
+            }
+            continue;
+          } else
+            CgiHandler::receive_cgi_body(c);
         }
         MessageHandler::set_response_header(c);
         MessageHandler::set_response_body(c);
         MessageHandler::send_response_to_client(c);
+        c->clear();
         if (!c->getResponse().getHeaderValue("Connection").compare("close") ||
             !c->getRequest().getHttpVersion().compare("HTTP/1.0")) {
           sm->closeConnection(c);
         }
-        c->clear();
       }
     }
   }

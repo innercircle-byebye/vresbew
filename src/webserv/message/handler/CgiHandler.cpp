@@ -57,6 +57,12 @@ void CgiHandler::init_cgi_child(Connection *c) {
 void CgiHandler::handle_cgi_header(Connection *c) {
   MessageHandler::response_handler_.setResponse(&c->getResponse(), &c->getBodyBuf());
 
+  std::cout << "am i even working" << std::endl;
+  size_t nbytes;
+  nbytes = read(c->readpipe[0], c->buffer_, BUF_SIZE);
+  c->appendBodyBuf(c->buffer_);
+  memset(c->buffer_, 0, nbytes);
+
   std::string cgi_output_response_header;
   {
     size_t pos = c->getBodyBuf().find("\r\n\r\n");
@@ -218,4 +224,35 @@ char **CgiHandler::setCommand(std::string command, std::string path) {
   return (return_value);
 }
 
+void CgiHandler::send_chunked_cgi_response_to_client_and_close(Connection *c) {
+  size_t nbytes;
+  MessageHandler::response_handler_.makeResponseHeader();
+  send(c->getFd(), c->getResponse().getMsg().c_str(), c->getResponse().getMsg().size(), 0);
+  send(c->getFd(), c->getBodyBuf().c_str(), (size_t)c->getBodyBuf().size(), 0);
+  while ((nbytes = read(c->readpipe[0], c->buffer_, BUF_SIZE))) {
+    send(c->getFd(), c->buffer_, nbytes, 0);
+    memset(c->buffer_, 0, nbytes);
+  }
+  close(c->readpipe[0]);
+  close(c->readpipe[1]);
+  close(c->writepipe[0]);
+  close(c->writepipe[1]);
+  // send(c->getFd(), &"0", 1, 0);
+  wait(NULL);
+}
+
+void CgiHandler::receive_cgi_body(Connection *c) {
+  size_t nbytes;
+  if (c->getRecvPhase() == MESSAGE_CGI_COMPLETE) {
+    while ((nbytes = read(c->readpipe[0], c->buffer_, BUF_SIZE))) {
+      c->appendBodyBuf(c->buffer_);
+      memset(c->buffer_, 0, nbytes);
+    }
+    close(c->readpipe[0]);
+    close(c->readpipe[1]);
+    close(c->writepipe[0]);
+    close(c->writepipe[1]);
+    wait(NULL);
+  }
+}
 }  // namespace ft

@@ -66,47 +66,16 @@ void MessageHandler::set_response_header(Connection *c) {
     // create response body
     executePutMethod(response_handler_.getAccessPath(c->getRequest().getUri()), c->getRequest().getEntityBody());
   }
-}
-
-void MessageHandler::set_response_body(Connection *c) {
-  if (c->getRecvPhase() == MESSAGE_CGI_COMPLETE) {
-    size_t nbytes;
-    // content-length가 없을때 : chunked 요청, client로 바로 쏴줌
-    // chunked로 응답도..
-    if (c->getRequest().getMethod() == "POST" &&
-        c->getRequest().getHeaderValue("Content-Length").empty()) {
-      response_handler_.makeResponseHeader();
-      send(c->getFd(), c->getResponse().getMsg().c_str(), c->getResponse().getMsg().size(), 0);
-      send(c->getFd(), c->getBodyBuf().c_str(), (size_t)c->getBodyBuf().size(), 0);
-      while ((nbytes = read(c->readpipe[0], c->buffer_, BUF_SIZE))) {
-        send(c->getFd(), c->buffer_, nbytes, 0);
-        memset(c->buffer_, 0, nbytes);
-      }
-      close(c->readpipe[0]);
-      close(c->readpipe[1]);
-      close(c->writepipe[0]);
-      close(c->writepipe[1]);
-      // send(c->getFd(), &"0", 1, 0);
-      wait(NULL);
-      return;
-    }
-    // content-length가 없을때 : request의 body 에 값 저장
-    else {
-      while ((nbytes = read(c->readpipe[0], c->buffer_, BUF_SIZE))) {
-        c->appendBodyBuf(c->buffer_);
-        memset(c->buffer_, 0, nbytes);
-      }
-    }
-    close(c->readpipe[0]);
-    close(c->readpipe[1]);
-    close(c->writepipe[0]);
-    close(c->writepipe[1]);
-    // send(c->getFd(), &"0", 1, 0);
-    wait(NULL);
-  }
   c->getResponse().setHeader("Content-Length",
                              std::to_string(c->getBodyBuf().size()));
   response_handler_.makeResponseHeader();
+
+}
+
+void MessageHandler::set_response_body(Connection *c) {
+  (void)c;
+  //TODO: body 처리부분
+  ;
 }
 
 void MessageHandler::send_response_to_client(Connection *c) {

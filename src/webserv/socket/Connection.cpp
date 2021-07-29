@@ -3,10 +3,11 @@
 namespace ft {
 
 Connection::Connection()
-: listen_(false), fd_(-1), type_(SOCK_STREAM), listening_(NULL), request_(), response_() {
+    : listen_(false), fd_(-1), type_(SOCK_STREAM), listening_(NULL), request_(), response_() {
   sockaddr_to_connect_.sin_family = AF_INET;
   memset(buffer_, 0, BUF_SIZE);
   chunked_checker = CHUNKED_KEEP_COMING;
+  recv_phase_ = MESSAGE_START_LINE_INCOMPLETE;
 }
 
 Connection::~Connection() {}
@@ -76,16 +77,37 @@ const RequestMessage		&Connection::getRequestMessage() const
 { return req_msg; }
 */
 
-Request   &Connection::getRequest()
-{ return request_; }
+Request &Connection::getRequest() { return request_; }
 
-Response   &Connection::getResponse()
-{ return response_; }
+Response &Connection::getResponse() { return response_; }
 
 HttpConfig *Connection::getHttpConfig() { return httpconfig_; }
 
 struct sockaddr_in &Connection::getSockaddrToConnect() {
   return sockaddr_to_connect_;
+}
+
+// 이전
+
+int Connection::getRecvPhase() const { return recv_phase_; }
+void Connection::setRecvPhase(int recv_phase) { recv_phase_ = recv_phase; }
+
+int Connection::getStringBufferContentLength() const { return string_buffer_content_length_; }
+void Connection::setStringBufferContentLength(int string_buffer_content_length) {
+  string_buffer_content_length_ = string_buffer_content_length;
+}
+
+std::string &Connection::getBodyBuf() { return (body_buf_); }
+
+void Connection::setBodyBuf(std::string body_buf) {
+  body_buf_ = body_buf;
+}
+void Connection::appendBodyBuf(char *buffer) {
+  body_buf_.append(buffer);
+}
+void Connection::appendBodyBuf(char *buffer, size_t size)
+{
+  body_buf_.append(buffer, size);
 }
 
 }  // namespace ft

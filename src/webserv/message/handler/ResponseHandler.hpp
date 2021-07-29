@@ -17,12 +17,14 @@
 #include "webserv/message/Request.hpp"
 #include "webserv/message/Response.hpp"
 #include "webserv/message/StatusMessage.hpp"
+#include "webserv/socket/Connection.hpp"
 
 namespace ft {
 
 class ResponseHandler {
   Response *response_;
   ServerConfig *server_config_;
+  std::string *msg_body_buf_;
 
   struct stat stat_buffer_;
 
@@ -30,10 +32,12 @@ class ResponseHandler {
   ResponseHandler();
   ~ResponseHandler();
 
-  void setResponse(Response *response);
+  void setResponse(Response *response, std::string *msg_body_buf);
   void setServerConfig(HttpConfig *http_config, struct sockaddr_in &addr, const std::string &host);
   void setResponseFields(Request &request);
   void makeResponseMsg();
+  void makeResponseHeader();
+  void setResponseBody();
   void setStatusLineWithCode(const std::string &status_code);
 
   std::string getAccessPath(std::string &uri);
@@ -49,7 +53,7 @@ class ResponseHandler {
   // 흐름상 가장 아래에 위치함
   void setResponseStatusLine();
   void setResponseHeader();
-  void setResponseBody();
+  // void setResponseBody();
   // Response::response_ setter end
 
   // making response message begin

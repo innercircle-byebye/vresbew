@@ -6,7 +6,10 @@ ResponseHandler::ResponseHandler() {}
 
 ResponseHandler::~ResponseHandler() {}
 
-void ResponseHandler::setResponse(Response *response) { response_ = response; }
+void ResponseHandler::setResponse(Response *response, std::string *msg_body_buf) {
+  response_ = response;
+  msg_body_buf_ = msg_body_buf;
+}
 
 //TODO: setLocationConfig로 바꿔도 될지 확인해보기
 //      일단 안하는게 맞는걸로 확인되는데 다시 확인 필요...
@@ -33,19 +36,25 @@ void ResponseHandler::setResponseFields(Request &request) {
   else if (request.getMethod() == "DELETE")
     processDeleteMethod(request.getUri(), location);
 
-  if (this->response_->getResponseBody().size() > 0) {
-    this->response_->setHeader("Content-Length",
-                               std::to_string(this->response_->getResponseBody().size()));
-  }
+  // if (this->response_->getResponseBody().size() > 0) {
+  //   this->response_->setHeader("Content-Length",
+  //                              std::to_string(this->response_->getResponseBody().size()));
+  // }
 }
 
 /*-----------------------MAKING RESPONSE MESSAGE-----------------------------*/
 
 // 흐름상 가장 아래에 위치함
-void ResponseHandler::makeResponseMsg() {
+// void ResponseHandler::makeResponseMsg() {
+//   setResponseStatusLine();
+//   setResponseHeader();
+//   // setResponseBody();
+// }
+
+void ResponseHandler::makeResponseHeader() {
   setResponseStatusLine();
   setResponseHeader();
-  setResponseBody();
+  // setResponseBody();
 }
 
 // Response::response_ setter begin
@@ -71,11 +80,11 @@ void ResponseHandler::setResponseHeader() {
   }
   response_->getMsg() += "\r\n";
 }
-void ResponseHandler::setResponseBody() {
-  if (response_->getResponseBody().size()) {
-    response_->getMsg() += response_->getResponseBody();
-  }
-}
+// void ResponseHandler::setResponseBody() {
+//   if (response_->getResponseBody().size()) {
+//     msg_body_buf_->append(response_->getResponseBody());
+//   }
+// }
 
 // Response::response_ setter end
 
@@ -88,10 +97,8 @@ void ResponseHandler::setStatusLineWithCode(const std::string &status_code) {
   // TODO: fix this garbage conditional statement...
   if (!(!status_code.compare("200") ||
         !status_code.compare("201") ||
-        !status_code.compare("204") ||
-        !status_code.compare("999")))
-    this->response_->getResponseBody() =
-        getDefaultErrorBody(this->response_->getStatusCode(), this->response_->getStatusMessage());
+        !status_code.compare("204") ))
+    msg_body_buf_->append(getDefaultErrorBody(this->response_->getStatusCode(), this->response_->getStatusMessage()));
 }
 
 std::string ResponseHandler::getDefaultErrorBody(std::string status_code, std::string status_message) {
@@ -119,7 +126,15 @@ std::string ResponseHandler::getDefaultErrorBody(std::string status_code, std::s
 
 void ResponseHandler::processGetAndHeaderMethod(Request &request, LocationConfig *&location) {
   //need last modified header
-  // TODO: apply for all url when directory is given
+
+  // TODO: connection의 status_code를 보고 결정하도록...
+  if (this->response_->getHeaderValue("X-Powered-By") == "PHP/8.0.7" &&
+      this->response_->getHeaderValue("Status").empty()) {
+    setStatusLineWithCode("200");
+    return;
+  }
+
+  // TODO: REQUEST에서 처리 해야될 수도 있을것같음
   if (*(request.getUri().rbegin()) == '/') {
     findIndexForGetWhenOnlySlash(request, location);
     if (!request.getUri().compare("/")) {
@@ -134,13 +149,14 @@ void ResponseHandler::processGetAndHeaderMethod(Request &request, LocationConfig
     if (S_ISDIR(this->stat_buffer_.st_mode)) {
       setStatusLineWithCode("301");
       // TODO: string 을 생성 하지 않도록 수정하는 작업 필요
+      // std::string temp_url = "http://" + request.getHeaderValue("Host") + request.getUri();
       std::string temp_url = "http://" + request.getHeaderValue("Host") + request.getUri() + "/";
       this->response_->setHeader("Location", temp_url);
       return;
     }
     setStatusLineWithCode("200");
     // body가 만들져 있지 않는 경우의 조건 추가
-    if (request.getMethod() == "GET" && !response_->getResponseBody().size())
+    if (request.getMethod() == "GET" && msg_body_buf_->empty())
       setResponseBodyFromFile(request.getUri(), location);
   }
 }
@@ -152,7 +168,7 @@ void ResponseHandler::processPutMethod(Request &request, LocationConfig *&locati
   }
   if (!isFileExist(request.getUri(), location)) {
     // 경로가 디렉토리 이거나, 경로에 파일을 쓸 수 없을때
-    if (S_ISDIR(this->stat_buffer_.st_mode) || (this->stat_buffer_.st_mode & S_IRWXU)){
+    if (S_ISDIR(this->stat_buffer_.st_mode) || (this->stat_buffer_.st_mode & S_IRWXU)) {
       setStatusLineWithCode("500");
       return;
     }
@@ -162,8 +178,12 @@ void ResponseHandler::processPutMethod(Request &request, LocationConfig *&locati
   }
 }
 
-
 void ResponseHandler::processPostMethod(Request &request, LocationConfig *&location) {
+  if (this->response_->getStatusCode() == "302") {
+    std::cout << "ssup nigga" << std::endl;
+    setStatusLineWithCode(this->response_->getStatusCode());
+    return;
+  }
   if (!location->checkCgiExtension(request.getUri()) ||
       location->getCgiPath().empty()) {
     setStatusLineWithCode("405");
@@ -288,10 +308,10 @@ void ResponseHandler::setResponseBodyFromFile(std::string &uri, LocationConfig *
   std::ifstream file(getAccessPath(uri, location).c_str());
 
   file.seekg(0, std::ios::end);
-  this->response_->getResponseBody().reserve(file.tellg());
+  msg_body_buf_->reserve(file.tellg());
   file.seekg(0, std::ios::beg);
 
-  this->response_->getResponseBody().assign((std::istreambuf_iterator<char>(file)),
+  msg_body_buf_->assign((std::istreambuf_iterator<char>(file)),
                                             std::istreambuf_iterator<char>());
 }
 

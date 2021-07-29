@@ -28,10 +28,6 @@ class MessageHandler {
   static void check_body_status(Connection *c);
   static void handle_request_body(Connection *c);
   static void handle_response(Connection *c);
-  // static void init_cgi_child(Connection *c);
-  // static void process_cgi_header(Connection *c);
-
-  static void send_chunked_cgi_response_to_client_and_close(Connection *c);
 
   static void set_response_header(Connection *c);
   static void set_response_body(Connection *c);

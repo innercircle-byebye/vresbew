@@ -22,6 +22,7 @@ void ResponseHandler::setResponseFields(Request &request) {
   LocationConfig *location = this->server_config_->getLocationConfig(request.getUri());
 
 
+  // TODO : request로 이전
   if (!location->checkAcceptedMethod(request.getMethod())) {
     setStatusLineWithCode("405");
     return;
@@ -32,33 +33,19 @@ void ResponseHandler::setResponseFields(Request &request) {
   else if (request.getMethod() == "PUT")
     processPutMethod(request, location);
   else if (request.getMethod() == "POST")
-    // 아무것도 없음
     processPostMethod(request, location);
   else if (request.getMethod() == "DELETE")
     processDeleteMethod(request.getUri(), location);
 
-  // if (this->response_->getResponseBody().size() > 0) {
-  //   this->response_->setHeader("Content-Length",
-  //                              std::to_string(this->response_->getResponseBody().size()));
-  // }
 }
 
 /*-----------------------MAKING RESPONSE MESSAGE-----------------------------*/
 
-// 흐름상 가장 아래에 위치함
-// void ResponseHandler::makeResponseMsg() {
-//   setResponseStatusLine();
-//   setResponseHeader();
-//   // setResponseBody();
-// }
-
 void ResponseHandler::makeResponseHeader() {
   setResponseStatusLine();
   setResponseHeader();
-  // setResponseBody();
 }
 
-// Response::response_ setter begin
 void ResponseHandler::setResponseStatusLine() {
   response_->getMsg() += this->response_->getHttpVersion();
   response_->getMsg() += " ";

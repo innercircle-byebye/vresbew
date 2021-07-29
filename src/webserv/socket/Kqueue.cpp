@@ -98,7 +98,7 @@ void Kqueue::kqueueProcessEvents(SocketManager *sm) {
           } else
             CgiHandler::receive_cgi_body(c);
         }
-        MessageHandler::set_response_header(c);
+        MessageHandler::set_response_header(c); // 서버가 실제 동작을 진행하는 부분
         MessageHandler::set_response_body(c);
         MessageHandler::send_response_to_client(c);
         c->clear();

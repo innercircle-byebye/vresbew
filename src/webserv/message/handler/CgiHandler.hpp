@@ -12,7 +12,7 @@ namespace ft {
 
 class CgiHandler {
  private:
-  static char **setEnviron(std::map<std::string, std::string> env);
+  static char **setEnviron(Connection *c);
   static char **setCommand(std::string command, std::string path);
 
  public:

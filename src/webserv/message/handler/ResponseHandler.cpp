@@ -68,15 +68,7 @@ void ResponseHandler::setResponseHeader() {
   }
   response_->getMsg() += "\r\n";
 }
-// void ResponseHandler::setResponseBody() {
-//   if (response_->getResponseBody().size()) {
-//     msg_body_buf_->append(response_->getResponseBody());
-//   }
-// }
 
-// Response::response_ setter end
-
-// making response message begin
 void ResponseHandler::setStatusLineWithCode(const std::string &status_code) {
   this->response_->setStatusCode(status_code);
   this->response_->setStatusMessage(StatusMessage::of(stoi(status_code)));

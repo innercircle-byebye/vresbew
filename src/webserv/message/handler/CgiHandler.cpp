@@ -175,7 +175,7 @@ char **CgiHandler::setEnviron(Connection *c) {
     env_set["SCRIPT_FILENAME"] = location->getRoot() + c->getRequest().getUri();
     env_set["SERVER_PROTOCOL"] = "HTTP/1.1";
     env_set["PATH_INFO"] = location->getRoot() + c->getRequest().getUri();
-    env_set["CONTENT_TYPE"] = "application/x-www-form-urlencoded";
+    env_set["CONTENT_TYPE"] = c->getRequest().getHeaderValue("Content-Type");
     env_set["GATEWAY_INTERFACE"] = "CGI/1.1";
     env_set["PATH_TRANSLATED"] = location->getRoot() + c->getRequest().getUri();
     env_set["REMOTE_ADDR"] = "127.0.0.1";  // TODO: ip주소 받아오는 부분 찾기

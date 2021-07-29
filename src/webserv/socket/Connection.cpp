@@ -45,6 +45,17 @@ Connection *Connection::eventAccept(SocketManager *sm) {
   return c;
 }
 
+void Connection::clear() {
+  request_.clear();
+  response_.clear();
+  body_buf_.clear();
+  recv_phase_ = MESSAGE_START_LINE_INCOMPLETE;
+  string_buffer_content_length_ = 0;
+  chunked_checker = 0;
+  status_code_.clear();
+ }
+
+
 /* SETTER */
 void Connection::setListen(bool listen) { listen_ = listen; }
 

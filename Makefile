@@ -17,7 +17,8 @@ SRC_FILE	=	webserv/main.cpp \
 				webserv/message/MimeType.cpp \
 				webserv/message/handler/MessageHandler.cpp \
 				webserv/message/handler/RequestHandler.cpp \
-				webserv/message/handler/ResponseHandler.cpp
+				webserv/message/handler/ResponseHandler.cpp \
+				webserv/message/handler/CgiHandler.cpp
 
 LOGFILE		=	./error.log
 

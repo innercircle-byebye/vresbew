@@ -23,10 +23,6 @@ void RequestHandler::processByRecvPhase(Connection *c) {
   if (c->getRecvPhase() == MESSAGE_HEADER_COMPLETE) {
     parseHeaderLines(c);
   }
-  // if (request_->getRecvPhase() == MESSAGE_BODY_INCOMING)
-  //   appendMsgToEntityBody();
-  // if (request_->getRecvPhase() == MESSAGE_BODY_COMPLETE)
-  //   return;
 }
 
 /* CHECK FUNCTIONS */

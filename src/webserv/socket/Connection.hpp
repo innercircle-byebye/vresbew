@@ -47,7 +47,6 @@ class Connection {
 
   Connection *next_;
 
-  // std::string msg_;  // buffer append시킬 string
   int recv_phase_;  // msg가 얼마나 setting되었는지 알 수 있는 변수
   int string_buffer_content_length_;
 
@@ -65,6 +64,8 @@ class Connection {
   ~Connection();
 
   Connection *eventAccept(SocketManager *sv);
+
+  void clear();
 
   void setListen(bool listen);
   void setNext(Connection *next);

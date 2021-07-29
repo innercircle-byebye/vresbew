@@ -43,11 +43,6 @@ class ResponseHandler {
   std::string getAccessPath(std::string &uri);
   std::string getAccessPath(const std::string &uri, LocationConfig *&location);
 
-  /*--------------------------FOR CGI--------------------------------*/
-  char **setEnviron(std::map<std::string, std::string> env);
-  char **setCommand(std::string command, std::string path);
-  /*--------------------------FOR CGI--------------------------------*/
-
  private:
   // Response::response_ setter begin
   // 흐름상 가장 아래에 위치함

@@ -21,6 +21,7 @@ void ResponseHandler::setResponseFields(Request &request) {
   this->response_->setHeader("Date", Time::getCurrentDate());
   LocationConfig *location = this->server_config_->getLocationConfig(request.getUri());
 
+
   if (!location->checkAcceptedMethod(request.getMethod())) {
     setStatusLineWithCode("405");
     return;
@@ -97,7 +98,7 @@ void ResponseHandler::setStatusLineWithCode(const std::string &status_code) {
   // TODO: fix this garbage conditional statement...
   if (!(!status_code.compare("200") ||
         !status_code.compare("201") ||
-        !status_code.compare("204") ))
+        !status_code.compare("204")))
     msg_body_buf_->append(getDefaultErrorBody(this->response_->getStatusCode(), this->response_->getStatusMessage()));
 }
 
@@ -180,7 +181,6 @@ void ResponseHandler::processPutMethod(Request &request, LocationConfig *&locati
 
 void ResponseHandler::processPostMethod(Request &request, LocationConfig *&location) {
   if (this->response_->getStatusCode() == "302") {
-    std::cout << "ssup nigga" << std::endl;
     setStatusLineWithCode(this->response_->getStatusCode());
     return;
   }
@@ -312,7 +312,7 @@ void ResponseHandler::setResponseBodyFromFile(std::string &uri, LocationConfig *
   file.seekg(0, std::ios::beg);
 
   msg_body_buf_->assign((std::istreambuf_iterator<char>(file)),
-                                            std::istreambuf_iterator<char>());
+                        std::istreambuf_iterator<char>());
 }
 
 int ResponseHandler::deletePathRecursive(std::string &path) {
@@ -385,43 +385,6 @@ int ResponseHandler::remove_directory(std::string directory_name) {
   }
   std::cout << "sucess remove file " << directory_name << std::endl;
   return (0);
-}
-
-char **ResponseHandler::setEnviron(std::map<std::string, std::string> env) {
-  char **return_value;
-  std::string temp;
-
-  return_value = (char **)malloc(sizeof(char *) * (env.size() + 1));
-  int i = 0;
-  std::map<std::string, std::string>::iterator it;
-  for (it = env.begin(); it != env.end(); it++) {
-    temp = (*it).first + "=" + (*it).second;
-    char *p = (char *)malloc(temp.size() + 1);
-    strcpy(p, temp.c_str());
-    return_value[i] = p;
-    i++;
-  }
-  return_value[i] = NULL;
-  return (return_value);
-}
-
-char **ResponseHandler::setCommand(std::string command, std::string path) {
-  // TODO: leak check
-  char **return_value;
-  return_value = (char **)malloc(sizeof(char *) * (3));
-
-  char *temp;
-  // TODO: leak check
-  temp = (char *)malloc(sizeof(char) * (command.size() + 1));
-  strcpy(temp, command.c_str());
-  return_value[0] = temp;
-
-  // TODO: leak check
-  temp = (char *)malloc(sizeof(char) * (path.size() + 1));
-  strcpy(temp, path.c_str());
-  return_value[1] = temp;
-  return_value[2] = NULL;
-  return (return_value);
 }
 
 /*--------------------------EXECUTING METHODS END--------------------------------*/

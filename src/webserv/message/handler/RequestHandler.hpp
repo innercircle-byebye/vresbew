@@ -13,8 +13,6 @@
 namespace ft {
 
 #define SPACE ' '
-// #define START_LINE_DELIMITER ' '
-// #define HEADER_DELIMITER ':'
 
 #define PARSE_VALID_URI 1
 #define PARSE_INVALID_URI 0
@@ -24,8 +22,6 @@ enum StartLineItem {
   RQ_URI,
   RQ_VERSION
 };
-
-// class HttpConfig;
 
 class RequestHandler {
  private:

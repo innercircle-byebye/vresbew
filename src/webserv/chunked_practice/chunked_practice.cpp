@@ -4,19 +4,27 @@
 #include <streambuf>
 #include <string>
 
-bool chunked_okay_to_finish(const char *buf, int len = -1) {
+#define CRLF 2
+
+bool chunked_close_check(const char *buf, int len = -1) {
   bool result;
 
   size_t length = 0;
-  char *ptr = NULL;
+  char *ptr;
+
+  ptr = (char *)buf;
   if (len == -1)
-    length = strtoul(buf, &ptr, 16);
+    length = strtoul(ptr, &ptr, 16) + CRLF;
   else
     length = len;
 
-  std::cout << "------------fbuffer---------------" << std::endl;
-  std::cout << ptr << std::endl;
-  std::cout << "------------fbuffer---------------" << std::endl;
+  while ((length = strtoul(ptr + length + CRLF, &ptr, 16)) >= 0) {
+    std::cout << "------------fbuffer---------------" << std::endl;
+    std::cout << ptr << std::endl;
+    std::cout << "------------fbuffer---------------" << std::endl;
+    if (strcmp(ptr, "\r\n\r\n") == 0)
+      return (true);
+  }
 
   result = false;
 
@@ -36,7 +44,7 @@ int main(int argc, char **argv) {
     std::cout << "\n\nlet's check\n\n"
               << std::endl;
 
-    if (chunked_okay_to_finish(str.c_str()))
+    if (chunked_close_check(str.c_str()))
       std::cout << "close" << std::endl;
     else
       std::cout << "still open" << std::endl;

@@ -21,7 +21,6 @@ void ResponseHandler::setResponseFields(Request &request) {
   this->response_->setHeader("Date", Time::getCurrentDate());
   LocationConfig *location = this->server_config_->getLocationConfig(request.getUri());
 
-
   // TODO : request로 이전
   if (!location->checkAcceptedMethod(request.getMethod())) {
     setStatusLineWithCode("405");
@@ -36,7 +35,6 @@ void ResponseHandler::setResponseFields(Request &request) {
     processPostMethod(request, location);
   else if (request.getMethod() == "DELETE")
     processDeleteMethod(request.getUri(), location);
-
 }
 
 /*-----------------------MAKING RESPONSE MESSAGE-----------------------------*/
@@ -73,29 +71,20 @@ void ResponseHandler::setStatusLineWithCode(const std::string &status_code) {
   this->response_->setStatusCode(status_code);
   this->response_->setStatusMessage(StatusMessage::of(stoi(status_code)));
   this->response_->setConnectionHeaderByStatusCode(status_code);
-  // // MUST BE EXECUTED ONLY WHEN BODY IS NOT PROVIDED
-  // // TODO: fix this garbage conditional statement...
-  // if (!(!status_code.compare("200") ||
-  //       !status_code.compare("201") ||
-  //       !status_code.compare("204")))
-  //   body_buf_->append(getDefaultErrorBody(this->response_->getStatusCode(), this->response_->getStatusMessage()));
 }
 
-std::string ResponseHandler::getDefaultErrorBody() {
+void ResponseHandler::setDefaultErrorBody() {
   //TODO: 리팩토링 필요..
-  std::string body;
 
-  body += "<html>\n";
-  body += "<head><title>" + response_->getStatusCode() + " " + response_->getStatusMessage()  + "</title></head>\n";
-  body += "<body>\n";
-  body += "<center><h1>" + response_->getStatusCode() + " " + response_->getStatusMessage() + "</h1></center>\n";
-  body += "<hr><center>" + response_->getHeaderValue("Server") + "</center>\n";
-  body += "</body>\n";
-  body += "</html>\n";
+  body_buf_->append("<html>\n");
+  body_buf_->append("<head><title>" + response_->getStatusCode() + " " + response_->getStatusMessage() + "</title></head>\n");
+  body_buf_->append("<body>\n");
+  body_buf_->append("<center><h1>" + response_->getStatusCode() + " " + response_->getStatusMessage() + "</h1></center>\n");
+  body_buf_->append("<hr><center>" + response_->getHeaderValue("Server") + "</center>\n");
+  body_buf_->append("</body>\n");
+  body_buf_->append("</html>\n");
 
-  return (body);
 }
-
 // making response message end
 
 /*-----------------------MAKING RESPONSE MESSAGE END-----------------------------*/
@@ -283,7 +272,7 @@ void ResponseHandler::setResponseBodyFromFile(std::string &uri, LocationConfig *
   file.seekg(0, std::ios::beg);
 
   body_buf_->assign((std::istreambuf_iterator<char>(file)),
-                        std::istreambuf_iterator<char>());
+                    std::istreambuf_iterator<char>());
 }
 
 int ResponseHandler::deletePathRecursive(std::string &path) {

@@ -72,9 +72,11 @@ void MessageHandler::set_response_message(Connection *c) {
   if (!(!c->getResponse().getStatusCode().compare("200") ||
         !c->getResponse().getStatusCode().compare("201") ||
         !c->getResponse().getStatusCode().compare("204")))
-    c->getBodyBuf().append(response_handler_.getDefaultErrorBody());
+    response_handler_.setDefaultErrorBody();
+
   c->getResponse().setHeader("Content-Length",
                              std::to_string(c->getBodyBuf().size()));
+
   response_handler_.makeResponseHeader();
 }
 

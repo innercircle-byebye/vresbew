@@ -41,7 +41,7 @@ class ResponseHandler {
   void setStatusLineWithCode(const std::string &status_code);
 
   // making response message begin
-  std::string getDefaultErrorBody();
+  void setDefaultErrorBody();
   // making response message end
 
   std::string getAccessPath(std::string &uri);

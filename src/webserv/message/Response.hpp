@@ -14,9 +14,7 @@ class Response {
 
   std::map<std::string, std::string> headers_;
 
-  std::string response_body_;
-
-  std::string msg_;
+  std::string header_msg_;
 
  public:
   Response();
@@ -31,15 +29,13 @@ class Response {
   const std::string &getHttpVersion() const;
   const std::map<std::string, std::string> &getHeaders() const;
   const std::string &getHeaderValue(const std::string &key);
-  std::string &getResponseBody();
-  std::string &getMsg();
+  std::string &getHeaderMsg();
 
   void setStatusCode(std::string status_code);
   void setStatusMessage(std::string status_message);
   void setHttpVersion(std::string http_version);
   void setHeader(std::string key, std::string value);
-  void setResponseBody(std::string response_body);
-  void setMsg(std::string msg);
+  void setHeaderMsg(std::string msg);
 
   void setConnectionHeaderByStatusCode(const std::string &status_code);
 

@@ -24,7 +24,7 @@ namespace ft {
 class ResponseHandler {
   Response *response_;
   ServerConfig *server_config_;
-  std::string *msg_body_buf_;
+  std::string *body_buf_;
 
   struct stat stat_buffer_;
 
@@ -40,6 +40,10 @@ class ResponseHandler {
   void setResponseBody();
   void setStatusLineWithCode(const std::string &status_code);
 
+  // making response message begin
+  void setDefaultErrorBody();
+  // making response message end
+
   std::string getAccessPath(std::string &uri);
   std::string getAccessPath(const std::string &uri, LocationConfig *&location);
 
@@ -50,10 +54,6 @@ class ResponseHandler {
   void setResponseHeader();
   // void setResponseBody();
   // Response::response_ setter end
-
-  // making response message begin
-  std::string getDefaultErrorBody(std::string status_code, std::string status_message);
-  // making response message end
 
   // 애매함
   void setResponseBodyFromFile(std::string &uri, LocationConfig *&location);

@@ -6,9 +6,9 @@ ResponseHandler::ResponseHandler() {}
 
 ResponseHandler::~ResponseHandler() {}
 
-void ResponseHandler::setResponse(Response *response, std::string *msg_body_buf) {
+void ResponseHandler::setResponse(Response *response, std::string *body_buf) {
   response_ = response;
-  msg_body_buf_ = msg_body_buf;
+  body_buf_ = body_buf;
 }
 
 //TODO: setLocationConfig로 바꿔도 될지 확인해보기
@@ -21,7 +21,7 @@ void ResponseHandler::setResponseFields(Request &request) {
   this->response_->setHeader("Date", Time::getCurrentDate());
   LocationConfig *location = this->server_config_->getLocationConfig(request.getUri());
 
-
+  // TODO : request로 이전
   if (!location->checkAcceptedMethod(request.getMethod())) {
     setStatusLineWithCode("405");
     return;
@@ -32,40 +32,25 @@ void ResponseHandler::setResponseFields(Request &request) {
   else if (request.getMethod() == "PUT")
     processPutMethod(request, location);
   else if (request.getMethod() == "POST")
-    // 아무것도 없음
     processPostMethod(request, location);
   else if (request.getMethod() == "DELETE")
     processDeleteMethod(request.getUri(), location);
-
-  // if (this->response_->getResponseBody().size() > 0) {
-  //   this->response_->setHeader("Content-Length",
-  //                              std::to_string(this->response_->getResponseBody().size()));
-  // }
 }
 
 /*-----------------------MAKING RESPONSE MESSAGE-----------------------------*/
 
-// 흐름상 가장 아래에 위치함
-// void ResponseHandler::makeResponseMsg() {
-//   setResponseStatusLine();
-//   setResponseHeader();
-//   // setResponseBody();
-// }
-
 void ResponseHandler::makeResponseHeader() {
   setResponseStatusLine();
   setResponseHeader();
-  // setResponseBody();
 }
 
-// Response::response_ setter begin
 void ResponseHandler::setResponseStatusLine() {
-  response_->getMsg() += this->response_->getHttpVersion();
-  response_->getMsg() += " ";
-  response_->getMsg() += this->response_->getStatusCode();
-  response_->getMsg() += " ";
-  response_->getMsg() += this->response_->getStatusMessage();
-  response_->getMsg() += "\r\n";
+  response_->getHeaderMsg() += this->response_->getHttpVersion();
+  response_->getHeaderMsg() += " ";
+  response_->getHeaderMsg() += this->response_->getStatusCode();
+  response_->getHeaderMsg() += " ";
+  response_->getHeaderMsg() += this->response_->getStatusMessage();
+  response_->getHeaderMsg() += "\r\n";
 }
 
 void ResponseHandler::setResponseHeader() {
@@ -73,50 +58,30 @@ void ResponseHandler::setResponseHeader() {
   std::map<std::string, std::string>::reverse_iterator it;
   for (it = headers.rbegin(); it != headers.rend(); it++) {
     if (it->second != "") {
-      response_->getMsg() += it->first;
-      response_->getMsg() += ": ";
-      response_->getMsg() += it->second;
-      response_->getMsg() += "\r\n";
+      response_->getHeaderMsg() += it->first;
+      response_->getHeaderMsg() += ": ";
+      response_->getHeaderMsg() += it->second;
+      response_->getHeaderMsg() += "\r\n";
     }
   }
-  response_->getMsg() += "\r\n";
+  response_->getHeaderMsg() += "\r\n";
 }
-// void ResponseHandler::setResponseBody() {
-//   if (response_->getResponseBody().size()) {
-//     msg_body_buf_->append(response_->getResponseBody());
-//   }
-// }
 
-// Response::response_ setter end
-
-// making response message begin
 void ResponseHandler::setStatusLineWithCode(const std::string &status_code) {
   this->response_->setStatusCode(status_code);
   this->response_->setStatusMessage(StatusMessage::of(stoi(status_code)));
   this->response_->setConnectionHeaderByStatusCode(status_code);
-  // MUST BE EXECUTED ONLY WHEN BODY IS NOT PROVIDED
-  // TODO: fix this garbage conditional statement...
-  if (!(!status_code.compare("200") ||
-        !status_code.compare("201") ||
-        !status_code.compare("204")))
-    msg_body_buf_->append(getDefaultErrorBody(this->response_->getStatusCode(), this->response_->getStatusMessage()));
 }
 
-std::string ResponseHandler::getDefaultErrorBody(std::string status_code, std::string status_message) {
-  //TODO: 리팩토링 필요..
-  std::string body;
-
-  body += "<html>\n";
-  body += "<head><title>" + status_code + " " + status_message + "</title></head>\n";
-  body += "<body>\n";
-  body += "<center><h1>" + status_code + " " + status_message + "</h1></center>\n";
-  body += "<hr><center>" + response_->getHeaderValue("Server") + "</center>\n";
-  body += "</body>\n";
-  body += "</html>\n";
-
-  return (body);
+void ResponseHandler::setDefaultErrorBody() {
+  body_buf_->append("<html>\n");
+  body_buf_->append("<head><title>" + response_->getStatusCode() + " " + response_->getStatusMessage() + "</title></head>\n");
+  body_buf_->append("<body>\n");
+  body_buf_->append("<center><h1>" + response_->getStatusCode() + " " + response_->getStatusMessage() + "</h1></center>\n");
+  body_buf_->append("<hr><center>" + response_->getHeaderValue("Server") + "</center>\n");
+  body_buf_->append("</body>\n");
+  body_buf_->append("</html>\n");
 }
-
 // making response message end
 
 /*-----------------------MAKING RESPONSE MESSAGE END-----------------------------*/
@@ -157,7 +122,7 @@ void ResponseHandler::processGetAndHeaderMethod(Request &request, LocationConfig
     }
     setStatusLineWithCode("200");
     // body가 만들져 있지 않는 경우의 조건 추가
-    if (request.getMethod() == "GET" && msg_body_buf_->empty())
+    if (request.getMethod() == "GET" && body_buf_->empty())
       setResponseBodyFromFile(request.getUri(), location);
   }
 }
@@ -267,14 +232,6 @@ std::string ResponseHandler::getAccessPath(const std::string &uri, LocationConfi
   return (path);
 }
 
-// bool ResponseHandler::isFileExist(std::string &uri) {
-//   if (stat(getAccessPath(uri).c_str(), &this->stat_buffer_) < 0) {
-//     std::cout << "this ain't work" << std::endl;
-//     return (false);
-//   }
-//   return (true);
-// }
-
 bool ResponseHandler::isFileExist(const std::string &path) {
   // std::cout << "REMINDER: THIS METHOD SHOULD ONLY BE \
   //   CALLED WHEN FILE PATH IS COMBINED WITH ROOT DIRECTIVE"
@@ -308,11 +265,11 @@ void ResponseHandler::setResponseBodyFromFile(std::string &uri, LocationConfig *
   std::ifstream file(getAccessPath(uri, location).c_str());
 
   file.seekg(0, std::ios::end);
-  msg_body_buf_->reserve(file.tellg());
+  body_buf_->reserve(file.tellg());
   file.seekg(0, std::ios::beg);
 
-  msg_body_buf_->assign((std::istreambuf_iterator<char>(file)),
-                        std::istreambuf_iterator<char>());
+  body_buf_->assign((std::istreambuf_iterator<char>(file)),
+                    std::istreambuf_iterator<char>());
 }
 
 int ResponseHandler::deletePathRecursive(std::string &path) {

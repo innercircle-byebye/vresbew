@@ -53,6 +53,7 @@ class Connection {
  public:
   char buffer_[BUF_SIZE];
   std::string body_buf_;
+  pid_t cgi_pid;
   int writepipe[2], readpipe[2];
   int chunked_checker;
   std::string status_code_;

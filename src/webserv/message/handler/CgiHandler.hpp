@@ -12,13 +12,16 @@ namespace ft {
 
 class CgiHandler {
  private:
-  static char **setEnviron(std::map<std::string, std::string> env);
+  static char **setEnviron(Connection *c);
   static char **setCommand(std::string command, std::string path);
 
  public:
   static void init_cgi_child(Connection *c);
   static void handle_cgi_header(Connection *c);
-  static void handle_cgi_body(Connection *c, ssize_t recv_len);
+  static void receive_cgi_process_body(Connection *c, ssize_t recv_len);
+  //TODO: rename
+  static void send_chunked_cgi_response_to_client_and_close(Connection *c);
+  static void receive_cgi_body(Connection *c);
 
 };
 

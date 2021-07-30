@@ -38,7 +38,7 @@ struct Request {
   // header
   std::map<std::string, std::string> headers_;
 
-  // TODO: 없앨지 봐야함
+  // TODO: t_uri 구조체가 있으면 필요 없음 (삭제 해도 됨)
   // entity body
   std::string entity_body_;
 

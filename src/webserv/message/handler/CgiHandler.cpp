@@ -79,9 +79,8 @@ void CgiHandler::handle_cgi_header(Connection *c) {
       // parse key and validation
       key = key_and_value[0].erase(key_and_value[0].size() - 1);
       value = key_and_value[1];
-      // TODO: cgi의 위치를 한번 이동 할 예정...
-      // MessageHandler::response_handler_.setResponse(&c->getResponse());
       if (key.compare("Status") == 0) {
+        // TODO: c->status_code 만 이용해서 handle_cgi_header 단계 이후에 사용하도록..
         MessageHandler::response_handler_.setStatusLineWithCode(value);
         c->status_code_ = value;
       }
@@ -186,7 +185,7 @@ char **CgiHandler::setEnviron(Connection *c) {
     else
       env_set["REQUEST_URI"] = location->getRoot() + c->getRequest().getUri();
     env_set["HTTP_HOST"] = c->getRequest().getHeaderValue("Host");
-    env_set["SERVER_PORT"] = std::to_string(ntohs(c->getSockaddrToConnect().sin_port));  // 포트도
+    env_set["SERVER_PORT"] = std::to_string(ntohs(c->getSockaddrToConnect().sin_port));
     env_set["SERVER_SOFTWARE"] = "versbew";
     env_set["SCRIPT_NAME"] = location->getCgiPath();
   }

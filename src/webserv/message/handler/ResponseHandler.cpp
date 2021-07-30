@@ -74,8 +74,6 @@ void ResponseHandler::setStatusLineWithCode(const std::string &status_code) {
 }
 
 void ResponseHandler::setDefaultErrorBody() {
-  //TODO: 리팩토링 필요..
-
   body_buf_->append("<html>\n");
   body_buf_->append("<head><title>" + response_->getStatusCode() + " " + response_->getStatusMessage() + "</title></head>\n");
   body_buf_->append("<body>\n");
@@ -83,7 +81,6 @@ void ResponseHandler::setDefaultErrorBody() {
   body_buf_->append("<hr><center>" + response_->getHeaderValue("Server") + "</center>\n");
   body_buf_->append("</body>\n");
   body_buf_->append("</html>\n");
-
 }
 // making response message end
 

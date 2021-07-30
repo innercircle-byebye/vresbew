@@ -40,6 +40,10 @@ class ResponseHandler {
   void setResponseBody();
   void setStatusLineWithCode(const std::string &status_code);
 
+  // making response message begin
+  std::string getDefaultErrorBody();
+  // making response message end
+
   std::string getAccessPath(std::string &uri);
   std::string getAccessPath(const std::string &uri, LocationConfig *&location);
 
@@ -50,10 +54,6 @@ class ResponseHandler {
   void setResponseHeader();
   // void setResponseBody();
   // Response::response_ setter end
-
-  // making response message begin
-  std::string getDefaultErrorBody(std::string status_code, std::string status_message);
-  // making response message end
 
   // 애매함
   void setResponseBodyFromFile(std::string &uri, LocationConfig *&location);

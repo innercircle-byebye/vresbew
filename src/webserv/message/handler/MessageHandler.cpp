@@ -47,7 +47,6 @@ void MessageHandler::handle_request_body(Connection *c) {
 }
 
 void MessageHandler::set_response_header(Connection *c) {
-
   response_handler_.setResponse(&c->getResponse(), &c->getBodyBuf());
   response_handler_.setServerConfig(c->getHttpConfig(), c->getSockaddrToConnect(), c->getRequest().getHeaderValue("Host"));
 
@@ -64,16 +63,19 @@ void MessageHandler::set_response_header(Connection *c) {
     // create response body
     executePutMethod(response_handler_.getAccessPath(c->getRequest().getUri()), c->getRequest().getEntityBody());
   }
+}
+
+void MessageHandler::set_response_message(Connection *c) {
+  // MUST BE EXECUTED ONLY WHEN BODY IS NOT PROVIDED
+  // TODO: fix this garbage conditional statement...
+  std::cout << c->getResponse().getHeaderMsg() << std::endl;
+  if (!(!c->getResponse().getStatusCode().compare("200") ||
+        !c->getResponse().getStatusCode().compare("201") ||
+        !c->getResponse().getStatusCode().compare("204")))
+    c->getBodyBuf().append(response_handler_.getDefaultErrorBody());
   c->getResponse().setHeader("Content-Length",
                              std::to_string(c->getBodyBuf().size()));
   response_handler_.makeResponseHeader();
-
-}
-
-void MessageHandler::set_response_body(Connection *c) {
-  (void)c;
-  //TODO: body 처리부분
-  ;
 }
 
 void MessageHandler::send_response_to_client(Connection *c) {

@@ -73,22 +73,22 @@ void ResponseHandler::setStatusLineWithCode(const std::string &status_code) {
   this->response_->setStatusCode(status_code);
   this->response_->setStatusMessage(StatusMessage::of(stoi(status_code)));
   this->response_->setConnectionHeaderByStatusCode(status_code);
-  // MUST BE EXECUTED ONLY WHEN BODY IS NOT PROVIDED
-  // TODO: fix this garbage conditional statement...
-  if (!(!status_code.compare("200") ||
-        !status_code.compare("201") ||
-        !status_code.compare("204")))
-    body_buf_->append(getDefaultErrorBody(this->response_->getStatusCode(), this->response_->getStatusMessage()));
+  // // MUST BE EXECUTED ONLY WHEN BODY IS NOT PROVIDED
+  // // TODO: fix this garbage conditional statement...
+  // if (!(!status_code.compare("200") ||
+  //       !status_code.compare("201") ||
+  //       !status_code.compare("204")))
+  //   body_buf_->append(getDefaultErrorBody(this->response_->getStatusCode(), this->response_->getStatusMessage()));
 }
 
-std::string ResponseHandler::getDefaultErrorBody(std::string status_code, std::string status_message) {
+std::string ResponseHandler::getDefaultErrorBody() {
   //TODO: 리팩토링 필요..
   std::string body;
 
   body += "<html>\n";
-  body += "<head><title>" + status_code + " " + status_message + "</title></head>\n";
+  body += "<head><title>" + response_->getStatusCode() + " " + response_->getStatusMessage()  + "</title></head>\n";
   body += "<body>\n";
-  body += "<center><h1>" + status_code + " " + status_message + "</h1></center>\n";
+  body += "<center><h1>" + response_->getStatusCode() + " " + response_->getStatusMessage() + "</h1></center>\n";
   body += "<hr><center>" + response_->getHeaderValue("Server") + "</center>\n";
   body += "</body>\n";
   body += "</html>\n";

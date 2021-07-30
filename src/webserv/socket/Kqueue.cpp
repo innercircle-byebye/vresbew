@@ -1,5 +1,6 @@
 #include "webserv/socket/Kqueue.hpp"
 namespace ft {
+
 Kqueue::Kqueue() {
   kq_ = kqueue();
   if (kq_ == -1) {
@@ -22,6 +23,7 @@ Kqueue::Kqueue() {
   ts_.tv_sec = 5;
   ts_.tv_nsec = 0;
 }
+
 Kqueue::~Kqueue() {
   if (close(kq_) == -1) {
     Logger::logError(LOG_ALERT, "kqueue close() failed");
@@ -30,10 +32,12 @@ Kqueue::~Kqueue() {
   delete[] change_list_;
   delete[] event_list_;
 }
+
 void Kqueue::kqueueSetEvent(Connection *c, u_short filter, u_int flags) {
   EV_SET(&change_list_[nchanges_], c->getFd(), filter, flags, 0, 0, c);  // udata = Connection
   ++nchanges_;
 }
+
 void Kqueue::kqueueProcessEvents(SocketManager *sm) {
   int events = kevent(kq_, change_list_, nchanges_, event_list_, nevents_, &ts_);
   nchanges_ = 0;
@@ -55,9 +59,9 @@ void Kqueue::kqueueProcessEvents(SocketManager *sm) {
         sm->closeConnection(c);
       } else {
         ssize_t recv_len = recv(c->getFd(), c->buffer_, BUF_SIZE, 0);
-        std::cout << "=========c->buffer_========="<< std::endl;
+        std::cout << "=========c->buffer_=========" << std::endl;
         std::cout << c->buffer_ << std::endl;
-        std::cout << "=========c->buffer_========="<< std::endl;
+        std::cout << "=========c->buffer_=========" << std::endl;
         if (c->getRecvPhase() == MESSAGE_START_LINE_INCOMPLETE ||
             c->getRecvPhase() == MESSAGE_START_LINE_COMPLETE ||
             c->getRecvPhase() == MESSAGE_HEADER_INCOMPLETE ||
@@ -75,7 +79,7 @@ void Kqueue::kqueueProcessEvents(SocketManager *sm) {
         } else if (c->getRecvPhase() == MESSAGE_BODY_INCOMING) {
           MessageHandler::handle_request_body(c);
         } else if (c->getRecvPhase() == MESSAGE_CGI_INCOMING) {
-          CgiHandler::handle_cgi_body(c, recv_len);
+          CgiHandler::receive_cgi_process_body(c, recv_len);
         }
         if (c->getRecvPhase() == MESSAGE_BODY_COMPLETE || c->getRecvPhase() == MESSAGE_CGI_COMPLETE) {
           kqueueSetEvent(c, EVFILT_WRITE, EV_ADD | EV_ONESHOT);
@@ -102,7 +106,7 @@ void Kqueue::kqueueProcessEvents(SocketManager *sm) {
           } else
             CgiHandler::receive_cgi_body(c);
         }
-        MessageHandler::set_response_header(c); // 서버가 실제 동작을 진행하는 부분
+        MessageHandler::set_response_header(c);  // 서버가 실제 동작을 진행하는 부분
         MessageHandler::set_response_message(c);
         MessageHandler::send_response_to_client(c);
         c->clear();

@@ -45,6 +45,7 @@ void CgiHandler::init_cgi_child(Connection *c) {
     c->setStringBufferContentLength(c->getStringBufferContentLength() - c->getBodyBuf().size());
     c->getBodyBuf().clear();  // 뒤에서 또 쓰일걸 대비해 혹시몰라 초기화.. #2
   }
+  // TODO: 조건 확인후 변경
   if ((c->getRequest().getMethod() == "POST" && c->getRequest().getHeaderValue("Content-Length").empty()) ||
       c->getStringBufferContentLength() > 0)  // POST 요청에 request 헤더에 Content-Length가 안 주어 졌다
     c->setRecvPhase(MESSAGE_CGI_INCOMING);
@@ -93,7 +94,7 @@ void CgiHandler::handle_cgi_header(Connection *c) {
   }
 }
 
-void CgiHandler::handle_cgi_body(Connection *c, ssize_t recv_len) {
+void CgiHandler::receive_cgi_process_body(Connection *c, ssize_t recv_len) {
   std::cout << "i'm here" << std::endl;
   // 한번의 버퍼 안에 전체 메세지가 다 들어 올 경우
   if (recv_len == -1)

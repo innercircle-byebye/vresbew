@@ -61,7 +61,10 @@ void MessageHandler::set_response_header(Connection *c) {
   if (c->getRequest().getMethod() == "PUT" &&
       (c->getResponse().getStatusCode() == "201" || (c->getResponse().getStatusCode() == "204"))) {
     // create response body
-    executePutMethod(response_handler_.getAccessPath(c->getRequest().getUri()), c->getRequest().getEntityBody());
+    executePutMethod(response_handler_.getAccessPath(c->getRequest().getUri()), c->getBodyBuf());
+
+    //TODO: remove;
+    c->getBodyBuf().clear();
   }
 }
 
@@ -89,6 +92,7 @@ void MessageHandler::executePutMethod(std::string path, std::string content) {
   std::ofstream output(path.c_str());
   output << content;
   output.close();
+
 }
 
 bool MessageHandler::isValidRequestMethod(const std::string &method) {

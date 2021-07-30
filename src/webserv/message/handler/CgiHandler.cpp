@@ -168,6 +168,7 @@ char **CgiHandler::setEnviron(Connection *c) {
       env_set["CONTENT_LENGTH"] = c->getRequest().getHeaderValue("Content-Length");
     }
     if (c->getRequest().getMethod() == "GET") {
+      // TODO: getEntityBody 삭제 필요, 구조체로 변경
       env_set["QUERY_STRING"] = c->getRequest().getEntityBody();
     }
     env_set["REQUEST_METHOD"] = c->getRequest().getMethod();

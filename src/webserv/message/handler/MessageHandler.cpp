@@ -47,11 +47,9 @@ void MessageHandler::handle_request_body(Connection *c) {
 }
 
 void MessageHandler::set_response_header(Connection *c) {
-  //ResponseHandler response_handler_;
+
   response_handler_.setResponse(&c->getResponse(), &c->getBodyBuf());
   response_handler_.setServerConfig(c->getHttpConfig(), c->getSockaddrToConnect(), c->getRequest().getHeaderValue("Host"));
-  // TODO: HTTP/1.0 일 때 로직 복구 필요
-  // request에서 처리할지, response에서 처리할지 결정 필요
 
   // // TODO:
   // if (!c->status_code_.empty()) {
@@ -79,7 +77,7 @@ void MessageHandler::set_response_body(Connection *c) {
 }
 
 void MessageHandler::send_response_to_client(Connection *c) {
-  send(c->getFd(), c->getResponse().getMsg().c_str(), c->getResponse().getMsg().size(), 0);
+  send(c->getFd(), c->getResponse().getHeaderMsg().c_str(), c->getResponse().getHeaderMsg().size(), 0);
   send(c->getFd(), c->getBodyBuf().c_str(), c->getBodyBuf().size(), 0);
 }
 

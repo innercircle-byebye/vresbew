@@ -17,9 +17,7 @@ void Response::clear() {
   headers_.clear();
   this->initHeaders();
 
-  response_body_.clear();
-
-  msg_.clear();
+  header_msg_.clear();
 }
 
 void Response::initHeaders() {
@@ -41,15 +39,13 @@ const std::string &Response::getStatusMessage() const { return status_message_; 
 const std::string &Response::getHttpVersion() const { return http_version_; }
 const std::map<std::string, std::string> &Response::getHeaders() const { return headers_; }
 const std::string &Response::getHeaderValue(const std::string &key) { return headers_[key]; }
-std::string &Response::getResponseBody() { return response_body_; }
-std::string &Response::getMsg() { return msg_; }
+std::string &Response::getHeaderMsg() { return header_msg_; }
 
 void Response::setStatusCode(std::string status_code) { status_code_ = status_code; }
 void Response::setStatusMessage(std::string status_message) { status_message_ = status_message; }
 void Response::setHttpVersion(std::string http_version) { http_version_ = http_version; }
 void Response::setHeader(std::string key, std::string value) { headers_[key] = value; }
-void Response::setResponseBody(std::string response_body) { response_body_ = response_body; }
-void Response::setMsg(std::string msg) { msg_ = msg; }
+void Response::setHeaderMsg(std::string header_msg) { header_msg_ = header_msg; }
 
 void Response::setConnectionHeaderByStatusCode(const std::string &status_code) {
   if (!status_code.compare("403") ||

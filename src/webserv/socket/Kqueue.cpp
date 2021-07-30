@@ -92,6 +92,7 @@ void Kqueue::kqueueProcessEvents(SocketManager *sm) {
           if (c->getRequest().getMethod() == "POST" &&
               c->getRequest().getHeaderValue("Content-Length").empty()) {
             CgiHandler::send_chunked_cgi_response_to_client_and_close(c);
+            // sm->closeConnection(c);때문에 여기에 놔둠
             c->clear();
             if (!c->getResponse().getHeaderValue("Connection").compare("close") ||
                 !c->getRequest().getHttpVersion().compare("HTTP/1.0")) {

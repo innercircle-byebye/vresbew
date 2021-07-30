@@ -24,7 +24,7 @@ namespace ft {
 class ResponseHandler {
   Response *response_;
   ServerConfig *server_config_;
-  std::string *msg_body_buf_;
+  std::string *body_buf_;
 
   struct stat stat_buffer_;
 

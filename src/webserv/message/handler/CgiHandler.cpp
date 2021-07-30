@@ -227,7 +227,7 @@ char **CgiHandler::setCommand(std::string command, std::string path) {
 void CgiHandler::send_chunked_cgi_response_to_client_and_close(Connection *c) {
   size_t nbytes;
   MessageHandler::response_handler_.makeResponseHeader();
-  send(c->getFd(), c->getResponse().getMsg().c_str(), c->getResponse().getMsg().size(), 0);
+  send(c->getFd(), c->getResponse().getHeaderMsg().c_str(), c->getResponse().getHeaderMsg().size(), 0);
   send(c->getFd(), c->getBodyBuf().c_str(), (size_t)c->getBodyBuf().size(), 0);
   while ((nbytes = read(c->readpipe[0], c->buffer_, BUF_SIZE))) {
     send(c->getFd(), c->buffer_, nbytes, 0);

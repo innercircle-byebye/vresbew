@@ -6,9 +6,9 @@ ResponseHandler::ResponseHandler() {}
 
 ResponseHandler::~ResponseHandler() {}
 
-void ResponseHandler::setResponse(Response *response, std::string *msg_body_buf) {
+void ResponseHandler::setResponse(Response *response, std::string *body_buf) {
   response_ = response;
-  msg_body_buf_ = msg_body_buf;
+  body_buf_ = body_buf;
 }
 
 //TODO: setLocationConfig로 바꿔도 될지 확인해보기
@@ -47,12 +47,12 @@ void ResponseHandler::makeResponseHeader() {
 }
 
 void ResponseHandler::setResponseStatusLine() {
-  response_->getMsg() += this->response_->getHttpVersion();
-  response_->getMsg() += " ";
-  response_->getMsg() += this->response_->getStatusCode();
-  response_->getMsg() += " ";
-  response_->getMsg() += this->response_->getStatusMessage();
-  response_->getMsg() += "\r\n";
+  response_->getHeaderMsg() += this->response_->getHttpVersion();
+  response_->getHeaderMsg() += " ";
+  response_->getHeaderMsg() += this->response_->getStatusCode();
+  response_->getHeaderMsg() += " ";
+  response_->getHeaderMsg() += this->response_->getStatusMessage();
+  response_->getHeaderMsg() += "\r\n";
 }
 
 void ResponseHandler::setResponseHeader() {
@@ -60,13 +60,13 @@ void ResponseHandler::setResponseHeader() {
   std::map<std::string, std::string>::reverse_iterator it;
   for (it = headers.rbegin(); it != headers.rend(); it++) {
     if (it->second != "") {
-      response_->getMsg() += it->first;
-      response_->getMsg() += ": ";
-      response_->getMsg() += it->second;
-      response_->getMsg() += "\r\n";
+      response_->getHeaderMsg() += it->first;
+      response_->getHeaderMsg() += ": ";
+      response_->getHeaderMsg() += it->second;
+      response_->getHeaderMsg() += "\r\n";
     }
   }
-  response_->getMsg() += "\r\n";
+  response_->getHeaderMsg() += "\r\n";
 }
 
 void ResponseHandler::setStatusLineWithCode(const std::string &status_code) {
@@ -78,7 +78,7 @@ void ResponseHandler::setStatusLineWithCode(const std::string &status_code) {
   if (!(!status_code.compare("200") ||
         !status_code.compare("201") ||
         !status_code.compare("204")))
-    msg_body_buf_->append(getDefaultErrorBody(this->response_->getStatusCode(), this->response_->getStatusMessage()));
+    body_buf_->append(getDefaultErrorBody(this->response_->getStatusCode(), this->response_->getStatusMessage()));
 }
 
 std::string ResponseHandler::getDefaultErrorBody(std::string status_code, std::string status_message) {
@@ -136,7 +136,7 @@ void ResponseHandler::processGetAndHeaderMethod(Request &request, LocationConfig
     }
     setStatusLineWithCode("200");
     // body가 만들져 있지 않는 경우의 조건 추가
-    if (request.getMethod() == "GET" && msg_body_buf_->empty())
+    if (request.getMethod() == "GET" && body_buf_->empty())
       setResponseBodyFromFile(request.getUri(), location);
   }
 }
@@ -246,14 +246,6 @@ std::string ResponseHandler::getAccessPath(const std::string &uri, LocationConfi
   return (path);
 }
 
-// bool ResponseHandler::isFileExist(std::string &uri) {
-//   if (stat(getAccessPath(uri).c_str(), &this->stat_buffer_) < 0) {
-//     std::cout << "this ain't work" << std::endl;
-//     return (false);
-//   }
-//   return (true);
-// }
-
 bool ResponseHandler::isFileExist(const std::string &path) {
   // std::cout << "REMINDER: THIS METHOD SHOULD ONLY BE \
   //   CALLED WHEN FILE PATH IS COMBINED WITH ROOT DIRECTIVE"
@@ -287,10 +279,10 @@ void ResponseHandler::setResponseBodyFromFile(std::string &uri, LocationConfig *
   std::ifstream file(getAccessPath(uri, location).c_str());
 
   file.seekg(0, std::ios::end);
-  msg_body_buf_->reserve(file.tellg());
+  body_buf_->reserve(file.tellg());
   file.seekg(0, std::ios::beg);
 
-  msg_body_buf_->assign((std::istreambuf_iterator<char>(file)),
+  body_buf_->assign((std::istreambuf_iterator<char>(file)),
                         std::istreambuf_iterator<char>());
 }
 

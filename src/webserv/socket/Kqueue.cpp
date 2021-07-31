@@ -59,6 +59,12 @@ void Kqueue::kqueueProcessEvents(SocketManager *sm) {
         sm->closeConnection(c);
       } else {
         ssize_t recv_len = recv(c->getFd(), c->buffer_, BUF_SIZE, 0);
+        if (recv_len == sizeof(ctrl_c) && memcmp(c->buffer_, ctrl_c, sizeof(ctrl_c)) == 0)
+        {
+          c->clear();
+          sm->closeConnection(c);
+          continue ;
+        }
         std::cout << "=========c->buffer_=========" << std::endl;
         std::cout << c->buffer_ << std::endl;
         std::cout << "=========c->buffer_=========" << std::endl;

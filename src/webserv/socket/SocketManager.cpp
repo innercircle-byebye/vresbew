@@ -33,15 +33,10 @@ SocketManager::~SocketManager() {
 
 void SocketManager::openListeningSockets() {
   for (size_t i = 0; i < listening_.size(); ++i) {
-    try {
       listening_[i]->setSocketFd();
       listening_[i]->bindSocket();
       listening_[i]->listenSocket();
       listening_[i]->setListeningConnection(getConnection(listening_[i]->getFd()));
-    } catch (std::exception &e) {
-      std::cerr << "SocketManager::open_listening_sockets(fd = " << listening_[i]->getFd() << ")"
-                << e.what() << std::endl;
-    }
   }
 }
 

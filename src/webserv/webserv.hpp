@@ -40,6 +40,8 @@ typedef int socket_t;
 #define LOG_INFO 7
 #define LOG_DEBUG 8
 
+const char ctrl_c[5] = {0xff, 0xf4, 0xff, 0xfd, 0x06};
+
 namespace ft {
 class Kqueue;
 class SocketManager;

@@ -110,30 +110,30 @@ void Kqueue::kqueueProcessEvents(SocketManager *sm) {
         if (c->interrupted == true) {
           c->clear();
           sm->closeConnection(c);
-          continue;
-        }
-        if (c->getRecvPhase() == MESSAGE_CGI_COMPLETE) {
-          CgiHandler::handle_cgi_header(c);
-          if (c->getRequest().getMethod() == "POST" &&
-              c->getRequest().getHeaderValue("Content-Length").empty()) {
-            CgiHandler::send_chunked_cgi_response_to_client_and_close(c);
-            // sm->closeConnection(c);때문에 여기에 놔둠
-            c->clear();
-            if (!c->getResponse().getHeaderValue("Connection").compare("close") ||
-                !c->getRequest().getHttpVersion().compare("HTTP/1.0")) {
-              sm->closeConnection(c);
-            }
-            continue;
-          } else
-            CgiHandler::receive_cgi_body(c);
-        }
-        MessageHandler::set_response_header(c);  // 서버가 실제 동작을 진행하는 부분
-        MessageHandler::set_response_message(c);
-        MessageHandler::send_response_to_client(c);
-        c->clear();
-        if (!c->getResponse().getHeaderValue("Connection").compare("close") ||
-            !c->getRequest().getHttpVersion().compare("HTTP/1.0")) {
-          sm->closeConnection(c);
+        } else {
+          if (c->getRecvPhase() == MESSAGE_CGI_COMPLETE) {
+            CgiHandler::handle_cgi_header(c);
+            if (c->getRequest().getMethod() == "POST" &&
+                c->getRequest().getHeaderValue("Content-Length").empty()) {
+              CgiHandler::send_chunked_cgi_response_to_client_and_close(c);
+              // sm->closeConnection(c);때문에 여기에 놔둠
+              c->clear();
+              if (!c->getResponse().getHeaderValue("Connection").compare("close") ||
+                  !c->getRequest().getHttpVersion().compare("HTTP/1.0")) {
+                sm->closeConnection(c);
+              }
+              continue;
+            } else
+              CgiHandler::receive_cgi_body(c);
+          }
+          MessageHandler::set_response_header(c);  // 서버가 실제 동작을 진행하는 부분
+          MessageHandler::set_response_message(c);
+          MessageHandler::send_response_to_client(c);
+          c->clear();
+          if (!c->getResponse().getHeaderValue("Connection").compare("close") ||
+              !c->getRequest().getHttpVersion().compare("HTTP/1.0")) {
+            sm->closeConnection(c);
+          }
         }
       }
     }

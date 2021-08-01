@@ -8,7 +8,7 @@ Connection::Connection()
   memset(buffer_, 0, BUF_SIZE);
   chunked_checker = CHUNKED_KEEP_COMING;
   recv_phase_ = MESSAGE_START_LINE_INCOMPLETE;
-  intrupted = false;
+  interrupted = false;
 }
 
 Connection::~Connection() {}
@@ -54,7 +54,7 @@ void Connection::clear() {
   string_buffer_content_length_ = 0;
   chunked_checker = 0;
   status_code_.clear();
-  intrupted = false;
+  interrupted = false;
  }
 
 

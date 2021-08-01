@@ -122,7 +122,7 @@ void MessageHandler::check_interrupt_received(Connection *c) {
   int i = 0;
   while (i < CTRL_C_LIST) {
     if (strchr(c->buffer_, ctrl_c[i]))
-      c->intrupted = true;
+      c->interrupted = true;
     i++;
   }
 }

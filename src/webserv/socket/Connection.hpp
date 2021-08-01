@@ -53,7 +53,7 @@ class Connection {
 
  public:
   char buffer_[BUF_SIZE];
-  bool intrupted;
+  bool interrupted;
   std::string body_buf_;
   pid_t cgi_pid;
   int writepipe[2], readpipe[2];

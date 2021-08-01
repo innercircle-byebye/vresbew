@@ -67,7 +67,7 @@ void Kqueue::kqueueProcessEvents(SocketManager *sm) {
         // }
         if (c->getRecvPhase() == MESSAGE_INTERRUPTED) {
           if (strchr(c->buffer_, ctrl_c[0])) {
-            c->intrupted = true;
+            c->interrupted = true;
             c->setRecvPhase(MESSAGE_BODY_COMPLETE);
           }
         }
@@ -83,7 +83,7 @@ void Kqueue::kqueueProcessEvents(SocketManager *sm) {
         if (c->getRecvPhase() == MESSAGE_HEADER_PARSED) {
           if (!c->getRequest().getHeaderValue("Content-Length").empty())
             c->setStringBufferContentLength(stoi(c->getRequest().getHeaderValue("Content-Length")));
-          if (c->intrupted == true)
+          if (c->interrupted == true)
             c->setRecvPhase(MESSAGE_INTERRUPTED);
           else {
             MessageHandler::check_cgi_request(c);
@@ -107,7 +107,7 @@ void Kqueue::kqueueProcessEvents(SocketManager *sm) {
         Logger::logError(LOG_ALERT, "%d kevent() reported about an %d reader disconnects", events, (int)event_list_[i].ident);
         sm->closeConnection(c);
       } else {
-        if (c->intrupted == true) {
+        if (c->interrupted == true) {
           c->clear();
           sm->closeConnection(c);
           continue;

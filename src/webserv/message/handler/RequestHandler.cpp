@@ -28,7 +28,7 @@ void RequestHandler::processByRecvPhase(Connection *c) {
 void RequestHandler::checkMsgForStartLine(Connection *c) {
   size_t pos;
 
-  if (c->intrupted == true) {
+  if (c->interrupted == true) {
     c->setRecvPhase(MESSAGE_BODY_COMPLETE);
   } else if ((pos = request_->getMsg().find("\r\n")) != std::string::npos)
     c->setRecvPhase(MESSAGE_START_LINE_COMPLETE);
@@ -180,7 +180,7 @@ int RequestHandler::parseUri(std::string uri_str) {
 }
 
 void RequestHandler::parseHeaderLines(Connection *c) {
-  if (c->intrupted == true)
+  if (c->interrupted == true)
   {
     c->setRecvPhase(MESSAGE_BODY_COMPLETE);
     return ;

@@ -65,6 +65,12 @@ void Kqueue::kqueueProcessEvents(SocketManager *sm) {
         //   sm->closeConnection(c);
         //   continue ;
         // }
+        if (c->getRecvPhase() == MESSAGE_INTERRUPTED) {
+          if (strchr(c->buffer_, ctrl_c[0])) {
+            c->intrupted = true;
+            c->setRecvPhase(MESSAGE_BODY_COMPLETE);
+          }
+        }
         std::cout << "=========c->buffer_=========" << std::endl;
         std::cout << c->buffer_ << std::endl;
         std::cout << "=========c->buffer_=========" << std::endl;
@@ -77,11 +83,15 @@ void Kqueue::kqueueProcessEvents(SocketManager *sm) {
         if (c->getRecvPhase() == MESSAGE_HEADER_PARSED) {
           if (!c->getRequest().getHeaderValue("Content-Length").empty())
             c->setStringBufferContentLength(stoi(c->getRequest().getHeaderValue("Content-Length")));
-          MessageHandler::check_cgi_request(c);
-          if (c->getRecvPhase() == MESSAGE_CGI_PROCESS)
-            CgiHandler::init_cgi_child(c);
-          else
-            MessageHandler::check_body_status(c);
+          if (c->intrupted == true)
+            c->setRecvPhase(MESSAGE_INTERRUPTED);
+          else {
+            MessageHandler::check_cgi_request(c);
+            if (c->getRecvPhase() == MESSAGE_CGI_PROCESS)
+              CgiHandler::init_cgi_child(c);
+            else
+              MessageHandler::check_body_status(c);
+          }
         } else if (c->getRecvPhase() == MESSAGE_BODY_INCOMING) {
           MessageHandler::handle_request_body(c);
         } else if (c->getRecvPhase() == MESSAGE_CGI_INCOMING) {

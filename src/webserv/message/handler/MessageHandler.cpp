@@ -9,14 +9,13 @@ MessageHandler::MessageHandler() {}
 MessageHandler::~MessageHandler() {}
 
 void MessageHandler::handle_request_header(Connection *c) {
-  // 0. buffer 안에서 ctrl_c 가 전송 되었는지 확인
-  check_interrupt_received(c);
-  // recv(c->getFd(), c->buffer_, BUF_SIZE, 0);
   // 1. request_handler의 request가 c의 request가 되도록 세팅
   request_handler_.setRequest(&c->getRequest());
-  // 2. append (이전에 request가 setting되어야함)
+  // 2. buffer 안에서 ctrl_c 가 전송 되었는지 확인
+  check_interrupt_received(c);
+  // 3. append (이전에 request가 setting되어야함)
   request_handler_.appendMsg(c->buffer_);
-  // 3. process by recv_phase
+  // 4. process by recv_phase
   request_handler_.processByRecvPhase(c);
 }
 
@@ -38,7 +37,6 @@ void MessageHandler::check_body_status(Connection *c) {
 }
 
 void MessageHandler::handle_request_body(Connection *c) {
-
   check_interrupt_received(c);
   if ((size_t)c->getStringBufferContentLength() <= strlen(c->buffer_)) {
     c->appendBodyBuf(c->buffer_, c->getStringBufferContentLength());

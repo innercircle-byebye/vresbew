@@ -13,7 +13,7 @@ void Request::clear() {
   schema_.clear();
   host_.clear();
   port_ = "80";
-  uri_ = "/";
+  uri_.clear();
   http_version_.clear();
   headers_.clear();
   entity_body_.clear();

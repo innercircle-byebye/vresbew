@@ -15,14 +15,20 @@ void RequestHandler::appendMsg(const char *buffer) {
 
 void RequestHandler::processByRecvPhase(Connection *c) {
   if (c->getRecvPhase() == MESSAGE_START_LINE_INCOMPLETE)
+  {
+    if (c->intrupted == true)
+    {
+      c->setRecvPhase(MESSAGE_BODY_COMPLETE);
+      return ;
+    }
     checkMsgForStartLine(c);
+  }
   if (c->getRecvPhase() == MESSAGE_START_LINE_COMPLETE)
     parseStartLine(c);
   if (c->getRecvPhase() == MESSAGE_HEADER_INCOMPLETE)
     checkMsgForHeader(c);
-  if (c->getRecvPhase() == MESSAGE_HEADER_COMPLETE) {
+  if (c->getRecvPhase() == MESSAGE_HEADER_COMPLETE)
     parseHeaderLines(c);
-  }
 }
 
 /* CHECK FUNCTIONS */

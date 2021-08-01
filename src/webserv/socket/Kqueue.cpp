@@ -59,12 +59,12 @@ void Kqueue::kqueueProcessEvents(SocketManager *sm) {
         sm->closeConnection(c);
       } else {
         ssize_t recv_len = recv(c->getFd(), c->buffer_, BUF_SIZE, 0);
-        if (recv_len == sizeof(ctrl_c) && memcmp(c->buffer_, ctrl_c, sizeof(ctrl_c)) == 0)
-        {
-          c->clear();
-          sm->closeConnection(c);
-          continue ;
-        }
+        // if (recv_len == sizeof(ctrl_c) && memcmp(c->buffer_, ctrl_c, sizeof(ctrl_c)) == 0)
+        // {
+        //   c->clear();
+        //   sm->closeConnection(c);
+        //   continue ;
+        // }
         std::cout << "=========c->buffer_=========" << std::endl;
         std::cout << c->buffer_ << std::endl;
         std::cout << "=========c->buffer_=========" << std::endl;
@@ -97,6 +97,11 @@ void Kqueue::kqueueProcessEvents(SocketManager *sm) {
         Logger::logError(LOG_ALERT, "%d kevent() reported about an %d reader disconnects", events, (int)event_list_[i].ident);
         sm->closeConnection(c);
       } else {
+        if (c->intrupted == true) {
+          c->clear();
+          sm->closeConnection(c);
+          continue;
+        }
         if (c->getRecvPhase() == MESSAGE_CGI_COMPLETE) {
           CgiHandler::handle_cgi_header(c);
           if (c->getRequest().getMethod() == "POST" &&

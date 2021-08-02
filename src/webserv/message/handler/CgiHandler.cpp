@@ -169,7 +169,7 @@ char **CgiHandler::setEnviron(Connection *c) {
     }
     if (c->getRequest().getMethod() == "GET") {
       // TODO: getEntityBody 삭제 필요, 구조체로 변경
-      env_set["QUERY_STRING"] = c->getRequest().getEntityBody();
+      env_set["QUERY_STRING"] = c->getRequest().getQueryString();
     }
     env_set["REQUEST_METHOD"] = c->getRequest().getMethod();
     env_set["REDIRECT_STATUS"] = "CGI";
@@ -181,7 +181,7 @@ char **CgiHandler::setEnviron(Connection *c) {
     env_set["PATH_TRANSLATED"] = location->getRoot() + c->getRequest().getUri();
     env_set["REMOTE_ADDR"] = "127.0.0.1";  // TODO: ip주소 받아오는 부분 찾기
     if (c->getRequest().getMethod() == "GET")
-      env_set["REQUEST_URI"] = c->getRequest().getUri() + "?" + c->getRequest().getEntityBody();
+      env_set["REQUEST_URI"] = c->getRequest().getUri() + "?" + c->getRequest().getQueryString();
     else
       env_set["REQUEST_URI"] = location->getRoot() + c->getRequest().getUri();
     env_set["HTTP_HOST"] = c->getRequest().getHeaderValue("Host");

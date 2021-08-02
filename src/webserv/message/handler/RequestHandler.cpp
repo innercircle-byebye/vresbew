@@ -157,7 +157,7 @@ int RequestHandler::parseUri(std::string uri_str) {
       case args:
         if ((pos = uri_str.find(" ")) != std::string::npos) {
           if (pos != 1)
-            request_->setEntityBody(uri_str.substr(1, pos - 1));
+            request_->setQueryString(uri_str.substr(1, pos - 1));
           uri_str.erase(0, pos);
         } else
           return PARSE_INVALID_URI;
@@ -167,11 +167,11 @@ int RequestHandler::parseUri(std::string uri_str) {
         break;
     }
   }
-  // std::cout << "schema: " << request_->getSchema() << std::endl;
-  // std::cout << "host: " << request_->getHost() << std::endl;
-  // std::cout << "port: " << request_->getPort() << std::endl;
-  // std::cout << "uri: " << request_->getUri() << std::endl;
-  // std::cout << "entitybody: |" << request_->getEntityBody() << "|" << std::endl;
+  std::cout << "schema: " << request_->getSchema() << std::endl;
+  std::cout << "host: " << request_->getHost() << std::endl;
+  std::cout << "port: " << request_->getPort() << std::endl;
+  std::cout << "uri: " << request_->getUri() << std::endl;
+  std::cout << "query_string: |" << request_->getQueryString() << "|" << std::endl;
   return (PARSE_VALID_URI);
 }
 

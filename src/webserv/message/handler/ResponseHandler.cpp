@@ -47,7 +47,7 @@ void ResponseHandler::makeResponseHeader() {
 void ResponseHandler::setResponseStatusLine() {
   response_->getHeaderMsg() += this->response_->getHttpVersion();
   response_->getHeaderMsg() += " ";
-  response_->getHeaderMsg() += this->response_->getStatusCode();
+  response_->getHeaderMsg() += SSTR(this->response_->getStatusCode());
   response_->getHeaderMsg() += " ";
   response_->getHeaderMsg() += this->response_->getStatusMessage();
   response_->getHeaderMsg() += "\r\n";

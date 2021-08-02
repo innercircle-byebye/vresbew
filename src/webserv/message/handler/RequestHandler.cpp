@@ -174,6 +174,8 @@ int RequestHandler::parseUri(std::string uri_str) {
         break;
     }
   }
+  if (request_->getPath().empty())
+    request_->setPath("/");
   std::cout << "uri: " << request_->getUri() << std::endl;
   std::cout << "schema: " << request_->getSchema() << std::endl;
   std::cout << "host: " << request_->getHost() << std::endl;

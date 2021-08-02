@@ -58,6 +58,7 @@ void Connection::clear() {
  }
 
 
+
 /* SETTER */
 void Connection::setListen(bool listen) { listen_ = listen; }
 

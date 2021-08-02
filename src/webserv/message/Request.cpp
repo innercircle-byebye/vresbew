@@ -2,7 +2,7 @@
 
 namespace ft {
 
-Request::Request(): port_("80"), uri_("/"){}
+Request::Request(): uri_("/"){}
 
 Request::~Request() {
   this->clear();
@@ -16,8 +16,11 @@ void Request::clear() {
   uri_struct_.schema_.clear();
   uri_struct_.host_.clear();
   // TODO: 확인 후 반영/변경
+  uri_.clear();
+  uri_struct_.schema_.clear();
+  uri_struct_.host_.clear();
   // uri_struct_.port_.clear();
-  port_ = "80";
+  port_.clear();
   uri_struct_.path_.clear();
   uri_struct_.query_string_.clear();
 }

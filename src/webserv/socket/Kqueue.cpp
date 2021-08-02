@@ -80,11 +80,20 @@ void Kqueue::kqueueProcessEvents(SocketManager *sm) {
           // #2~#4 의 과정을 request header 까지 완성 한 후 현재 시점에서 진행
           // + locationconfig에서 확인 할 수 있는 정보를 통해 조건 비교
           // + responsehandler에서 이전 해 와야 할 부분들 확인 필요
+
+          // REQUEST_CHECK #7
+          // 헤더가 완성 된 이후에 request_message를
+          // 전체적으로 확인하는 코드가 있으면 한번에 관리하는게 나을듯 합니다.
           if (!c->getRequest().getHeaderValue("Content-Length").empty())
             c->setStringBufferContentLength(stoi(c->getRequest().getHeaderValue("Content-Length")));
+          // TODO: remove
+          // 현재 시점에 유지 해주세요
           if (c->interrupted == true)
             c->setRecvPhase(MESSAGE_INTERRUPTED);
           else {
+            // REQUEST_CHECK #7
+            // 헤더가 완성 된 이후에 request_message를
+            // 전체적으로 확인하는 코드가 있으면 한번에 관리하는게 나을듯 합니다.
             MessageHandler::check_cgi_request(c);
             if (c->getRecvPhase() == MESSAGE_CGI_PROCESS)
               CgiHandler::init_cgi_child(c);

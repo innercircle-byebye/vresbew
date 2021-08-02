@@ -4,11 +4,12 @@
 #include <iostream>
 #include <map>
 #include <string>
+#include <cstdlib> //itoa
 
 namespace ft {
 class Response {
  private:
-  std::string status_code_;
+  int status_code_;
   std::string status_message_;
   std::string http_version_;
 
@@ -24,20 +25,20 @@ class Response {
 
   void initHeaders();
 
-  const std::string &getStatusCode() const;
+  const int &getStatusCode() const;
   const std::string &getStatusMessage() const;
   const std::string &getHttpVersion() const;
   const std::map<std::string, std::string> &getHeaders() const;
   const std::string &getHeaderValue(const std::string &key);
   std::string &getHeaderMsg();
 
-  void setStatusCode(std::string status_code);
+  void setStatusCode(int status_code);
   void setStatusMessage(std::string status_message);
   void setHttpVersion(std::string http_version);
   void setHeader(std::string key, std::string value);
   void setHeaderMsg(std::string msg);
 
-  void setConnectionHeaderByStatusCode(const std::string &status_code);
+  void setConnectionHeaderByStatusCode(int status_code);
 
 
  private:

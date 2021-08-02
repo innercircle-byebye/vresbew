@@ -49,7 +49,7 @@ void RequestHandler::checkMsgForHeader(Connection *c) {
 /* PARSE FUNCTIONS */
 // REQUEST_CHECk #1
 // @sungyongcho
-// 아래 함수는 start line의 '400 에러 를 체크하기위해'만'
+// 아래 함수에서는 start line의 '400 에러 를 체크하기위해'만'
 // 쓰이면 되지 않을까 합니다..
 void RequestHandler::parseStartLine(Connection *c) {
   // schema://host:port/uri?query
@@ -69,8 +69,8 @@ void RequestHandler::parseStartLine(Connection *c) {
   // 아래 분기는 파일 위치가 유효한지 확인 한 후 체크
   // 헤더가 완성 된 이후에 locationconfig 에서 체크를 하는것이
   // 올바른 시점으로 파악됩니다.
-  // if (!RequestHandler::isValidMethod(start_line_split[0]))  // 405 Not allowed
-  //   ; //
+  if (!RequestHandler::isValidMethod(start_line_split[0]))  // 405 Not allowed
+    ;
   request_->setMethod(start_line_split[0]);
   request_->setUri(start_line_split[1]);
   start_line_split[1].append(" ");
@@ -79,20 +79,20 @@ void RequestHandler::parseStartLine(Connection *c) {
   // 아래 코드는 파일 위치 유효성 확인후 다음 단계에 처리 필요
   // 대신, 현재 시점에서 400 Bad Request로 체크 해야할 것은
   // 잘못 된 uri 형식 (슬래시가 없거나, URI에 들어 올 수 없는 문자들이 들어 왔을때)
-  // if (parseUri(start_line_split[1]) == PARSE_INVALID_URI) {  // 400 Bad Request
-  //   return;
-  // }
+  if (parseUri(start_line_split[1]) == PARSE_INVALID_URI) {  // 400 Bad Request
+    return;
+  }
 
   // REQUEST_CHECK #4
   // 505 에러코드의 조건은, 'HTTP/' 까지는 동일하고, / 뒤의 숫자가 다른 버전일 1.0, 1.1이 아닐 경우
   // 상태 코드 505로 반환.
   // 애초에 잘못된 문자열이 들어 왔을 경우에 400 Bad Request.  (/ 뒤에 문자가 들어와도 400)
-  // if (!RequestHandler::isValidHttpVersion(start_line_split[2]))  // 505 HTTP Version Not Supported
-  // {
-  //   c->status_code_ = 505;
-  //   c->setRecvPhase(MESSAGE_BODY_COMPLETE);
-  //   return;
-  // }
+  if (!RequestHandler::isValidHttpVersion(start_line_split[2]))  // 505 HTTP Version Not Supported
+  {
+    c->status_code_ = 505;
+    c->setRecvPhase(MESSAGE_BODY_COMPLETE);
+    return;
+  }
   request_->setHttpVersion(start_line_split[2]);
 
   c->setRecvPhase(MESSAGE_HEADER_INCOMPLETE);

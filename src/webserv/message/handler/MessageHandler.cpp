@@ -19,17 +19,21 @@ void MessageHandler::handle_request_header(Connection *c) {
   request_handler_.processByRecvPhase(c);
 }
 
+// r
 void MessageHandler::check_cgi_request(Connection *c) {
   ServerConfig *serverconfig_test = c->getHttpConfig()->getServerConfig(c->getSockaddrToConnect().sin_port, c->getSockaddrToConnect().sin_addr.s_addr, c->getRequest().getHeaderValue("Host"));
   LocationConfig *locationconfig_test = serverconfig_test->getLocationConfig(c->getRequest().getPath());
   //TODO: c->getRequest().getUri().find_last_of() 부분을 메세지 헤더의 mime_types로 확인하도록 교체/ 확인 필요
-  if (!locationconfig_test->getCgiPath().empty() &&
+  if (
       locationconfig_test->checkCgiExtension(c->getRequest().getPath())) {
     c->setRecvPhase(MESSAGE_CGI_PROCESS);
   }
 }
 
 void MessageHandler::check_body_status(Connection *c) {
+  //TODO: 아래 주석에 나와있는 조건문으로 변경
+  // if (c->getStringBufferContentLength() == 0
+  //  && !c->getRequest().getHeaderValue("Content-Length").empty())
   if (c->getStringBufferContentLength() == 0)
     c->setRecvPhase(MESSAGE_BODY_COMPLETE);
   else
@@ -53,16 +57,16 @@ void MessageHandler::set_response_header(Connection *c) {
   response_handler_.setResponse(&c->getResponse(), &c->getBodyBuf());
   response_handler_.setServerConfig(c->getHttpConfig(), c->getSockaddrToConnect(), c->getRequest().getHeaderValue("Host"));
 
-  // // TODO:
-  // if (!c->status_code_.empty()) {
-  //   setStatusLineWithCode(c->status_code);
-  //   return;
-  // }
+  // status_code 기본값: -1
+  if (c->status_code_ > 0) {
+    response_handler_.setStatusLineWithCode(c->status_code_);
+    return;
+  }
 
   response_handler_.setResponseFields(c->getRequest());
 
   if (c->getRequest().getMethod() == "PUT" &&
-      (c->getResponse().getStatusCode() == "201" || (c->getResponse().getStatusCode() == "204"))) {
+      (c->getResponse().getStatusCode() == 201 || (c->getResponse().getStatusCode() == 204))) {
     // create response body
     executePutMethod(response_handler_.getAccessPath(c->getRequest().getPath()), c->getBodyBuf());
 
@@ -75,9 +79,9 @@ void MessageHandler::set_response_message(Connection *c) {
   // MUST BE EXECUTED ONLY WHEN BODY IS NOT PROVIDED
   // TODO: fix this garbage conditional statement...
   std::cout << c->getResponse().getHeaderMsg() << std::endl;
-  if (!(!c->getResponse().getStatusCode().compare("200") ||
-        !c->getResponse().getStatusCode().compare("201") ||
-        !c->getResponse().getStatusCode().compare("204")))
+  if (!(c->getResponse().getStatusCode() == 200 ||
+        c->getResponse().getStatusCode() == 201 ||
+        c->getResponse().getStatusCode() == 204 ))
     response_handler_.setDefaultErrorBody();
 
   c->getResponse().setHeader("Content-Length",

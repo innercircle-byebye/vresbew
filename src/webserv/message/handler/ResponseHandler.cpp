@@ -23,7 +23,7 @@ void ResponseHandler::setResponseFields(Request &request) {
 
   // TODO : request로 이전
   if (!location->checkAcceptedMethod(request.getMethod())) {
-    setStatusLineWithCode("405");
+    setStatusLineWithCode(405);
     return;
   }
 
@@ -67,17 +67,17 @@ void ResponseHandler::setResponseHeader() {
   response_->getHeaderMsg() += "\r\n";
 }
 
-void ResponseHandler::setStatusLineWithCode(const std::string &status_code) {
+void ResponseHandler::setStatusLineWithCode(int status_code) {
   this->response_->setStatusCode(status_code);
-  this->response_->setStatusMessage(StatusMessage::of(stoi(status_code)));
+  this->response_->setStatusMessage(StatusMessage::of(status_code));
   this->response_->setConnectionHeaderByStatusCode(status_code);
 }
 
 void ResponseHandler::setDefaultErrorBody() {
   body_buf_->append("<html>\n");
-  body_buf_->append("<head><title>" + response_->getStatusCode() + " " + response_->getStatusMessage() + "</title></head>\n");
+  body_buf_->append("<head><title>" + SSTR(response_->getStatusCode()) + " " + response_->getStatusMessage() + "</title></head>\n");
   body_buf_->append("<body>\n");
-  body_buf_->append("<center><h1>" + response_->getStatusCode() + " " + response_->getStatusMessage() + "</h1></center>\n");
+  body_buf_->append("<center><h1>" + SSTR(response_->getStatusCode()) + " " + response_->getStatusMessage() + "</h1></center>\n");
   body_buf_->append("<hr><center>" + response_->getHeaderValue("Server") + "</center>\n");
   body_buf_->append("</body>\n");
   body_buf_->append("</html>\n");
@@ -96,7 +96,7 @@ void ResponseHandler::processGetAndHeaderMethod(Request &request, LocationConfig
   // TODO: connection의 status_code를 보고 결정하도록...
   if (this->response_->getHeaderValue("X-Powered-By") == "PHP/8.0.7" &&
       this->response_->getHeaderValue("Status").empty()) {
-    setStatusLineWithCode("200");
+    setStatusLineWithCode(200);
     return;
   }
 
@@ -104,23 +104,23 @@ void ResponseHandler::processGetAndHeaderMethod(Request &request, LocationConfig
   if (*(request.getPath().rbegin()) == '/') {
     findIndexForGetWhenOnlySlash(request, location);
     if (!request.getPath().compare("/")) {
-      setStatusLineWithCode("403");
+      setStatusLineWithCode(403);
       return;
     }
   }
   if (!isFileExist(request.getPath(), location)) {
-    setStatusLineWithCode("404");
+    setStatusLineWithCode(404);
     return;
   } else {
     if (S_ISDIR(this->stat_buffer_.st_mode)) {
-      setStatusLineWithCode("301");
+      setStatusLineWithCode(301);
       // TODO: string 을 생성 하지 않도록 수정하는 작업 필요
       // std::string temp_url = "http://" + request.getHeaderValue("Host") + request.getUri();
       std::string temp_url = "http://" + request.getHeaderValue("Host") + request.getPath() + "/";
       this->response_->setHeader("Location", temp_url);
       return;
     }
-    setStatusLineWithCode("200");
+    setStatusLineWithCode(200);
     // body가 만들져 있지 않는 경우의 조건 추가
     if (request.getMethod() == "GET" && body_buf_->empty())
       setResponseBodyFromFile(request.getPath(), location);
@@ -129,32 +129,32 @@ void ResponseHandler::processGetAndHeaderMethod(Request &request, LocationConfig
 
 void ResponseHandler::processPutMethod(Request &request, LocationConfig *&location) {
   if (*(request.getPath().rbegin()) == '/') {
-    setStatusLineWithCode("409");
+    setStatusLineWithCode(409);
     return;
   }
   if (!isFileExist(request.getPath(), location)) {
     // 경로가 디렉토리 이거나, 경로에 파일을 쓸 수 없을때
     if (S_ISDIR(this->stat_buffer_.st_mode) || (this->stat_buffer_.st_mode & S_IRWXU)) {
-      setStatusLineWithCode("500");
+      setStatusLineWithCode(500);
       return;
     }
-    setStatusLineWithCode("201");
+    setStatusLineWithCode(201);
   } else {
-    setStatusLineWithCode("204");
+    setStatusLineWithCode(204);
   }
 }
 
 void ResponseHandler::processPostMethod(Request &request, LocationConfig *&location) {
-  if (this->response_->getStatusCode() == "302") {
+  if (this->response_->getStatusCode() == 302) {
     setStatusLineWithCode(this->response_->getStatusCode());
     return;
   }
   if (!location->checkCgiExtension(request.getPath()) ||
       location->getCgiPath().empty()) {
-    setStatusLineWithCode("405");
+    setStatusLineWithCode(405);
     return;
   }
-  setStatusLineWithCode("200");
+  setStatusLineWithCode(200);
 }
 
 void ResponseHandler::processDeleteMethod(const std::string &uri, LocationConfig *&location) {
@@ -168,7 +168,7 @@ void ResponseHandler::processDeleteMethod(const std::string &uri, LocationConfig
   if (!uri.compare("/")) {  // URI 에 "/" 만 있는 경우
     std::string url = getAccessPath(uri);
     if (stat(url.c_str(), &this->stat_buffer_) < 0) {
-      setStatusLineWithCode("405");
+      setStatusLineWithCode(405);
       return;
     } else {
       if (S_ISDIR(this->stat_buffer_.st_mode)) {
@@ -176,7 +176,7 @@ void ResponseHandler::processDeleteMethod(const std::string &uri, LocationConfig
         struct dirent *item;
 
         if (!(dir_ptr = opendir(url.c_str()))) {
-          setStatusLineWithCode("403");  // Not Allowed
+          setStatusLineWithCode(403);  // Not Allowed
           return;
         }
         while ((item = readdir(dir_ptr))) {
@@ -185,33 +185,33 @@ void ResponseHandler::processDeleteMethod(const std::string &uri, LocationConfig
           std::string new_path(url);
           new_path += item->d_name;
           if (deletePathRecursive(new_path) == -1) {
-            setStatusLineWithCode("403");
+            setStatusLineWithCode(403);
             return;
           }
         }
-        setStatusLineWithCode("403");
+        setStatusLineWithCode(403);
       } else {
         if (remove(url.c_str()) != 0) {
-          setStatusLineWithCode("403");
+          setStatusLineWithCode(403);
           return;
         }
-        setStatusLineWithCode("204");
+        setStatusLineWithCode(204);
       }
     }
   } else {  // "/" 가 아닌 경우
     std::string url = getAccessPath(uri);
     if (stat(url.c_str(), &this->stat_buffer_) < 0) {
-      setStatusLineWithCode("404");
+      setStatusLineWithCode(404);
     } else {
       // file or directory
       if (S_ISDIR(this->stat_buffer_.st_mode)) {
-        setStatusLineWithCode("409");
+        setStatusLineWithCode(409);
       } else {  // is not directory == file ?!
         if (remove(url.c_str()) != 0) {
-          setStatusLineWithCode("403");
+          setStatusLineWithCode(403);
           return;
         }
-        setStatusLineWithCode("204");
+        setStatusLineWithCode(204);
       }
     }
   }

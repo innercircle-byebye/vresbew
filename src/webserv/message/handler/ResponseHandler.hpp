@@ -38,7 +38,7 @@ class ResponseHandler {
   void makeResponseMsg();
   void makeResponseHeader();
   void setResponseBody();
-  void setStatusLineWithCode(const std::string &status_code);
+  void setStatusLineWithCode(int status_code);
 
   // making response message begin
   void setDefaultErrorBody();

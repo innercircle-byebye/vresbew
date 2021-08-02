@@ -81,7 +81,7 @@ void CgiHandler::handle_cgi_header(Connection *c) {
       value = key_and_value[1];
       if (key.compare("Status") == 0) {
         // TODO: c->status_code 만 이용해서 handle_cgi_header 단계 이후에 사용하도록..
-        MessageHandler::response_handler_.setStatusLineWithCode(value);
+        MessageHandler::response_handler_.setStatusLineWithCode(stoi(value));
         c->status_code_ = stoi(value);
       }
       std::cout << "key: " << key << std::endl;

@@ -42,6 +42,8 @@ typedef int socket_t;
 
 #define CTRL_C_LIST 4
 
+// ref:
+// https://stackoverflow.com/questions/5590381/easiest-way-to-convert-int-to-string-in-c
 #define SSTR( x ) static_cast< std::ostringstream & >( \
         ( std::ostringstream() << std::dec << x ) ).str()
 

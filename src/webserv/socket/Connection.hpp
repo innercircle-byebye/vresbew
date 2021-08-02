@@ -20,7 +20,8 @@ enum MessageFromBufferStatus {
   MESSAGE_CGI_INCOMING,
   MESSAGE_CGI_COMPLETE,
   MESSAGE_BODY_INCOMING,
-  MESSAGE_BODY_COMPLETE
+  MESSAGE_BODY_COMPLETE,
+  MESSAGE_INTERRUPTED
 };
 
 enum ChunkedMessageStatus {
@@ -52,6 +53,7 @@ class Connection {
 
  public:
   char buffer_[BUF_SIZE];
+  bool interrupted;
   std::string body_buf_;
   pid_t cgi_pid;
   int writepipe[2], readpipe[2];

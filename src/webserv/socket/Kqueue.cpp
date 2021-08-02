@@ -59,6 +59,18 @@ void Kqueue::kqueueProcessEvents(SocketManager *sm) {
         sm->closeConnection(c);
       } else {
         ssize_t recv_len = recv(c->getFd(), c->buffer_, BUF_SIZE, 0);
+        // if (recv_len == sizeof(ctrl_c) && memcmp(c->buffer_, ctrl_c, sizeof(ctrl_c)) == 0)
+        // {
+        //   c->clear();
+        //   sm->closeConnection(c);
+        //   continue ;
+        // }
+        if (c->getRecvPhase() == MESSAGE_INTERRUPTED) {
+          if (strchr(c->buffer_, ctrl_c[0])) {
+            c->interrupted = true;
+            c->setRecvPhase(MESSAGE_BODY_COMPLETE);
+          }
+        }
         std::cout << "=========c->buffer_=========" << std::endl;
         std::cout << c->buffer_ << std::endl;
         std::cout << "=========c->buffer_=========" << std::endl;
@@ -71,11 +83,15 @@ void Kqueue::kqueueProcessEvents(SocketManager *sm) {
         if (c->getRecvPhase() == MESSAGE_HEADER_PARSED) {
           if (!c->getRequest().getHeaderValue("Content-Length").empty())
             c->setStringBufferContentLength(stoi(c->getRequest().getHeaderValue("Content-Length")));
-          MessageHandler::check_cgi_request(c);
-          if (c->getRecvPhase() == MESSAGE_CGI_PROCESS)
-            CgiHandler::init_cgi_child(c);
-          else
-            MessageHandler::check_body_status(c);
+          if (c->interrupted == true)
+            c->setRecvPhase(MESSAGE_INTERRUPTED);
+          else {
+            MessageHandler::check_cgi_request(c);
+            if (c->getRecvPhase() == MESSAGE_CGI_PROCESS)
+              CgiHandler::init_cgi_child(c);
+            else
+              MessageHandler::check_body_status(c);
+          }
         } else if (c->getRecvPhase() == MESSAGE_BODY_INCOMING) {
           MessageHandler::handle_request_body(c);
         } else if (c->getRecvPhase() == MESSAGE_CGI_INCOMING) {
@@ -91,28 +107,33 @@ void Kqueue::kqueueProcessEvents(SocketManager *sm) {
         Logger::logError(LOG_ALERT, "%d kevent() reported about an %d reader disconnects", events, (int)event_list_[i].ident);
         sm->closeConnection(c);
       } else {
-        if (c->getRecvPhase() == MESSAGE_CGI_COMPLETE) {
-          CgiHandler::handle_cgi_header(c);
-          if (c->getRequest().getMethod() == "POST" &&
-              c->getRequest().getHeaderValue("Content-Length").empty()) {
-            CgiHandler::send_chunked_cgi_response_to_client_and_close(c);
-            // sm->closeConnection(c);때문에 여기에 놔둠
-            c->clear();
-            if (!c->getResponse().getHeaderValue("Connection").compare("close") ||
-                !c->getRequest().getHttpVersion().compare("HTTP/1.0")) {
-              sm->closeConnection(c);
-            }
-            continue;
-          } else
-            CgiHandler::receive_cgi_body(c);
-        }
-        MessageHandler::set_response_header(c);  // 서버가 실제 동작을 진행하는 부분
-        MessageHandler::set_response_message(c);
-        MessageHandler::send_response_to_client(c);
-        c->clear();
-        if (!c->getResponse().getHeaderValue("Connection").compare("close") ||
-            !c->getRequest().getHttpVersion().compare("HTTP/1.0")) {
+        if (c->interrupted == true) {
+          c->clear();
           sm->closeConnection(c);
+        } else {
+          if (c->getRecvPhase() == MESSAGE_CGI_COMPLETE) {
+            CgiHandler::handle_cgi_header(c);
+            if (c->getRequest().getMethod() == "POST" &&
+                c->getRequest().getHeaderValue("Content-Length").empty()) {
+              CgiHandler::send_chunked_cgi_response_to_client_and_close(c);
+              // sm->closeConnection(c);때문에 여기에 놔둠
+              c->clear();
+              if (!c->getResponse().getHeaderValue("Connection").compare("close") ||
+                  !c->getRequest().getHttpVersion().compare("HTTP/1.0")) {
+                sm->closeConnection(c);
+              }
+              continue;
+            } else
+              CgiHandler::receive_cgi_body(c);
+          }
+          MessageHandler::set_response_header(c);  // 서버가 실제 동작을 진행하는 부분
+          MessageHandler::set_response_message(c);
+          MessageHandler::send_response_to_client(c);
+          c->clear();
+          if (!c->getResponse().getHeaderValue("Connection").compare("close") ||
+              !c->getRequest().getHttpVersion().compare("HTTP/1.0")) {
+            sm->closeConnection(c);
+          }
         }
       }
     }

@@ -33,6 +33,8 @@ class MessageHandler {
   static void set_response_message(Connection *c);
   static void send_response_to_client(Connection *c);
 
+  static void check_interrupt_received(Connection *c);
+
  private:
   static void executePutMethod(std::string path, std::string content);
   static bool isValidRequestMethod(const std::string &method);

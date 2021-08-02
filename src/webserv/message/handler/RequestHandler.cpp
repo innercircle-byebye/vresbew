@@ -89,7 +89,7 @@ int RequestHandler::parseUri(std::string uri_str) {
     switch (state) {
       case schema:
         if ((pos = uri_str.find("://")) == std::string::npos)
-          return PARSE_INVALID_URI;
+          return (PARSE_INVALID_URI);
         request_->setSchema(uri_str.substr(0, pos));
         uri_str.erase(0, pos + 3);
         state = host;
@@ -100,7 +100,7 @@ int RequestHandler::parseUri(std::string uri_str) {
             request_->setHost(uri_str.substr(0, pos));
           uri_str.erase(0, pos);
         } else
-          return PARSE_INVALID_URI;
+          return (PARSE_INVALID_URI);
         switch (uri_str[0]) {
           case ':':
             state = port;
@@ -115,7 +115,7 @@ int RequestHandler::parseUri(std::string uri_str) {
             state = uri_complete;
             break;
           default:
-            return PARSE_INVALID_URI;
+            return (PARSE_INVALID_URI);
         }
         break;
       case port:
@@ -124,7 +124,7 @@ int RequestHandler::parseUri(std::string uri_str) {
             request_->setPort(uri_str.substr(1, pos - 1));
           uri_str.erase(0, pos);
         } else
-          return PARSE_INVALID_URI;
+          return (PARSE_INVALID_URI);
         switch (uri_str[0]) {
           case '/':
             state = uri;
@@ -145,7 +145,7 @@ int RequestHandler::parseUri(std::string uri_str) {
             request_->setPath(uri_str.substr(0, pos));
           uri_str.erase(0, pos);
         } else
-          return PARSE_INVALID_URI;
+          return (PARSE_INVALID_URI);
         switch (uri_str[0]) {
           case '?':
             state = args;
@@ -154,7 +154,7 @@ int RequestHandler::parseUri(std::string uri_str) {
             state = uri_complete;
             break;
           default:
-            return PARSE_INVALID_URI;
+            return (PARSE_INVALID_URI);
         }
         break;
       case args:
@@ -163,7 +163,7 @@ int RequestHandler::parseUri(std::string uri_str) {
             request_->setQueryString(uri_str.substr(1, pos - 1));
           uri_str.erase(0, pos);
         } else
-          return PARSE_INVALID_URI;
+          return (PARSE_INVALID_URI);
         state = uri_complete;
         break;
       case uri_complete:

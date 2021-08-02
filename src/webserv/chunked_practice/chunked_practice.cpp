@@ -20,7 +20,7 @@ bool chunked_close_check(const char *buf, int len = -1) {
 
   while ((length = strtoul(ptr + length + CRLF, &ptr, 16)) >= 0) {
     std::cout << "------------fbuffer---------------" << std::endl;
-    std::cout << ptr << std::endl;
+    std::cout << ptr + length << std::endl;
     std::cout << "------------fbuffer---------------" << std::endl;
     if (strcmp(ptr, "\r\n\r\n") == 0)
       return (true);

@@ -37,6 +37,7 @@ void MessageHandler::check_body_status(Connection *c) {
 
 void MessageHandler::handle_request_body(Connection *c) {
   if ((size_t)c->getStringBufferContentLength() <= strlen(c->buffer_)) {
+
     c->appendBodyBuf(c->buffer_, c->getStringBufferContentLength());
     c->setStringBufferContentLength(0);
     c->setRecvPhase(MESSAGE_BODY_COMPLETE);

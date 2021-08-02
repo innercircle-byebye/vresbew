@@ -49,7 +49,7 @@ struct Request {
   const std::string &getPort() const;
   const std::string &getPath() const;
   const std::string &getQueryString() const;
-  std::string &getUri();
+  const std::string &getUri();
   const std::string &getHttpVersion() const;
   const std::map<std::string, std::string> &getHeaders() const;
   const std::string &getHeaderValue(const std::string &key);

@@ -20,25 +20,29 @@ void RequestHandler::processByRecvPhase(Connection *c) {
     parseStartLine(c);
   if (c->getRecvPhase() == MESSAGE_HEADER_INCOMPLETE)
     checkMsgForHeader(c);
-  if (c->getRecvPhase() == MESSAGE_HEADER_COMPLETE) {
+  if (c->getRecvPhase() == MESSAGE_HEADER_COMPLETE)
     parseHeaderLines(c);
-  }
 }
 
 /* CHECK FUNCTIONS */
 void RequestHandler::checkMsgForStartLine(Connection *c) {
   size_t pos;
-  if ((pos = request_->getMsg().find("\r\n")) != std::string::npos)
+
+  if (c->interrupted == true) {
+    c->setRecvPhase(MESSAGE_BODY_COMPLETE);
+  } else if ((pos = request_->getMsg().find("\r\n")) != std::string::npos)
     c->setRecvPhase(MESSAGE_START_LINE_COMPLETE);
 }
 
 void RequestHandler::checkMsgForHeader(Connection *c) {
   size_t pos;
 
-  if ((pos = request_->getMsg().find("\r\n\r\n")) != std::string::npos) {
+  std::string temp_rn_ctrlc = "\r\n";
+  temp_rn_ctrlc += ctrl_c[0];
+  if ((pos = request_->getMsg().find("\r\n\r\n")) != std::string::npos)
     c->setRecvPhase(MESSAGE_HEADER_COMPLETE);
-    return;
-  }
+  else if (request_->getMsg().find(temp_rn_ctrlc) != request_->getMsg().npos)
+    c->setRecvPhase(MESSAGE_INTERRUPTED);
   // TODO: header가 안들어온 경우 check
 }
 
@@ -176,6 +180,11 @@ int RequestHandler::parseUri(std::string uri_str) {
 }
 
 void RequestHandler::parseHeaderLines(Connection *c) {
+  if (c->interrupted == true)
+  {
+    c->setRecvPhase(MESSAGE_BODY_COMPLETE);
+    return ;
+  }
   size_t pos = request_->getMsg().find("\r\n\r\n");
   std::string header_lines = request_->getMsg().substr(0, pos);
 

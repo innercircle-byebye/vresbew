@@ -9,10 +9,11 @@ MessageHandler::MessageHandler() {}
 MessageHandler::~MessageHandler() {}
 
 void MessageHandler::handle_request_header(Connection *c) {
-  // recv(c->getFd(), c->buffer_, BUF_SIZE, 0);
-  // 2. request_handler의 request가 c의 request가 되도록 세팅
+  // 1. request_handler의 request가 c의 request가 되도록 세팅
   request_handler_.setRequest(&c->getRequest());
-  // 2. append (이전에 request가 setting되어야함)
+  // 2. buffer 안에서 ctrl_c 가 전송 되었는지 확인
+  check_interrupt_received(c);
+  // 3. append (이전에 request가 setting되어야함)
   request_handler_.appendMsg(c->buffer_);
   // 4. process by recv_phase
   request_handler_.processByRecvPhase(c);
@@ -36,6 +37,7 @@ void MessageHandler::check_body_status(Connection *c) {
 }
 
 void MessageHandler::handle_request_body(Connection *c) {
+  check_interrupt_received(c);
   if ((size_t)c->getStringBufferContentLength() <= strlen(c->buffer_)) {
     c->appendBodyBuf(c->buffer_, c->getStringBufferContentLength());
     c->setStringBufferContentLength(0);
@@ -92,7 +94,6 @@ void MessageHandler::executePutMethod(std::string path, std::string content) {
   std::ofstream output(path.c_str());
   output << content;
   output.close();
-
 }
 
 bool MessageHandler::isValidRequestMethod(const std::string &method) {
@@ -115,6 +116,15 @@ bool MessageHandler::isValidRequestVersion(const std::string &http_version, cons
     return (true);
   }
   return (false);
+}
+
+void MessageHandler::check_interrupt_received(Connection *c) {
+  int i = 0;
+  while (i < CTRL_C_LIST) {
+    if (strchr(c->buffer_, ctrl_c[i]))
+      c->interrupted = true;
+    i++;
+  }
 }
 
 }  // namespace ft

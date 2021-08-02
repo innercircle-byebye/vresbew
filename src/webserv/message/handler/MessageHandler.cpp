@@ -20,10 +20,10 @@ void MessageHandler::handle_request_header(Connection *c) {
 
 void MessageHandler::check_cgi_request(Connection *c) {
   ServerConfig *serverconfig_test = c->getHttpConfig()->getServerConfig(c->getSockaddrToConnect().sin_port, c->getSockaddrToConnect().sin_addr.s_addr, c->getRequest().getHeaderValue("Host"));
-  LocationConfig *locationconfig_test = serverconfig_test->getLocationConfig(c->getRequest().getUri());
+  LocationConfig *locationconfig_test = serverconfig_test->getLocationConfig(c->getRequest().getPath());
   //TODO: c->getRequest().getUri().find_last_of() 부분을 메세지 헤더의 mime_types로 확인하도록 교체/ 확인 필요
   if (!locationconfig_test->getCgiPath().empty() &&
-      locationconfig_test->checkCgiExtension(c->getRequest().getUri())) {
+      locationconfig_test->checkCgiExtension(c->getRequest().getPath())) {
     c->setRecvPhase(MESSAGE_CGI_PROCESS);
   }
 }
@@ -61,7 +61,7 @@ void MessageHandler::set_response_header(Connection *c) {
   if (c->getRequest().getMethod() == "PUT" &&
       (c->getResponse().getStatusCode() == "201" || (c->getResponse().getStatusCode() == "204"))) {
     // create response body
-    executePutMethod(response_handler_.getAccessPath(c->getRequest().getUri()), c->getBodyBuf());
+    executePutMethod(response_handler_.getAccessPath(c->getRequest().getPath()), c->getBodyBuf());
 
     //TODO: remove;
     c->getBodyBuf().clear();

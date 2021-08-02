@@ -57,7 +57,10 @@ void RequestHandler::parseStartLine(Connection *c) {
   if (!RequestHandler::isValidMethod(start_line_split[0]))  // 405 Not allowed
     ;
   request_->setMethod(start_line_split[0]);
-  if (parseUri(start_line_split[1] + " ") == PARSE_INVALID_URI) {  // 400 Bad Request
+  request_->setUri(start_line_split[1]);
+  start_line_split[1].append(" ");
+
+  if (parseUri(start_line_split[1]) == PARSE_INVALID_URI) {  // 400 Bad Request
     return;
   }
   if (!RequestHandler::isValidHttpVersion(start_line_split[2]))  // 505 HTTP Version Not Supported
@@ -139,7 +142,7 @@ int RequestHandler::parseUri(std::string uri_str) {
       case uri:
         if ((pos = uri_str.find_first_of("? ")) != std::string::npos) {
           if (pos != 1)
-            request_->setUri(uri_str.substr(0, pos));  //  /넣어햐하는지??
+            request_->setPath(uri_str.substr(0, pos));
           uri_str.erase(0, pos);
         } else
           return PARSE_INVALID_URI;
@@ -167,10 +170,11 @@ int RequestHandler::parseUri(std::string uri_str) {
         break;
     }
   }
+  std::cout << "uri: " << request_->getUri() << std::endl;
   std::cout << "schema: " << request_->getSchema() << std::endl;
   std::cout << "host: " << request_->getHost() << std::endl;
   std::cout << "port: " << request_->getPort() << std::endl;
-  std::cout << "uri: " << request_->getUri() << std::endl;
+  std::cout << "path: " << request_->getPath() << std::endl;
   std::cout << "query_string: |" << request_->getQueryString() << "|" << std::endl;
   return (PARSE_VALID_URI);
 }

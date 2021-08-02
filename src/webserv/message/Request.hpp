@@ -22,11 +22,12 @@ struct Request {
   std::string msg_;
   // start line
   std::string method_;
-  // TODO: og_uri_ 로 변경;
+  //TODO: 확인 후 구조체에서 이용하도록..
+  std::string port_;
+  //og_uri_ 역할
   std::string uri_;
   t_uri uri_struct_;
   std::string http_version_;
-
 
   // header
   std::map<std::string, std::string> headers_;

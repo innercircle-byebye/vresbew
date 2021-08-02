@@ -76,6 +76,13 @@ void Kqueue::kqueueProcessEvents(SocketManager *sm) {
           MessageHandler::handle_request_header(c);
         }
         if (c->getRecvPhase() == MESSAGE_HEADER_PARSED) {
+          // LOCATIONCONFIG 선언도 여기에서
+          // 적어도 400번대 에러는 여기에서 모두 처리 할 수 있도록!!!!
+          // (함수는 원하는대로 생성 하고 리팩토링은 이후에...)
+          // *** 필수 헤더에 따라서 어떤 동작을 해야되는지 파악 해야함
+          // (i.e. Content-Language, Content-type, Transfer-Encoding  등등... ) <- 어떻게 해야 할지 조사 필요
+          // 적어도 필수 헤더는 다 파악이 필요함. <- 어떻게 해야 할지 조사 필요
+
           // REQUEST_CHECK #6
           // #2~#4 의 과정을 request header 까지 완성 한 후 현재 시점에서 진행
           // + locationconfig에서 확인 할 수 있는 정보를 통해 조건 비교
@@ -94,6 +101,7 @@ void Kqueue::kqueueProcessEvents(SocketManager *sm) {
             // REQUEST_CHECK #7
             // 헤더가 완성 된 이후에 request_message를
             // 전체적으로 확인하는 코드가 있으면 한번에 관리하는게 나을듯 합니다.
+            // 아래 부분은 구현은 잘 되어 있으니 따로 건드릴 필요는 없음!!!
             MessageHandler::check_cgi_request(c);
             if (c->getRecvPhase() == MESSAGE_CGI_PROCESS)
               CgiHandler::init_cgi_child(c);

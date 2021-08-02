@@ -42,6 +42,7 @@ void CgiHandler::init_cgi_child(Connection *c) {
 
   if (!c->getBodyBuf().empty()) {
     write(c->writepipe[1], c->getBodyBuf().c_str(), (size_t)c->getBodyBuf().size());
+    //숫자 확인
     c->setStringBufferContentLength(c->getStringBufferContentLength() - c->getBodyBuf().size());
     c->getBodyBuf().clear();  // 뒤에서 또 쓰일걸 대비해 혹시몰라 초기화.. #2
   }
@@ -93,6 +94,7 @@ void CgiHandler::handle_cgi_header(Connection *c) {
   }
 }
 
+// *****************여기*********************************
 void CgiHandler::receive_cgi_process_body(Connection *c, ssize_t recv_len) {
   std::cout << "i'm here" << std::endl;
   // 한번의 버퍼 안에 전체 메세지가 다 들어 올 경우

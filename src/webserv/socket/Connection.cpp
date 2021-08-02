@@ -9,6 +9,7 @@ Connection::Connection()
   chunked_checker = CHUNKED_KEEP_COMING;
   recv_phase_ = MESSAGE_START_LINE_INCOMPLETE;
   interrupted = false;
+  status_code_ = -1;
 }
 
 Connection::~Connection() {}
@@ -53,7 +54,7 @@ void Connection::clear() {
   recv_phase_ = MESSAGE_START_LINE_INCOMPLETE;
   string_buffer_content_length_ = 0;
   chunked_checker = 0;
-  status_code_.clear();
+  status_code_ = -1;
   interrupted = false;
  }
 

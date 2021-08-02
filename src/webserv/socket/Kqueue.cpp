@@ -59,21 +59,16 @@ void Kqueue::kqueueProcessEvents(SocketManager *sm) {
         sm->closeConnection(c);
       } else {
         ssize_t recv_len = recv(c->getFd(), c->buffer_, BUF_SIZE, 0);
-        // if (recv_len == sizeof(ctrl_c) && memcmp(c->buffer_, ctrl_c, sizeof(ctrl_c)) == 0)
-        // {
-        //   c->clear();
-        //   sm->closeConnection(c);
-        //   continue ;
-        // }
         if (c->getRecvPhase() == MESSAGE_INTERRUPTED) {
           if (strchr(c->buffer_, ctrl_c[0])) {
             c->interrupted = true;
             c->setRecvPhase(MESSAGE_BODY_COMPLETE);
           }
         }
-        std::cout << "=========c->buffer_=========" << std::endl;
-        std::cout << c->buffer_ << std::endl;
-        std::cout << "=========c->buffer_=========" << std::endl;
+        // TODO: remove; for debug
+        // std::cout << "=========c->buffer_=========" << std::endl;
+        // std::cout << c->buffer_ << std::endl;
+        // std::cout << "=========c->buffer_=========" << std::endl;
         if (c->getRecvPhase() == MESSAGE_START_LINE_INCOMPLETE ||
             c->getRecvPhase() == MESSAGE_START_LINE_COMPLETE ||
             c->getRecvPhase() == MESSAGE_HEADER_INCOMPLETE ||
@@ -81,6 +76,10 @@ void Kqueue::kqueueProcessEvents(SocketManager *sm) {
           MessageHandler::handle_request_header(c);
         }
         if (c->getRecvPhase() == MESSAGE_HEADER_PARSED) {
+          // REQUEST_CHECK #6
+          // #2~#4 의 과정을 request header 까지 완성 한 후 현재 시점에서 진행
+          // + locationconfig에서 확인 할 수 있는 정보를 통해 조건 비교
+          // + responsehandler에서 이전 해 와야 할 부분들 확인 필요
           if (!c->getRequest().getHeaderValue("Content-Length").empty())
             c->setStringBufferContentLength(stoi(c->getRequest().getHeaderValue("Content-Length")));
           if (c->interrupted == true)

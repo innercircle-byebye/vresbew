@@ -69,12 +69,14 @@ void RequestHandler::parseStartLine(Connection *c) {
     c->setRecvPhase(MESSAGE_BODY_COMPLETE);
     return;
   }
-  // REQUEST_CHECK #2 v
-  // 아래 분기는 파일 위치가 유효한지 확인 한 후 체크
-  // 헤더가 완성 된 이후에 locationconfig 에서 체크를 하는것이
-  // 올바른 시점으로 파악됩니다.
-  if (!RequestHandler::isValidMethod(start_line_split[0]))  // 405 Not allowed
-    ;
+  // REQUEST_CHECK #2
+  // METHOD 명 알파벳 대문자가 아닌 이상 전부 400 bad request 처리를 하는 구간입니다.
+  if (!RequestHandler::isValidMethod(start_line_split[0]))
+  {
+    c->status_code_ = 400;
+    c->setRecvPhase(MESSAGE_BODY_COMPLETE);
+    return ;
+  }
   request_->setMethod(start_line_split[0]);
   request_->setUri(start_line_split[1]);
   start_line_split[1].append(" ");
@@ -83,7 +85,7 @@ void RequestHandler::parseStartLine(Connection *c) {
   // 아래 코드는 파일 위치 유효성 확인후 다음 단계에 처리 필요
   // 대신, 현재 시점에서 400 Bad Request로 체크 해야할 것은
   // 잘못 된 uri 형식 (슬래시가 없거나, URI에 들어 올 수 없는 문자들이 들어 왔을때)
-  if ((c->status_code_ = (parseUri(start_line_split[1]) == PARSE_INVALID_URI) ? 400 : 1) > 0) {  // 400 Bad Request
+  if ((c->status_code_ = (parseUri(start_line_split[1]) == PARSE_INVALID_URI) ? 400 : -1) > 0) {  // 400 Bad Request
     c->setRecvPhase(MESSAGE_BODY_COMPLETE);
     return;
   }
@@ -283,11 +285,22 @@ bool RequestHandler::isValidHeaderKey(std::string const &key) {
   return (true);
 }
 
+// TODO: remove
 bool RequestHandler::isValidMethod(std::string const &method) {
-  return (!method.compare("GET") || !method.compare("POST") ||
-          !method.compare("DELETE") || !method.compare("PUT") || !method.compare("HEAD"));
+  // return (!method.compare("GET") || !method.compare("POST") ||
+  //         !method.compare("DELETE") || !method.compare("PUT") || !method.compare("HEAD"));
+  int i;
+  i = 0;
+  while (method[i])
+  {
+    if (!isalpha(method[i]) && !isupper(method[i]))
+      return (false);
+    i++;
+  }
+  return (true);
 }
 
+// TODO: remove
 bool RequestHandler::isValidHttpVersion(std::string const &http_version) {
   return (!http_version.compare("HTTP/1.1") || !http_version.compare("HTTP/1.0"));
 }
@@ -299,6 +312,7 @@ int RequestHandler::checkHttpVersionErrorCode(std::string const &http_version) {
     return (0);
   return (505);
 }
+
 
 std::vector<std::string> RequestHandler::splitByDelimiter(std::string const &str, char delimiter) {
   std::vector<std::string> vc;

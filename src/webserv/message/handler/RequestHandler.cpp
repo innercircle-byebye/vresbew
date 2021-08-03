@@ -60,8 +60,8 @@ void RequestHandler::parseStartLine(Connection *c) {
 
   std::vector<std::string> start_line_split = RequestHandler::splitByDelimiter(start_line, SPACE);
 
-  if (start_line_split.size() != 3){
-    c->status_code_ = 400; // 400 bad request
+  if (start_line_split.size() != 3) {
+    c->status_code_ = 400;  // 400 bad request
     c->setRecvPhase(MESSAGE_BODY_COMPLETE);
     return;
   }
@@ -87,9 +87,13 @@ void RequestHandler::parseStartLine(Connection *c) {
   // 505 에러코드의 조건은, 'HTTP/' 까지는 동일하고, / 뒤의 숫자가 다른 버전일 1.0, 1.1이 아닐 경우
   // 상태 코드 505로 반환.
   // 애초에 잘못된 문자열이 들어 왔을 경우에 400 Bad Request.  (/ 뒤에 문자가 들어와도 400)
-  if (!RequestHandler::isValidHttpVersion(start_line_split[2]))  // 505 HTTP Version Not Supported
-  {
-    c->status_code_ = 505;
+  // if (!RequestHandler::isValidHttpVersion(start_line_split[2]))  // 505 HTTP Version Not Supported
+  // {
+  //   c->status_code_ = 505;
+  //   c->setRecvPhase(MESSAGE_BODY_COMPLETE);
+  //   return;
+  // }
+  if ((c->status_code_ = checkHttpVersionErrorCode(start_line_split[2])) > 0) {
     c->setRecvPhase(MESSAGE_BODY_COMPLETE);
     return;
   }
@@ -211,10 +215,9 @@ int RequestHandler::parseUri(std::string uri_str) {
 }
 
 void RequestHandler::parseHeaderLines(Connection *c) {
-  if (c->interrupted == true)
-  {
+  if (c->interrupted == true) {
     c->setRecvPhase(MESSAGE_BODY_COMPLETE);
-    return ;
+    return;
   }
   size_t pos = request_->getMsg().find("\r\n\r\n");
   std::string header_lines = request_->getMsg().substr(0, pos);
@@ -282,6 +285,14 @@ bool RequestHandler::isValidMethod(std::string const &method) {
 
 bool RequestHandler::isValidHttpVersion(std::string const &http_version) {
   return (!http_version.compare("HTTP/1.1") || !http_version.compare("HTTP/1.0"));
+}
+
+int RequestHandler::checkHttpVersionErrorCode(std::string const &http_version) {
+  if (http_version.compare(0, 5, "HTTP/") != 0)
+    return (400);  // 400 Bad request
+  else if (!http_version.compare(5, 3, "1.1") || !http_version.compare(5, 3, "1.0"))
+    return (0);
+  return (505);
 }
 
 std::vector<std::string> RequestHandler::splitByDelimiter(std::string const &str, char delimiter) {

@@ -22,7 +22,6 @@ void Request::clear() {
   uri_struct_.port_.clear();
   uri_struct_.path_.clear();
   uri_struct_.query_string_.clear();
-  // 이 중요한걸.. ㅜㅜ
   msg_.clear();
 }
 

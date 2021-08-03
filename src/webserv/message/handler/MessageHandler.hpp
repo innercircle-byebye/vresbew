@@ -24,6 +24,7 @@ class MessageHandler {
   static ResponseHandler response_handler_;
   static RequestHandler request_handler_;
   static void handle_request_header(Connection *c);
+  static void check_request_header(Connection *c);
   static void check_cgi_request(Connection *c);
   static void check_body_status(Connection *c);
   static void handle_request_body(Connection *c);
@@ -37,8 +38,8 @@ class MessageHandler {
 
  private:
   static void executePutMethod(std::string path, std::string content);
-  static bool isValidRequestMethod(const std::string &method);
-  static bool isValidRequestVersion(const std::string &http_version, const std::map<std::string, std::string> &headers);
+  // static bool isValidRequestMethod(const std::string &method);
+  // static bool isValidRequestVersion(const std::string &http_version, const std::map<std::string, std::string> &headers);
 };
 }  // namespace ft
 #endif

@@ -43,7 +43,8 @@ void RequestHandler::checkMsgForHeader(Connection *c) {
     c->setRecvPhase(MESSAGE_HEADER_COMPLETE);
   else if (request_->getMsg().find(temp_rn_ctrlc) != request_->getMsg().npos)
     c->setRecvPhase(MESSAGE_INTERRUPTED);
-  // TODO: header가 안들어온 경우 check
+  else if (request_->getMsg() == "\r\n")
+    c->setRecvPhase(MESSAGE_HEADER_PARSED);
 }
 
 /* PARSE FUNCTIONS */
@@ -184,12 +185,12 @@ int RequestHandler::parseUri(std::string uri_str) {
   }
   if (request_->getPath().empty())
     request_->setPath("/");
-  std::cout << "uri: " << request_->getUri() << std::endl;
-  std::cout << "schema: " << request_->getSchema() << std::endl;
-  std::cout << "host: " << request_->getHost() << std::endl;
-  std::cout << "port: " << request_->getPort() << std::endl;
-  std::cout << "path: " << request_->getPath() << std::endl;
-  std::cout << "query_string: |" << request_->getQueryString() << "|" << std::endl;
+  // std::cout << "uri: " << request_->getUri() << std::endl;
+  // std::cout << "schema: " << request_->getSchema() << std::endl;
+  // std::cout << "host: " << request_->getHost() << std::endl;
+  // std::cout << "port: " << request_->getPort() << std::endl;
+  // std::cout << "path: " << request_->getPath() << std::endl;
+  // std::cout << "query_string: |" << request_->getQueryString() << "|" << std::endl;
   return (PARSE_VALID_URI);
 }
 
@@ -257,10 +258,7 @@ bool RequestHandler::isValidHeaderKey(std::string const &key) {
   return (true);
 }
 
-// TODO: remove
 bool RequestHandler::isValidMethod(std::string const &method) {
-  // return (!method.compare("GET") || !method.compare("POST") ||
-  //         !method.compare("DELETE") || !method.compare("PUT") || !method.compare("HEAD"));
   int i;
   i = 0;
   while (method[i]) {
@@ -269,11 +267,6 @@ bool RequestHandler::isValidMethod(std::string const &method) {
     i++;
   }
   return (true);
-}
-
-// TODO: remove
-bool RequestHandler::isValidHttpVersion(std::string const &http_version) {
-  return (!http_version.compare("HTTP/1.1") || !http_version.compare("HTTP/1.0"));
 }
 
 int RequestHandler::checkHttpVersionErrorCode(std::string const &http_version) {
@@ -294,4 +287,25 @@ std::vector<std::string> RequestHandler::splitByDelimiter(std::string const &str
   }
   return vc;
 }
+
+bool RequestHandler::isHostExist() {
+  if (request_->getHttpVersion().compare("HTTP/1.1") == 0 &&
+      !request_->getHeaderValue("Host").empty()) {
+    return (true);
+  } else if (request_->getHttpVersion().compare("HTTP/1.0") == 0) {
+    return (true);
+  }
+  return (false);
+}
+
+bool RequestHandler::isUriFileExist(LocationConfig *location) {
+  std::string filepath = location->getRoot() + request_->getPath();
+  struct stat stat_buffer_;
+
+  if (stat(filepath.c_str(), &stat_buffer_) < 0) {
+    return (false);
+  }
+  return (true);
+}
+
 }  // namespace ft

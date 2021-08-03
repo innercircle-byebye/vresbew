@@ -1,6 +1,8 @@
 #ifndef REQUEST_HANDLER_HPP
 #define REQUEST_HANDLER_HPP
 
+#include <sys/stat.h>
+
 #include <iostream>
 #include <istream>
 #include <sstream>  // std::istringstream
@@ -37,10 +39,12 @@ class RequestHandler {
   void processByRecvPhase(Connection *c);
   static std::vector<std::string> splitByDelimiter(std::string const &str, char delimiter);
 
+  bool isHostExist();
+  bool isUriFileExist(LocationConfig *location);
+
  private:
   void checkMsgForStartLine(Connection *c);
   void checkMsgForHeader(Connection *c);
-  void appendMsgToEntityBody();
 
   void parseStartLine(Connection *c);
   int parseUri(std::string uri_str);
@@ -50,7 +54,6 @@ class RequestHandler {
   // static std::vector<std::string> splitByDelimiter(std::string const &str, char delimiter);
   static bool isValidHeaderKey(std::string const &key);
   static bool isValidMethod(std::string const &method);
-  static bool isValidHttpVersion(std::string const &http_version);
 
   int checkHttpVersionErrorCode(std::string const &http_version);
   void checkCgiRequest(Connection *c);

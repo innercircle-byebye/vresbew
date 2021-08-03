@@ -66,9 +66,9 @@ void Kqueue::kqueueProcessEvents(SocketManager *sm) {
           }
         }
         // TODO: remove; for debug
-        // std::cout << "=========c->buffer_=========" << std::endl;
-        // std::cout << c->buffer_ << std::endl;
-        // std::cout << "=========c->buffer_=========" << std::endl;
+        std::cout << "=========c->buffer_=========" << std::endl;
+        std::cout << c->buffer_ << std::endl;
+        std::cout << "=========c->buffer_=========" << std::endl;
         if (c->getRecvPhase() == MESSAGE_START_LINE_INCOMPLETE ||
             c->getRecvPhase() == MESSAGE_START_LINE_COMPLETE ||
             c->getRecvPhase() == MESSAGE_HEADER_INCOMPLETE ||
@@ -93,8 +93,8 @@ void Kqueue::kqueueProcessEvents(SocketManager *sm) {
         sm->closeConnection(c);
       } else {
         if (c->interrupted == true) {
-          c->clear();
           sm->closeConnection(c);
+          c->clear();
         } else {
           if (c->getRecvPhase() == MESSAGE_CGI_COMPLETE) {
             CgiHandler::handle_cgi_header(c);

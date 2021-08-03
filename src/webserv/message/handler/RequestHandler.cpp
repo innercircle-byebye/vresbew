@@ -63,7 +63,6 @@ void RequestHandler::parseStartLine(Connection *c) {
     c->setRecvPhase(MESSAGE_BODY_COMPLETE);
     return;
   }
-
   request_->setMethod(start_line_split[0]);
   request_->setUri(start_line_split[1]);
   start_line_split[1].append(" ");
@@ -210,7 +209,7 @@ void RequestHandler::parseHeaderLines(Connection *c) {
 
   while ((pos = header_lines.find("\r\n")) != std::string::npos) {
     std::string one_header_line = header_lines.substr(0, pos);
-    if (this->parseHeaderLine(one_header_line) != 0)  // TODO: 반환값(0) 확인 필요
+    if ((c->status_code_ = this->parseHeaderLine(one_header_line)) > -1)  // TODO: 반환값(0) 확인 필요
       request_->clear();
     header_lines.erase(0, pos + 2);
   }
@@ -222,8 +221,10 @@ void RequestHandler::parseHeaderLines(Connection *c) {
 
 int RequestHandler::parseHeaderLine(std::string &one_header_line) {
   std::vector<std::string> key_and_value = RequestHandler::splitByDelimiter(one_header_line, SPACE);
+
   if (key_and_value.size() != 2)  // 400 Bad Request
-    ;
+    return (400);
+
   std::string key, value;
 
   // parse key and validation
@@ -273,7 +274,7 @@ int RequestHandler::checkHttpVersionErrorCode(std::string const &http_version) {
   if (http_version.compare(0, 5, "HTTP/") != 0)
     return (400);  // 400 Bad request
   else if (!http_version.compare(5, 3, "1.1") || !http_version.compare(5, 3, "1.0"))
-    return (0);
+    return (-1);
   return (505);
 }
 
@@ -306,6 +307,10 @@ bool RequestHandler::isUriFileExist(LocationConfig *location) {
     return (false);
   }
   return (true);
+}
+
+bool RequestHandler::isAllowedMethod(LocationConfig *location) {
+  return (location->checkAcceptedMethod(request_->getMethod()));
 }
 
 }  // namespace ft

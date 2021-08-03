@@ -24,9 +24,7 @@ void MessageHandler::check_request_header(Connection *c) {
   LocationConfig *locationconfig_test = serverconfig_test->getLocationConfig(c->getRequest().getPath());
 
   // 있어야되는지??
-  // request_handler_.setRequest(&c->getRequest());
-
-
+  request_handler_.setRequest(&c->getRequest());
 
   if (request_handler_.isHostHeaderExist() == false) {
     c->status_code_ = 400;
@@ -36,6 +34,12 @@ void MessageHandler::check_request_header(Connection *c) {
 
   if (request_handler_.isUriFileExist(locationconfig_test) == false) {
     c->status_code_ = 404;
+    c->setRecvPhase(MESSAGE_BODY_COMPLETE);
+    return;
+  }
+
+  if (request_handler_.isAllowedMethod(locationconfig_test) == false) {
+    c->status_code_ = 405;
     c->setRecvPhase(MESSAGE_BODY_COMPLETE);
     return;
   }

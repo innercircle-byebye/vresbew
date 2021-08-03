@@ -21,11 +21,11 @@ void ResponseHandler::setResponseFields(Request &request) {
   this->response_->setHeader("Date", Time::getCurrentDate());
   LocationConfig *location = this->server_config_->getLocationConfig(request.getPath());
 
-  // TODO : request로 이전
-  if (!location->checkAcceptedMethod(request.getMethod())) {
-    setStatusLineWithCode(405);
-    return;
-  }
+  // // TODO : request로 이전
+  // if (!location->checkAcceptedMethod(request.getMethod())) {
+  //   setStatusLineWithCode(405);
+  //   return;
+  // }
 
   if (request.getMethod() == "GET" || request.getMethod() == "HEAD")
     processGetAndHeaderMethod(request, location);
@@ -116,7 +116,7 @@ void ResponseHandler::processGetAndHeaderMethod(Request &request, LocationConfig
       setStatusLineWithCode(301);
       // TODO: string 을 생성 하지 않도록 수정하는 작업 필요
       // std::string temp_url = "http://" + request.getHeaderValue("Host") + request.getUri();
-      std::string temp_url = "http://" + request.getHeaderValue("Host") + request.getPath();
+      std::string temp_url = "http://" + request.getHeaderValue("Host");
       this->response_->setHeader("Location", temp_url);
       return;
     }

@@ -133,11 +133,11 @@ void Kqueue::kqueueProcessEvents(SocketManager *sm) {
                 c->getRequest().getHeaderValue("Content-Length").empty()) {
               CgiHandler::send_chunked_cgi_response_to_client_and_close(c);
               // sm->closeConnection(c);때문에 여기에 놔둠
-              c->clear();
               if (!c->getResponse().getHeaderValue("Connection").compare("close") ||
                   !c->getRequest().getHttpVersion().compare("HTTP/1.0")) {
                 sm->closeConnection(c);
               }
+              c->clear();
               continue;
             } else
               CgiHandler::receive_cgi_body(c);
@@ -145,11 +145,11 @@ void Kqueue::kqueueProcessEvents(SocketManager *sm) {
           MessageHandler::set_response_header(c);  // 서버가 실제 동작을 진행하는 부분
           MessageHandler::set_response_message(c);
           MessageHandler::send_response_to_client(c);
-          c->clear();
           if (!c->getResponse().getHeaderValue("Connection").compare("close") ||
               !c->getRequest().getHttpVersion().compare("HTTP/1.0")) {
             sm->closeConnection(c);
           }
+          c->clear();
         }
       }
     }

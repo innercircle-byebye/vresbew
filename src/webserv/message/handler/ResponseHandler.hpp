@@ -38,13 +38,13 @@ class ResponseHandler {
   void makeResponseMsg();
   void makeResponseHeader();
   void setResponseBody();
-  void setStatusLineWithCode(const std::string &status_code);
+  void setStatusLineWithCode(int status_code);
 
   // making response message begin
   void setDefaultErrorBody();
   // making response message end
 
-  std::string getAccessPath(std::string &uri);
+  std::string getAccessPath(const std::string &uri);
   std::string getAccessPath(const std::string &uri, LocationConfig *&location);
 
  private:
@@ -56,7 +56,7 @@ class ResponseHandler {
   // Response::response_ setter end
 
   // 애매함
-  void setResponseBodyFromFile(std::string &uri, LocationConfig *&location);
+  void setResponseBodyFromFile(const std::string &uri, LocationConfig *&location);
   // 애매함 end
 
   /*--------------------------EXECUTING METHODS--------------------------------*/
@@ -64,7 +64,7 @@ class ResponseHandler {
   // blocks for setResponseFields begin
   void processGetAndHeaderMethod(Request &request, LocationConfig *&location);
   void processPutMethod(Request &request, LocationConfig *&location);
-  void processDeleteMethod(std::string &uri, LocationConfig *&location);
+  void processDeleteMethod(const std::string &uri, LocationConfig *&location);
   void processPostMethod(Request &request, LocationConfig *&location);
   // blocks for setResponseFields end
 

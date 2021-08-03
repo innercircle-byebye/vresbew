@@ -4,7 +4,7 @@ namespace ft {
 
 void CgiHandler::init_cgi_child(Connection *c) {
   ServerConfig *server_config = c->getHttpConfig()->getServerConfig(c->getSockaddrToConnect().sin_port, c->getSockaddrToConnect().sin_addr.s_addr, c->getRequest().getHeaderValue("Host"));
-  LocationConfig *location = server_config->getLocationConfig(c->getRequest().getUri());
+  LocationConfig *location = server_config->getLocationConfig(c->getRequest().getPath());
   // char **environ;
   // char **command;
   // environ = setEnviron(c);
@@ -32,7 +32,7 @@ void CgiHandler::init_cgi_child(Connection *c) {
 
     // execve(location->getCgiPath().c_str(), command, environ);
     execve(location->getCgiPath().c_str(),
-           setCommand(location->getCgiPath(), location->getRoot() + c->getRequest().getUri()),
+           setCommand(location->getCgiPath(), location->getRoot() + c->getRequest().getPath()),
            setEnviron(c));
   }
   // TODO: 실패 예외처리
@@ -42,6 +42,7 @@ void CgiHandler::init_cgi_child(Connection *c) {
 
   if (!c->getBodyBuf().empty()) {
     write(c->writepipe[1], c->getBodyBuf().c_str(), (size_t)c->getBodyBuf().size());
+    //숫자 확인
     c->setStringBufferContentLength(c->getStringBufferContentLength() - c->getBodyBuf().size());
     c->getBodyBuf().clear();  // 뒤에서 또 쓰일걸 대비해 혹시몰라 초기화.. #2
   }
@@ -81,8 +82,8 @@ void CgiHandler::handle_cgi_header(Connection *c) {
       value = key_and_value[1];
       if (key.compare("Status") == 0) {
         // TODO: c->status_code 만 이용해서 handle_cgi_header 단계 이후에 사용하도록..
-        MessageHandler::response_handler_.setStatusLineWithCode(value);
-        c->status_code_ = value;
+        MessageHandler::response_handler_.setStatusLineWithCode(stoi(value));
+        c->status_code_ = stoi(value);
       }
       std::cout << "key: " << key << std::endl;
       std::cout << "value: " << value << std::endl;
@@ -93,6 +94,7 @@ void CgiHandler::handle_cgi_header(Connection *c) {
   }
 }
 
+// *****************여기*********************************
 void CgiHandler::receive_cgi_process_body(Connection *c, ssize_t recv_len) {
   std::cout << "i'm here" << std::endl;
   // 한번의 버퍼 안에 전체 메세지가 다 들어 올 경우
@@ -161,7 +163,7 @@ void CgiHandler::receive_cgi_process_body(Connection *c, ssize_t recv_len) {
 
 char **CgiHandler::setEnviron(Connection *c) {
   ServerConfig *server_config = c->getHttpConfig()->getServerConfig(c->getSockaddrToConnect().sin_port, c->getSockaddrToConnect().sin_addr.s_addr, c->getRequest().getHeaderValue("Host"));
-  LocationConfig *location = server_config->getLocationConfig(c->getRequest().getUri());
+  LocationConfig *location = server_config->getLocationConfig(c->getRequest().getPath());
   std::map<std::string, std::string> env_set;
   {
     if (!c->getRequest().getHeaderValue("Content-Length").empty()) {
@@ -169,21 +171,21 @@ char **CgiHandler::setEnviron(Connection *c) {
     }
     if (c->getRequest().getMethod() == "GET") {
       // TODO: getEntityBody 삭제 필요, 구조체로 변경
-      env_set["QUERY_STRING"] = c->getRequest().getEntityBody();
+      env_set["QUERY_STRING"] = c->getRequest().getQueryString();
     }
     env_set["REQUEST_METHOD"] = c->getRequest().getMethod();
     env_set["REDIRECT_STATUS"] = "CGI";
-    env_set["SCRIPT_FILENAME"] = location->getRoot() + c->getRequest().getUri();
+    env_set["SCRIPT_FILENAME"] = location->getRoot() + c->getRequest().getPath();
     env_set["SERVER_PROTOCOL"] = "HTTP/1.1";
-    env_set["PATH_INFO"] = location->getRoot() + c->getRequest().getUri();
+    env_set["PATH_INFO"] = location->getRoot() + c->getRequest().getPath();
     env_set["CONTENT_TYPE"] = c->getRequest().getHeaderValue("Content-Type");
     env_set["GATEWAY_INTERFACE"] = "CGI/1.1";
-    env_set["PATH_TRANSLATED"] = location->getRoot() + c->getRequest().getUri();
+    env_set["PATH_TRANSLATED"] = location->getRoot() + c->getRequest().getPath();
     env_set["REMOTE_ADDR"] = "127.0.0.1";  // TODO: ip주소 받아오는 부분 찾기
     if (c->getRequest().getMethod() == "GET")
-      env_set["REQUEST_URI"] = c->getRequest().getUri() + "?" + c->getRequest().getEntityBody();
+      env_set["REQUEST_URI"] = c->getRequest().getUri();
     else
-      env_set["REQUEST_URI"] = location->getRoot() + c->getRequest().getUri();
+      env_set["REQUEST_URI"] = location->getRoot() + c->getRequest().getPath();
     env_set["HTTP_HOST"] = c->getRequest().getHeaderValue("Host");
     env_set["SERVER_PORT"] = std::to_string(ntohs(c->getSockaddrToConnect().sin_port));
     env_set["SERVER_SOFTWARE"] = "versbew";

@@ -51,6 +51,8 @@ class RequestHandler {
   static bool isValidHeaderKey(std::string const &key);
   static bool isValidMethod(std::string const &method);
   static bool isValidHttpVersion(std::string const &http_version);
+
+  int checkHttpVersionErrorCode(std::string const &http_version);
   void checkCgiRequest(Connection *c);
 };
 }  // namespace ft

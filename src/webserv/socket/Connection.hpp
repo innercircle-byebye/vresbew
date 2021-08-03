@@ -58,7 +58,7 @@ class Connection {
   pid_t cgi_pid;
   int writepipe[2], readpipe[2];
   int chunked_checker;
-  std::string status_code_;
+  int status_code_;
 
   std::string temp_chunked;     //TODO: remove
   // std::string cgi_output_temp;  //TODO: remove

@@ -19,11 +19,11 @@ void ResponseHandler::setServerConfig(HttpConfig *http_config, struct sockaddr_i
 
 void ResponseHandler::setResponseFields(Request &request) {
   this->response_->setHeader("Date", Time::getCurrentDate());
-  LocationConfig *location = this->server_config_->getLocationConfig(request.getUri());
+  LocationConfig *location = this->server_config_->getLocationConfig(request.getPath());
 
   // TODO : request로 이전
   if (!location->checkAcceptedMethod(request.getMethod())) {
-    setStatusLineWithCode("405");
+    setStatusLineWithCode(405);
     return;
   }
 
@@ -34,7 +34,7 @@ void ResponseHandler::setResponseFields(Request &request) {
   else if (request.getMethod() == "POST")
     processPostMethod(request, location);
   else if (request.getMethod() == "DELETE")
-    processDeleteMethod(request.getUri(), location);
+    processDeleteMethod(request.getPath(), location);
 }
 
 /*-----------------------MAKING RESPONSE MESSAGE-----------------------------*/
@@ -47,7 +47,7 @@ void ResponseHandler::makeResponseHeader() {
 void ResponseHandler::setResponseStatusLine() {
   response_->getHeaderMsg() += this->response_->getHttpVersion();
   response_->getHeaderMsg() += " ";
-  response_->getHeaderMsg() += this->response_->getStatusCode();
+  response_->getHeaderMsg() += SSTR(this->response_->getStatusCode());
   response_->getHeaderMsg() += " ";
   response_->getHeaderMsg() += this->response_->getStatusMessage();
   response_->getHeaderMsg() += "\r\n";
@@ -67,17 +67,17 @@ void ResponseHandler::setResponseHeader() {
   response_->getHeaderMsg() += "\r\n";
 }
 
-void ResponseHandler::setStatusLineWithCode(const std::string &status_code) {
+void ResponseHandler::setStatusLineWithCode(int status_code) {
   this->response_->setStatusCode(status_code);
-  this->response_->setStatusMessage(StatusMessage::of(stoi(status_code)));
+  this->response_->setStatusMessage(StatusMessage::of(status_code));
   this->response_->setConnectionHeaderByStatusCode(status_code);
 }
 
 void ResponseHandler::setDefaultErrorBody() {
   body_buf_->append("<html>\n");
-  body_buf_->append("<head><title>" + response_->getStatusCode() + " " + response_->getStatusMessage() + "</title></head>\n");
+  body_buf_->append("<head><title>" + SSTR(response_->getStatusCode()) + " " + response_->getStatusMessage() + "</title></head>\n");
   body_buf_->append("<body>\n");
-  body_buf_->append("<center><h1>" + response_->getStatusCode() + " " + response_->getStatusMessage() + "</h1></center>\n");
+  body_buf_->append("<center><h1>" + SSTR(response_->getStatusCode()) + " " + response_->getStatusMessage() + "</h1></center>\n");
   body_buf_->append("<hr><center>" + response_->getHeaderValue("Server") + "</center>\n");
   body_buf_->append("</body>\n");
   body_buf_->append("</html>\n");
@@ -96,68 +96,68 @@ void ResponseHandler::processGetAndHeaderMethod(Request &request, LocationConfig
   // TODO: connection의 status_code를 보고 결정하도록...
   if (this->response_->getHeaderValue("X-Powered-By") == "PHP/8.0.7" &&
       this->response_->getHeaderValue("Status").empty()) {
-    setStatusLineWithCode("200");
+    setStatusLineWithCode(200);
     return;
   }
 
   // TODO: REQUEST에서 처리 해야될 수도 있을것같음
-  if (*(request.getUri().rbegin()) == '/') {
+  if (*(request.getPath().rbegin()) == '/') {
     findIndexForGetWhenOnlySlash(request, location);
-    if (!request.getUri().compare("/")) {
-      setStatusLineWithCode("403");
+    if (!request.getPath().compare("/")) {
+      setStatusLineWithCode(403);
       return;
     }
   }
-  if (!isFileExist(request.getUri(), location)) {
-    setStatusLineWithCode("404");
+  if (!isFileExist(request.getPath(), location)) {
+    setStatusLineWithCode(404);
     return;
   } else {
     if (S_ISDIR(this->stat_buffer_.st_mode)) {
-      setStatusLineWithCode("301");
+      setStatusLineWithCode(301);
       // TODO: string 을 생성 하지 않도록 수정하는 작업 필요
       // std::string temp_url = "http://" + request.getHeaderValue("Host") + request.getUri();
-      std::string temp_url = "http://" + request.getHeaderValue("Host") + request.getUri() + "/";
+      std::string temp_url = "http://" + request.getHeaderValue("Host") + request.getPath() + "/";
       this->response_->setHeader("Location", temp_url);
       return;
     }
-    setStatusLineWithCode("200");
+    setStatusLineWithCode(200);
     // body가 만들져 있지 않는 경우의 조건 추가
     if (request.getMethod() == "GET" && body_buf_->empty())
-      setResponseBodyFromFile(request.getUri(), location);
+      setResponseBodyFromFile(request.getPath(), location);
   }
 }
 
 void ResponseHandler::processPutMethod(Request &request, LocationConfig *&location) {
-  if (*(request.getUri().rbegin()) == '/') {
-    setStatusLineWithCode("409");
+  if (*(request.getPath().rbegin()) == '/') {
+    setStatusLineWithCode(409);
     return;
   }
-  if (!isFileExist(request.getUri(), location)) {
+  if (!isFileExist(request.getPath(), location)) {
     // 경로가 디렉토리 이거나, 경로에 파일을 쓸 수 없을때
     if (S_ISDIR(this->stat_buffer_.st_mode) || (this->stat_buffer_.st_mode & S_IRWXU)) {
-      setStatusLineWithCode("500");
+      setStatusLineWithCode(500);
       return;
     }
-    setStatusLineWithCode("201");
+    setStatusLineWithCode(201);
   } else {
-    setStatusLineWithCode("204");
+    setStatusLineWithCode(204);
   }
 }
 
 void ResponseHandler::processPostMethod(Request &request, LocationConfig *&location) {
-  if (this->response_->getStatusCode() == "302") {
+  if (this->response_->getStatusCode() == 302) {
     setStatusLineWithCode(this->response_->getStatusCode());
     return;
   }
-  if (!location->checkCgiExtension(request.getUri()) ||
+  if (!location->checkCgiExtension(request.getPath()) ||
       location->getCgiPath().empty()) {
-    setStatusLineWithCode("405");
+    setStatusLineWithCode(405);
     return;
   }
-  setStatusLineWithCode("200");
+  setStatusLineWithCode(200);
 }
 
-void ResponseHandler::processDeleteMethod(std::string &uri, LocationConfig *&location) {
+void ResponseHandler::processDeleteMethod(const std::string &uri, LocationConfig *&location) {
   (void)location;
   // TODO: 경로가 "/"로 시작하지 않는 경우에는 "./"를 붙이도록 수정
   // if isUriOnlyOrSlash -> delete everything in there and 403 forbidden
@@ -168,7 +168,7 @@ void ResponseHandler::processDeleteMethod(std::string &uri, LocationConfig *&loc
   if (!uri.compare("/")) {  // URI 에 "/" 만 있는 경우
     std::string url = getAccessPath(uri);
     if (stat(url.c_str(), &this->stat_buffer_) < 0) {
-      setStatusLineWithCode("405");
+      setStatusLineWithCode(405);
       return;
     } else {
       if (S_ISDIR(this->stat_buffer_.st_mode)) {
@@ -176,7 +176,7 @@ void ResponseHandler::processDeleteMethod(std::string &uri, LocationConfig *&loc
         struct dirent *item;
 
         if (!(dir_ptr = opendir(url.c_str()))) {
-          setStatusLineWithCode("403");  // Not Allowed
+          setStatusLineWithCode(403);  // Not Allowed
           return;
         }
         while ((item = readdir(dir_ptr))) {
@@ -185,33 +185,33 @@ void ResponseHandler::processDeleteMethod(std::string &uri, LocationConfig *&loc
           std::string new_path(url);
           new_path += item->d_name;
           if (deletePathRecursive(new_path) == -1) {
-            setStatusLineWithCode("403");
+            setStatusLineWithCode(403);
             return;
           }
         }
-        setStatusLineWithCode("403");
+        setStatusLineWithCode(403);
       } else {
         if (remove(url.c_str()) != 0) {
-          setStatusLineWithCode("403");
+          setStatusLineWithCode(403);
           return;
         }
-        setStatusLineWithCode("204");
+        setStatusLineWithCode(204);
       }
     }
   } else {  // "/" 가 아닌 경우
     std::string url = getAccessPath(uri);
     if (stat(url.c_str(), &this->stat_buffer_) < 0) {
-      setStatusLineWithCode("404");
+      setStatusLineWithCode(404);
     } else {
       // file or directory
       if (S_ISDIR(this->stat_buffer_.st_mode)) {
-        setStatusLineWithCode("409");
+        setStatusLineWithCode(409);
       } else {  // is not directory == file ?!
         if (remove(url.c_str()) != 0) {
-          setStatusLineWithCode("403");
+          setStatusLineWithCode(403);
           return;
         }
-        setStatusLineWithCode("204");
+        setStatusLineWithCode(204);
       }
     }
   }
@@ -219,7 +219,7 @@ void ResponseHandler::processDeleteMethod(std::string &uri, LocationConfig *&loc
 
 // ***********blocks for setResponseFields end*************** //
 
-std::string ResponseHandler::getAccessPath(std::string &uri) {
+std::string ResponseHandler::getAccessPath(const std::string &uri) {
   LocationConfig *location = this->server_config_->getLocationConfig(uri);
   std::string path;
   path = location->getRoot() + uri;
@@ -261,7 +261,7 @@ bool ResponseHandler::isPathAccessable(std::string &uri, LocationConfig *&locati
 }
 
 // 함수가 불리는 시점에서는 이미 파일은 존재함
-void ResponseHandler::setResponseBodyFromFile(std::string &uri, LocationConfig *&location) {
+void ResponseHandler::setResponseBodyFromFile(const std::string &uri, LocationConfig *&location) {
   std::ifstream file(getAccessPath(uri, location).c_str());
 
   file.seekg(0, std::ios::end);
@@ -317,9 +317,9 @@ void ResponseHandler::findIndexForGetWhenOnlySlash(Request &request, LocationCon
   std::vector<std::string>::const_iterator it_index;
   std::string temp;
   for (it_index = location->getIndex().begin(); it_index != location->getIndex().end(); it_index++) {
-    temp = location->getRoot() + request.getUri() + *it_index;
+    temp = location->getRoot() + request.getPath() + *it_index;
     if (isFileExist(temp)) {
-      request.getUri() += *it_index;
+      request.setPath(request.getPath() + *it_index);
       break;
     }
     temp.clear();

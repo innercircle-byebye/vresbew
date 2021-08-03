@@ -49,28 +49,39 @@ void RequestHandler::checkMsgForHeader(Connection *c) {
 /* PARSE FUNCTIONS */
 void RequestHandler::parseStartLine(Connection *c) {
   // schema://host:port/uri?query
-
   size_t pos = request_->getMsg().find("\r\n");
   std::string const start_line = request_->getMsg().substr(0, pos);
   request_->getMsg().erase(0, pos + 2);
-
   std::vector<std::string> start_line_split = RequestHandler::splitByDelimiter(start_line, SPACE);
 
-  if (start_line_split.size() != 3)  // 404 error
-    ;
-  if (!RequestHandler::isValidMethod(start_line_split[0]))  // 405 Not allowed
-    ;
-  request_->setMethod(start_line_split[0]);
-  if (parseUri(start_line_split[1] + " ") == PARSE_INVALID_URI) {  // 400 Bad Request
+  if ((c->status_code_ = (start_line_split.size() == 3) ? -1 : 400) > 0) {
+    c->setRecvPhase(MESSAGE_BODY_COMPLETE);
     return;
   }
-  if (!RequestHandler::isValidHttpVersion(start_line_split[2]))  // 505 HTTP Version Not Supported
-    ;
+  if ((c->status_code_ = (RequestHandler::isValidMethod(start_line_split[0])) ? -1 : 400) > 0) {
+    c->setRecvPhase(MESSAGE_BODY_COMPLETE);
+    return;
+  }
+
+  request_->setMethod(start_line_split[0]);
+  request_->setUri(start_line_split[1]);
+  start_line_split[1].append(" ");
+
+  if ((c->status_code_ = (parseUri(start_line_split[1]) == PARSE_VALID_URI) ? -1 : 400) > 0) {
+    c->setRecvPhase(MESSAGE_BODY_COMPLETE);
+    return;
+  }
+  if ((c->status_code_ = checkHttpVersionErrorCode(start_line_split[2])) > 0) {
+    c->setRecvPhase(MESSAGE_BODY_COMPLETE);
+    return;
+  }
+
   request_->setHttpVersion(start_line_split[2]);
 
   c->setRecvPhase(MESSAGE_HEADER_INCOMPLETE);
 }
 
+// REQUEST_CHECK #3 -- 함수
 int RequestHandler::parseUri(std::string uri_str) {
   enum {
     schema = 0,
@@ -90,7 +101,7 @@ int RequestHandler::parseUri(std::string uri_str) {
     switch (state) {
       case schema:
         if ((pos = uri_str.find("://")) == std::string::npos)
-          return PARSE_INVALID_URI;
+          return (PARSE_INVALID_URI);
         request_->setSchema(uri_str.substr(0, pos));
         uri_str.erase(0, pos + 3);
         state = host;
@@ -101,7 +112,7 @@ int RequestHandler::parseUri(std::string uri_str) {
             request_->setHost(uri_str.substr(0, pos));
           uri_str.erase(0, pos);
         } else
-          return PARSE_INVALID_URI;
+          return (PARSE_INVALID_URI);
         switch (uri_str[0]) {
           case ':':
             state = port;
@@ -116,7 +127,7 @@ int RequestHandler::parseUri(std::string uri_str) {
             state = uri_complete;
             break;
           default:
-            return PARSE_INVALID_URI;
+            return (PARSE_INVALID_URI);
         }
         break;
       case port:
@@ -125,7 +136,7 @@ int RequestHandler::parseUri(std::string uri_str) {
             request_->setPort(uri_str.substr(1, pos - 1));
           uri_str.erase(0, pos);
         } else
-          return PARSE_INVALID_URI;
+          return (PARSE_INVALID_URI);
         switch (uri_str[0]) {
           case '/':
             state = uri;
@@ -143,10 +154,10 @@ int RequestHandler::parseUri(std::string uri_str) {
       case uri:
         if ((pos = uri_str.find_first_of("? ")) != std::string::npos) {
           if (pos != 1)
-            request_->setUri(uri_str.substr(0, pos));  //  /넣어햐하는지??
+            request_->setPath(uri_str.substr(0, pos));
           uri_str.erase(0, pos);
         } else
-          return PARSE_INVALID_URI;
+          return (PARSE_INVALID_URI);
         switch (uri_str[0]) {
           case '?':
             state = args;
@@ -155,35 +166,37 @@ int RequestHandler::parseUri(std::string uri_str) {
             state = uri_complete;
             break;
           default:
-            return PARSE_INVALID_URI;
+            return (PARSE_INVALID_URI);
         }
         break;
       case args:
         if ((pos = uri_str.find(" ")) != std::string::npos) {
           if (pos != 1)
-            request_->setEntityBody(uri_str.substr(1, pos - 1));
+            request_->setQueryString(uri_str.substr(1, pos - 1));
           uri_str.erase(0, pos);
         } else
-          return PARSE_INVALID_URI;
+          return (PARSE_INVALID_URI);
         state = uri_complete;
         break;
       case uri_complete:
         break;
     }
   }
-  // std::cout << "schema: " << request_->getSchema() << std::endl;
-  // std::cout << "host: " << request_->getHost() << std::endl;
-  // std::cout << "port: " << request_->getPort() << std::endl;
-  // std::cout << "uri: " << request_->getUri() << std::endl;
-  // std::cout << "entitybody: |" << request_->getEntityBody() << "|" << std::endl;
+  if (request_->getPath().empty())
+    request_->setPath("/");
+  std::cout << "uri: " << request_->getUri() << std::endl;
+  std::cout << "schema: " << request_->getSchema() << std::endl;
+  std::cout << "host: " << request_->getHost() << std::endl;
+  std::cout << "port: " << request_->getPort() << std::endl;
+  std::cout << "path: " << request_->getPath() << std::endl;
+  std::cout << "query_string: |" << request_->getQueryString() << "|" << std::endl;
   return (PARSE_VALID_URI);
 }
 
 void RequestHandler::parseHeaderLines(Connection *c) {
-  if (c->interrupted == true)
-  {
+  if (c->interrupted == true) {
     c->setRecvPhase(MESSAGE_BODY_COMPLETE);
-    return ;
+    return;
   }
   size_t pos = request_->getMsg().find("\r\n\r\n");
   std::string header_lines = request_->getMsg().substr(0, pos);
@@ -224,6 +237,10 @@ int RequestHandler::parseHeaderLine(std::string &one_header_line) {
 }
 
 /* UTILS */
+// REQUEST_CHECK #5
+// header에 어떤 값이 들어 올지 체크 하는 과정이 무의미 하다고 판단 됩니다.
+// 클라이언트에서 표준 헤더에 명시 되지 않는 값을 전달 받아도
+// 응답에 에러가 발생하지 않습니다.
 bool RequestHandler::isValidHeaderKey(std::string const &key) {
   if (!(key == "Accept-Charset" ||
         key == "Accept-Encoding" ||  // TODO: 유효한 헤더인지 확인
@@ -240,13 +257,31 @@ bool RequestHandler::isValidHeaderKey(std::string const &key) {
   return (true);
 }
 
+// TODO: remove
 bool RequestHandler::isValidMethod(std::string const &method) {
-  return (!method.compare("GET") || !method.compare("POST") ||
-          !method.compare("DELETE") || !method.compare("PUT") || !method.compare("HEAD"));
+  // return (!method.compare("GET") || !method.compare("POST") ||
+  //         !method.compare("DELETE") || !method.compare("PUT") || !method.compare("HEAD"));
+  int i;
+  i = 0;
+  while (method[i]) {
+    if (!isalpha(method[i]) && !isupper(method[i]))
+      return (false);
+    i++;
+  }
+  return (true);
 }
 
+// TODO: remove
 bool RequestHandler::isValidHttpVersion(std::string const &http_version) {
   return (!http_version.compare("HTTP/1.1") || !http_version.compare("HTTP/1.0"));
+}
+
+int RequestHandler::checkHttpVersionErrorCode(std::string const &http_version) {
+  if (http_version.compare(0, 5, "HTTP/") != 0)
+    return (400);  // 400 Bad request
+  else if (!http_version.compare(5, 3, "1.1") || !http_version.compare(5, 3, "1.0"))
+    return (0);
+  return (505);
 }
 
 std::vector<std::string> RequestHandler::splitByDelimiter(std::string const &str, char delimiter) {

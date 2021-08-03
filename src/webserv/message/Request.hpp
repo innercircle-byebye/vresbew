@@ -10,14 +10,11 @@ namespace ft {
 // TODO: getter/setter 반영
 // 다른 함수에서 t_uri 구조체 변수 쓰도록 바꾸기..
 typedef struct s_uri {
-
-  std::string full_uri;
   std::string schema_;
   std::string host_;
   std::string port_;
   std::string path_;
-  std::string query_string;
-
+  std::string query_string_;
 } t_uri;
 
 struct Request {
@@ -25,15 +22,12 @@ struct Request {
   std::string msg_;
   // start line
   std::string method_;
-  std::string schema_;
-  std::string host_;
-  // std::string host_ip_;
+  //TODO: 확인 후 구조체에서 이용하도록..
   std::string port_;
-  // TODO: og_uri_ 로 변경;
+  //og_uri_ 역할
   std::string uri_;
-  std::string http_version_;
-
   t_uri uri_struct_;
+  std::string http_version_;
 
   // header
   std::map<std::string, std::string> headers_;
@@ -53,26 +47,23 @@ struct Request {
   const std::string &getSchema() const;
   const std::string &getHost() const;
   const std::string &getPort() const;
-  std::string &getUri();
+  const std::string &getPath() const;
+  const std::string &getQueryString() const;
+  const std::string &getUri();
   const std::string &getHttpVersion() const;
   const std::map<std::string, std::string> &getHeaders() const;
   const std::string &getHeaderValue(const std::string &key);
-  const std::string &getEntityBody() const;
-  int getErrorNum() const;
-
 
   void setMsg(std::string msg);
   void setMethod(std::string method);
   void setSchema(std::string schema);
   void setHost(std::string host);
   void setPort(std::string port);
+  void setPath(std::string path);
+  void setQueryString(std::string query_string);
   void setUri(std::string uri);
   void setHttpVersion(std::string http_version);
   void setHeader(std::string key, std::string value);
-  void setEntityBody(std::string entity_body);
-  void appendEntityBody(char *buffer);
-  void appendEntityBody(char *buffer, size_t size);
-  void setErrorNum(int error_num);
 };
 
 }  // namespace ft

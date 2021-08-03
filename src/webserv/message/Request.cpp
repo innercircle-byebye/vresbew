@@ -22,6 +22,7 @@ void Request::clear() {
   uri_struct_.port_.clear();
   uri_struct_.path_.clear();
   uri_struct_.query_string_.clear();
+  msg_.clear();
 }
 
 std::string &Request::getMsg() { return msg_; }

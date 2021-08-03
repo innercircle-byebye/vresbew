@@ -65,7 +65,7 @@ void RequestHandler::parseStartLine(Connection *c) {
   //   c->setRecvPhase(MESSAGE_BODY_COMPLETE);
   //   return;
   // }
-  if ((c->status_code_ = (start_line.size() == 3) ? -1 : 400) > 0) {
+  if ((c->status_code_ = (start_line_split.size() == 3) ? -1 : 400) > 0) {
     c->setRecvPhase(MESSAGE_BODY_COMPLETE);
     return;
   }

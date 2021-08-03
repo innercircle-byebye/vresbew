@@ -39,7 +39,7 @@ class RequestHandler {
   void processByRecvPhase(Connection *c);
   static std::vector<std::string> splitByDelimiter(std::string const &str, char delimiter);
 
-  bool isHostExist();
+  bool isHostHeaderExist();
   bool isUriFileExist(LocationConfig *location);
 
  private:

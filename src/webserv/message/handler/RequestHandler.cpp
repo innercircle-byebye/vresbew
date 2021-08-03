@@ -288,7 +288,7 @@ std::vector<std::string> RequestHandler::splitByDelimiter(std::string const &str
   return vc;
 }
 
-bool RequestHandler::isHostExist() {
+bool RequestHandler::isHostHeaderExist() {
   if (request_->getHttpVersion().compare("HTTP/1.1") == 0 &&
       !request_->getHeaderValue("Host").empty()) {
     return (true);

@@ -26,7 +26,7 @@ void MessageHandler::check_request_header(Connection *c) {
   // 있어야되는지??
   // request_handler_.setRequest(&c->getRequest());
 
-  if (request_handler_.isHostExist() == false) {
+  if (request_handler_.isHostHeaderExist() == false) {
     c->status_code_ = 400;
     c->setRecvPhase(MESSAGE_BODY_COMPLETE);
     return;

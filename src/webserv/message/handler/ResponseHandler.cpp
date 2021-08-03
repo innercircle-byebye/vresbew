@@ -116,7 +116,7 @@ void ResponseHandler::processGetAndHeaderMethod(Request &request, LocationConfig
       setStatusLineWithCode(301);
       // TODO: string 을 생성 하지 않도록 수정하는 작업 필요
       // std::string temp_url = "http://" + request.getHeaderValue("Host") + request.getUri();
-      std::string temp_url = "http://" + request.getHeaderValue("Host") + request.getPath() + "/";
+      std::string temp_url = "http://" + request.getHeaderValue("Host") + request.getPath();
       this->response_->setHeader("Location", temp_url);
       return;
     }

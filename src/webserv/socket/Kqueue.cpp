@@ -71,11 +71,10 @@ void Kqueue::kqueueProcessEvents(SocketManager *sm) {
         // std::cout << "=========c->buffer_=========" << std::endl;
         if (c->getRecvPhase() == MESSAGE_START_LINE_INCOMPLETE ||
             c->getRecvPhase() == MESSAGE_START_LINE_COMPLETE ||
-            c->getRecvPhase() == MESSAGE_HEADER_INCOMPLETE ||
-            c->getRecvPhase() == MESSAGE_HEADER_COMPLETE ) {
+            c->getRecvPhase() == MESSAGE_HEADER_INCOMPLETE ) {
           MessageHandler::handle_request_header(c);
         }
-        if (c->getRecvPhase() == MESSAGE_HEADER_PARSED) {
+        if (c->getRecvPhase() == MESSAGE_HEADER_COMPLETE) {
           MessageHandler::check_request_header(c);
         } else if (c->getRecvPhase() == MESSAGE_BODY_INCOMING) {
           MessageHandler::handle_request_body(c);

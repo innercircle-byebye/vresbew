@@ -44,7 +44,7 @@ void RequestHandler::checkMsgForHeader(Connection *c) {
   else if (request_->getMsg().find(temp_rn_ctrlc) != request_->getMsg().npos)
     c->setRecvPhase(MESSAGE_INTERRUPTED);
   else if (request_->getMsg() == "\r\n")
-    c->setRecvPhase(MESSAGE_HEADER_PARSED);
+    c->setRecvPhase(MESSAGE_HEADER_COMPLETE);
 }
 
 /* PARSE FUNCTIONS */
@@ -215,8 +215,6 @@ void RequestHandler::parseHeaderLines(Connection *c) {
     }
     header_lines.erase(0, pos + 2);
   }
-
-  c->setRecvPhase(MESSAGE_HEADER_PARSED);
 }
 
 // 실패 시 c->status_code_에 에러 코드가 발생 하도록

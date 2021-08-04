@@ -310,6 +310,8 @@ bool LocationConfig::checkReturn(void) const {
 bool LocationConfig::checkAcceptedMethod(const std::string &request_method) const {
   if (this->limit_except.size() == 0 || this->limit_except.count(request_method) == 1)
     return true;
+  if (!request_method.compare("HEAD") && this->limit_except.count("GET") == 1)
+    return true;
   return false;
 }
 

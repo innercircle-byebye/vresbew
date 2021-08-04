@@ -52,25 +52,13 @@ void MessageHandler::check_request_header(Connection *c) {
     return;
   }
 
-  std::cout << "body_buf:[" << c->getBodyBuf() << "]" << std::endl;
-  std::cout << "buffer_content_length:" << c->getStringBufferContentLength() << "" << std::endl;
-  std::cout << "body_buf_size: " << c->getBodyBuf().size() << "" << std::endl;
+  // TODO: 조건문 정리 CHUNKED_CHUNKED
   if (c->getRequest().getMethod() == "GET")
     c->setRecvPhase(MESSAGE_BODY_COMPLETE);
-  else if ( (c->getStringBufferContentLength()  == (int)c->getBodyBuf().size())&& !c->getRequest().getHeaderValue("Content-Length").empty())
+  else if ((c->getStringBufferContentLength() == (int)c->getBodyBuf().size()))
     c->setRecvPhase(MESSAGE_BODY_COMPLETE);
   else
     c->setRecvPhase(MESSAGE_BODY_INCOMING);
-  // //TODO: c->getRequest().getUri().find_last_of() 부분을 메세지 헤더의 mime_types로 확인하도록 교체/ 확인 필요
-  // if (!locationconfig_test->getCgiPath().empty() &&
-  //     locationconfig_test->checkCgiExtension(c->getRequest().getPath())) {
-  //   CgiHandler::init_cgi_child(c);
-  // } else {
-  //   if (c->getStringBufferContentLength() == 0)
-  //     c->setRecvPhase(MESSAGE_BODY_COMPLETE);
-  //   else
-  //     c->setRecvPhase(MESSAGE_BODY_INCOMING);
-  // }
 }
 
 void MessageHandler::check_cgi_process(Connection *c) {
@@ -85,8 +73,9 @@ void MessageHandler::check_cgi_process(Connection *c) {
 
 void MessageHandler::handle_request_body(Connection *c) {
   check_interrupt_received(c);
-  // Transfer-Encoding : chunked 아닐 때 (= Content-Length가 있을 때)
 
+  // TODO: 조건문 수정 CHUNKED_CHUNKED
+  // Transfer-Encoding : chunked 아닐 때
   if (c->getStringBufferContentLength() != -1) {
     if ((size_t)c->getStringBufferContentLength() <= strlen(c->buffer_)) {
       c->appendBodyBuf(c->buffer_, c->getStringBufferContentLength());

@@ -119,6 +119,8 @@ void CgiHandler::receive_cgi_process_body(Connection *c, ssize_t recv_len) {
     // <HEX>CRLF 가 아닌 잘못된 값이오면 자식에게 종료를 알려주자.
     // <HEX == 0>CRLFCRLF 가 오면 자식에게 정상 종료를 알려주자.
 
+    // buffer
+    // body_buf
     char *ptr = (char *)c->getBodyBuf().c_str();
     if (c->need_more_append_length) {  // 이전에 동작에서 메세지가 끊어져서 들어온경우 남은 메세지를 append 한다.
       std::cout << "!!!!!!append first!!!!!!" << std::endl;

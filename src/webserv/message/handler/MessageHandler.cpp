@@ -10,7 +10,7 @@ MessageHandler::~MessageHandler() {}
 
 void MessageHandler::handle_request_header(Connection *c) {
   if (c->getRecvPhase() == MESSAGE_START_LINE_INCOMPLETE && !std::string(c->buffer_).compare("\r\n"))
-    return ;
+    return;
   // 1. request_handler의 request가 c의 request가 되도록 세팅
   request_handler_.setRequest(&c->getRequest());
   // 2. buffer 안에서 ctrl_c 가 전송 되었는지 확인
@@ -84,6 +84,8 @@ void MessageHandler::set_response_header(Connection *c) {
 
   // status_code 기본값: -1
   if (c->status_code_ > 0) {
+    c->getResponse().setHeader("Date", Time::getCurrentDate());
+    c->getResponse().setHeader("Content-Type", "text/html; UTF-8");
     response_handler_.setStatusLineWithCode(c->status_code_);
     return;
   }
@@ -103,7 +105,6 @@ void MessageHandler::set_response_header(Connection *c) {
 void MessageHandler::set_response_message(Connection *c) {
   // MUST BE EXECUTED ONLY WHEN BODY IS NOT PROVIDED
   // TODO: fix this garbage conditional statement...
-  std::cout << c->getResponse().getHeaderMsg() << std::endl;
   if (!(c->getResponse().getStatusCode() == 200 ||
         c->getResponse().getStatusCode() == 201 ||
         c->getResponse().getStatusCode() == 204))

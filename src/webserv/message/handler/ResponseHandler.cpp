@@ -18,7 +18,16 @@ void ResponseHandler::setServerConfig(HttpConfig *http_config, struct sockaddr_i
 }
 
 void ResponseHandler::setResponseFields(Request &request) {
+
   this->response_->setHeader("Date", Time::getCurrentDate());
+
+    size_t filepath_str;
+  if ((filepath_str = request.getPath().find('.')) != std::string::npos) {
+    std::string temp = request.getPath().substr(filepath_str, request.getPath().size());
+    this->response_->setHeader("Content-Type", MimeType::of(temp));
+  }
+
+
   LocationConfig *location = this->server_config_->getLocationConfig(request.getPath());
 
   if (request.getMethod() == "GET" || request.getMethod() == "HEAD")
@@ -68,6 +77,7 @@ void ResponseHandler::setStatusLineWithCode(int status_code) {
 }
 
 void ResponseHandler::setDefaultErrorBody() {
+
   body_buf_->append("<html>\r\n");
   body_buf_->append("<head><title>" + SSTR(response_->getStatusCode()) + " " + response_->getStatusMessage() + "</title></head>\r\n");
   body_buf_->append("<body>\r\n");

@@ -43,17 +43,17 @@ void CgiHandler::init_cgi_child(Connection *c) {
   if (!c->getBodyBuf().empty()) {
     write(c->writepipe[1], c->getBodyBuf().c_str(), (size_t)c->getBodyBuf().size());
     //숫자 확인
-    c->setStringBufferContentLength(c->getStringBufferContentLength() - c->getBodyBuf().size());
+    c->setStringBufferContentLength(0);
     c->getBodyBuf().clear();  // 뒤에서 또 쓰일걸 대비해 혹시몰라 초기화.. #2
   }
-  // TODO: 조건 확인후 변경
-  if ((c->getRequest().getMethod() == "POST" && c->getRequest().getHeaderValue("Content-Length").empty()) ||
-      c->getStringBufferContentLength() > 0)  // POST 요청에 request 헤더에 Content-Length가 안 주어 졌다
-    c->setRecvPhase(MESSAGE_CGI_INCOMING);
-  else {
-    c->setStringBufferContentLength(0);  // 뒤에서 또 쓰일걸 대비해 혹시몰라 초기화.. #2
-    c->setRecvPhase(MESSAGE_CGI_COMPLETE);
-  }
+  // // TODO: 조건 확인후 변경
+  // if ((c->getRequest().getMethod() == "POST" && c->getRequest().getHeaderValue("Content-Length").empty()) ||
+  //     c->getStringBufferContentLength() > 0)  // POST 요청에 request 헤더에 Content-Length가 안 주어 졌다
+  //   c->setRecvPhase(MESSAGE_CGI_INCOMING);
+  // else {
+  //   c->setStringBufferContentLength(0);  // 뒤에서 또 쓰일걸 대비해 혹시몰라 초기화.. #2
+  // }
+  c->setRecvPhase(MESSAGE_CGI_COMPLETE);
 }
 
 void CgiHandler::handle_cgi_header(Connection *c) {

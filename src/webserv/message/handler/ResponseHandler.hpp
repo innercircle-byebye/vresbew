@@ -35,8 +35,8 @@ class ResponseHandler {
 
   void setResponse(Response *response, std::string *msg_body_buf);
   void setServerConfig(HttpConfig *http_config, struct sockaddr_in &addr, const std::string &host);
-  void executeMethod(Request &request);
-  void setDefaultHeader(Request &request);
+  void executeMethod(Request *request);
+  void setDefaultHeader(Request *request);
   void makeResponseMsg();
   void makeResponseHeader();
   void setResponseBody();
@@ -64,10 +64,10 @@ class ResponseHandler {
   /*--------------------------EXECUTING METHODS--------------------------------*/
 
   // blocks for setResponseFields begin
-  void processGetAndHeaderMethod(Request &request, LocationConfig *&location);
-  void processPutMethod(Request &request, LocationConfig *&location);
+  void processGetAndHeaderMethod(Request *request, LocationConfig *&location);
+  void processPutMethod(Request *request, LocationConfig *&location);
   void processDeleteMethod(const std::string &uri, LocationConfig *&location);
-  void processPostMethod(Request &request, LocationConfig *&location);
+  void processPostMethod(Request *request, LocationConfig *&location);
   // blocks for setResponseFields end
 
   // executing methods helper begin
@@ -76,7 +76,7 @@ class ResponseHandler {
   bool isPathAccessable(std::string &uri, LocationConfig *&location);
   int deletePathRecursive(std::string &path);
 
-  void findIndexForGetWhenOnlySlash(Request &request, LocationConfig *&location);
+  void findIndexForGetWhenOnlySlash(Request *request, LocationConfig *&location);
 
   int remove_file(std::string file_name);
   int remove_directory(std::string directory_name);

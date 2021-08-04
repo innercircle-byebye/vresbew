@@ -88,7 +88,7 @@ void MessageHandler::set_response_header(Connection *c) {
     return;
   }
 
-  response_handler_.executeMethod(c->getRequest());
+  response_handler_.executeMethod(&c->getRequest());
 
   if (c->getRequest().getMethod() == "PUT" &&
       (c->getResponse().getStatusCode() == 201 || (c->getResponse().getStatusCode() == 204))) {
@@ -101,6 +101,8 @@ void MessageHandler::set_response_header(Connection *c) {
 }
 
 void MessageHandler::set_response_message(Connection *c) {
+  // response_handler_.setResponse(&c->getResponse(), &c->getBodyBuf());
+
   // MUST BE EXECUTED ONLY WHEN BODY IS NOT PROVIDED
   // TODO: fix this garbage conditional statement...
   if (!(c->getResponse().getStatusCode() == 200 ||
@@ -108,7 +110,7 @@ void MessageHandler::set_response_message(Connection *c) {
         c->getResponse().getStatusCode() == 204))
     response_handler_.setDefaultErrorBody();
 
-  response_handler_.setDefaultHeader(c->getRequest());
+  response_handler_.setDefaultHeader(&c->getRequest());
 
   response_handler_.makeResponseHeader();
 }

@@ -92,9 +92,11 @@ void MessageHandler::handle_request_body(Connection *c) {
       c->setBodyBuf(c->buffer_);
     }
   } else {
+    ////// 여기
     std::cout << "====chunked_body_place==========" << std::endl;
     std::cout << c->buffer_ << std::endl;
     std::cout << "====chunked_body_place==========" << std::endl;
+    ////// 여기
   }
 }
 

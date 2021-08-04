@@ -84,13 +84,11 @@ void MessageHandler::set_response_header(Connection *c) {
 
   // status_code 기본값: -1
   if (c->status_code_ > 0) {
-    c->getResponse().setHeader("Date", Time::getCurrentDate());
-    c->getResponse().setHeader("Content-Type", "text/html; UTF-8");
     response_handler_.setStatusLineWithCode(c->status_code_);
     return;
   }
 
-  response_handler_.setResponseFields(c->getRequest());
+  response_handler_.executeMethod(c->getRequest());
 
   if (c->getRequest().getMethod() == "PUT" &&
       (c->getResponse().getStatusCode() == 201 || (c->getResponse().getStatusCode() == 204))) {
@@ -110,8 +108,7 @@ void MessageHandler::set_response_message(Connection *c) {
         c->getResponse().getStatusCode() == 204))
     response_handler_.setDefaultErrorBody();
 
-  c->getResponse().setHeader("Content-Length",
-                             std::to_string(c->getBodyBuf().size()));
+  response_handler_.setDefaultHeader(c->getRequest());
 
   response_handler_.makeResponseHeader();
 }

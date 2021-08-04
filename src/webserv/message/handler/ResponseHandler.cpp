@@ -17,17 +17,7 @@ void ResponseHandler::setServerConfig(HttpConfig *http_config, struct sockaddr_i
   this->server_config_ = http_config->getServerConfig(addr.sin_port, addr.sin_addr.s_addr, host);
 }
 
-void ResponseHandler::setResponseFields(Request &request) {
-
-  this->response_->setHeader("Date", Time::getCurrentDate());
-
-    size_t filepath_str;
-  if ((filepath_str = request.getPath().find('.')) != std::string::npos) {
-    std::string temp = request.getPath().substr(filepath_str, request.getPath().size());
-    this->response_->setHeader("Content-Type", MimeType::of(temp));
-  }
-
-
+void ResponseHandler::executeMethod(Request &request) {
   LocationConfig *location = this->server_config_->getLocationConfig(request.getPath());
 
   if (request.getMethod() == "GET" || request.getMethod() == "HEAD")
@@ -40,6 +30,22 @@ void ResponseHandler::setResponseFields(Request &request) {
     processDeleteMethod(request.getPath(), location);
 }
 
+void ResponseHandler::setDefaultHeader(Request &request) {
+  response_->setHeader("Content-Length",
+                       std::to_string(this->body_buf_->size()));
+
+  response_->setHeader("Date", Time::getCurrentDate());
+  if (response_->getStatusCode() > 0)
+    response_->setHeader("Content-Type", "text/html; UTF-8");
+  else {
+    size_t filepath_str;
+    if ((filepath_str = request.getPath().find('.')) != std::string::npos) {
+      // TODO: string 안 만들고...
+      std::string temp = request.getPath().substr(filepath_str, request.getPath().size());
+      request.setHeader("Content-Type", MimeType::of(temp));
+    }
+  }
+}
 /*-----------------------MAKING RESPONSE MESSAGE-----------------------------*/
 
 void ResponseHandler::makeResponseHeader() {
@@ -77,7 +83,6 @@ void ResponseHandler::setStatusLineWithCode(int status_code) {
 }
 
 void ResponseHandler::setDefaultErrorBody() {
-
   body_buf_->append("<html>\r\n");
   body_buf_->append("<head><title>" + SSTR(response_->getStatusCode()) + " " + response_->getStatusMessage() + "</title></head>\r\n");
   body_buf_->append("<body>\r\n");

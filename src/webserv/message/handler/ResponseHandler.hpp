@@ -35,7 +35,8 @@ class ResponseHandler {
 
   void setResponse(Response *response, std::string *msg_body_buf);
   void setServerConfig(HttpConfig *http_config, struct sockaddr_in &addr, const std::string &host);
-  void setResponseFields(Request &request);
+  void executeMethod(Request &request);
+  void setDefaultHeader(Request &request);
   void makeResponseMsg();
   void makeResponseHeader();
   void setResponseBody();

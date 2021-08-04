@@ -9,6 +9,8 @@ MessageHandler::MessageHandler() {}
 MessageHandler::~MessageHandler() {}
 
 void MessageHandler::handle_request_header(Connection *c) {
+  if (c->getRecvPhase() == MESSAGE_START_LINE_INCOMPLETE && !std::string(c->buffer_).compare("\r\n"))
+    return ;
   // 1. request_handler의 request가 c의 request가 되도록 세팅
   request_handler_.setRequest(&c->getRequest());
   // 2. buffer 안에서 ctrl_c 가 전송 되었는지 확인

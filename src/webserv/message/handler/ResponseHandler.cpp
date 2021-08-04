@@ -74,13 +74,13 @@ void ResponseHandler::setStatusLineWithCode(int status_code) {
 }
 
 void ResponseHandler::setDefaultErrorBody() {
-  body_buf_->append("<html>\n");
-  body_buf_->append("<head><title>" + SSTR(response_->getStatusCode()) + " " + response_->getStatusMessage() + "</title></head>\n");
-  body_buf_->append("<body>\n");
-  body_buf_->append("<center><h1>" + SSTR(response_->getStatusCode()) + " " + response_->getStatusMessage() + "</h1></center>\n");
-  body_buf_->append("<hr><center>" + response_->getHeaderValue("Server") + "</center>\n");
-  body_buf_->append("</body>\n");
-  body_buf_->append("</html>\n");
+  body_buf_->append("<html>\r\n");
+  body_buf_->append("<head><title>" + SSTR(response_->getStatusCode()) + " " + response_->getStatusMessage() + "</title></head>\r\n");
+  body_buf_->append("<body>\r\n");
+  body_buf_->append("<center><h1>" + SSTR(response_->getStatusCode()) + " " + response_->getStatusMessage() + "</h1></center>\r\n");
+  body_buf_->append("<hr><center>" + response_->getHeaderValue("Server") + "</center>\r\n");
+  body_buf_->append("</body>\r\n");
+  body_buf_->append("</html>\r\n");
 }
 // making response message end
 
@@ -122,7 +122,7 @@ void ResponseHandler::processGetAndHeaderMethod(Request &request, LocationConfig
     }
     setStatusLineWithCode(200);
     // body가 만들져 있지 않는 경우의 조건 추가
-    if (request.getMethod() == "GET" && body_buf_->empty())
+    if (body_buf_->empty())
       setResponseBodyFromFile(request.getPath(), location);
   }
 }

@@ -10,6 +10,7 @@ Connection::Connection()
   recv_phase_ = MESSAGE_START_LINE_INCOMPLETE;
   interrupted = false;
   status_code_ = -1;
+  body_buf_ = "";
 }
 
 Connection::~Connection() {}

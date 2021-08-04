@@ -43,7 +43,8 @@ void RequestHandler::checkMsgForHeader(Connection *c) {
     c->setRecvPhase(MESSAGE_HEADER_COMPLETE);
   else if (request_->getMsg().find(temp_rn_ctrlc) != request_->getMsg().npos)
     c->setRecvPhase(MESSAGE_INTERRUPTED);
-  // TODO: header가 안들어온 경우 check
+  else if (request_->getMsg() == "\r\n")
+    c->setRecvPhase(MESSAGE_HEADER_COMPLETE);
 }
 
 /* PARSE FUNCTIONS */
@@ -62,7 +63,6 @@ void RequestHandler::parseStartLine(Connection *c) {
     c->setRecvPhase(MESSAGE_BODY_COMPLETE);
     return;
   }
-
   request_->setMethod(start_line_split[0]);
   request_->setUri(start_line_split[1]);
   start_line_split[1].append(" ");
@@ -184,12 +184,12 @@ int RequestHandler::parseUri(std::string uri_str) {
   }
   if (request_->getPath().empty())
     request_->setPath("/");
-  std::cout << "uri: " << request_->getUri() << std::endl;
-  std::cout << "schema: " << request_->getSchema() << std::endl;
-  std::cout << "host: " << request_->getHost() << std::endl;
-  std::cout << "port: " << request_->getPort() << std::endl;
-  std::cout << "path: " << request_->getPath() << std::endl;
-  std::cout << "query_string: |" << request_->getQueryString() << "|" << std::endl;
+  // std::cout << "uri: " << request_->getUri() << std::endl;
+  // std::cout << "schema: " << request_->getSchema() << std::endl;
+  // std::cout << "host: " << request_->getHost() << std::endl;
+  // std::cout << "port: " << request_->getPort() << std::endl;
+  // std::cout << "path: " << request_->getPath() << std::endl;
+  // std::cout << "query_string: |" << request_->getQueryString() << "|" << std::endl;
   return (PARSE_VALID_URI);
 }
 
@@ -199,7 +199,7 @@ void RequestHandler::parseHeaderLines(Connection *c) {
     return;
   }
   size_t pos = request_->getMsg().find("\r\n\r\n");
-  std::string header_lines = request_->getMsg().substr(0, pos);
+  std::string header_lines = request_->getMsg().substr(0, pos + 2);
 
   request_->getMsg().erase(0, pos + 4);
   if (!request_->getMsg().empty()) {
@@ -209,58 +209,42 @@ void RequestHandler::parseHeaderLines(Connection *c) {
 
   while ((pos = header_lines.find("\r\n")) != std::string::npos) {
     std::string one_header_line = header_lines.substr(0, pos);
-    if (this->parseHeaderLine(one_header_line) != 0)  // TODO: 반환값(0) 확인 필요
-      request_->clear();
+    if ((c->status_code_ = this->parseHeaderLine(one_header_line)) > 0) {
+      c->setRecvPhase(MESSAGE_BODY_COMPLETE);
+      return;
+    }
     header_lines.erase(0, pos + 2);
   }
-  if (this->parseHeaderLine(header_lines) != 0)  // TODO: 반환값(0) 확인 필요
-    request_->clear();
-
-  c->setRecvPhase(MESSAGE_HEADER_PARSED);
 }
 
+// 실패 시 c->status_code_에 에러 코드가 발생 하도록
 int RequestHandler::parseHeaderLine(std::string &one_header_line) {
   std::vector<std::string> key_and_value = RequestHandler::splitByDelimiter(one_header_line, SPACE);
-  if (key_and_value.size() != 2)  // 400 Bad Request
-    ;
-  std::string key, value;
 
+  if (key_and_value.size() != 2) {
+    key_and_value = RequestHandler::splitByDelimiter(one_header_line, ':');
+    if (key_and_value.size() != 2)
+      return (400);
+  }
+
+  std::string key, value;
   // parse key and validation
-  key = key_and_value[0].erase(key_and_value[0].size() - 1);
+  if (key_and_value[0].at(key_and_value[0].size() - 1) == ' ')
+    key_and_value[0] = key_and_value[0].substr(0, key_and_value[0].size() - 1);
+  key_and_value[0] = key_and_value[0].substr(0, key_and_value[0].size() - 1);
+  key = key_and_value[0];
   value = key_and_value[1];
 
   if (!key.compare("Host") && !request_->getHost().empty())
     value = request_->getHost();
   // insert header
   this->request_->setHeader(key, value);
-  return (0);
+  return (-1);
 }
 
 /* UTILS */
-// REQUEST_CHECK #5
-// header에 어떤 값이 들어 올지 체크 하는 과정이 무의미 하다고 판단 됩니다.
-// 클라이언트에서 표준 헤더에 명시 되지 않는 값을 전달 받아도
-// 응답에 에러가 발생하지 않습니다.
-bool RequestHandler::isValidHeaderKey(std::string const &key) {
-  if (!(key == "Accept-Charset" ||
-        key == "Accept-Encoding" ||  // TODO: 유효한 헤더인지 확인
-        key == "Accept-Language" ||
-        key == "Authorization" ||
-        key == "Connection" ||  // TODO: 유효한 헤더인지 확인
-        key == "Content-Language" ||
-        key == "Content-Length" ||
-        key == "Content-Type" ||
-        key == "Host" ||
-        key == "Referer" ||
-        key == "User-Agent"))
-    return (false);
-  return (true);
-}
 
-// TODO: remove
 bool RequestHandler::isValidMethod(std::string const &method) {
-  // return (!method.compare("GET") || !method.compare("POST") ||
-  //         !method.compare("DELETE") || !method.compare("PUT") || !method.compare("HEAD"));
   int i;
   i = 0;
   while (method[i]) {
@@ -271,16 +255,11 @@ bool RequestHandler::isValidMethod(std::string const &method) {
   return (true);
 }
 
-// TODO: remove
-bool RequestHandler::isValidHttpVersion(std::string const &http_version) {
-  return (!http_version.compare("HTTP/1.1") || !http_version.compare("HTTP/1.0"));
-}
-
 int RequestHandler::checkHttpVersionErrorCode(std::string const &http_version) {
   if (http_version.compare(0, 5, "HTTP/") != 0)
     return (400);  // 400 Bad request
   else if (!http_version.compare(5, 3, "1.1") || !http_version.compare(5, 3, "1.0"))
-    return (0);
+    return (-1);
   return (505);
 }
 
@@ -294,4 +273,29 @@ std::vector<std::string> RequestHandler::splitByDelimiter(std::string const &str
   }
   return vc;
 }
+
+bool RequestHandler::isHostHeaderExist() {
+  if (request_->getHttpVersion().compare("HTTP/1.1") == 0 &&
+      !request_->getHeaderValue("Host").empty()) {
+    return (true);
+  } else if (request_->getHttpVersion().compare("HTTP/1.0") == 0) {
+    return (true);
+  }
+  return (false);
+}
+
+bool RequestHandler::isUriFileExist(LocationConfig *location) {
+  std::string filepath = location->getRoot() + request_->getPath();
+  struct stat stat_buffer_;
+
+  if (stat(filepath.c_str(), &stat_buffer_) < 0) {
+    return (false);
+  }
+  return (true);
+}
+
+bool RequestHandler::isAllowedMethod(LocationConfig *location) {
+  return (location->checkAcceptedMethod(request_->getMethod()));
+}
+
 }  // namespace ft

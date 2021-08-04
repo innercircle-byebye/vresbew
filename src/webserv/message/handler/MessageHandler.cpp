@@ -78,7 +78,7 @@ void MessageHandler::handle_request_body(Connection *c) {
   }
 }
 
-void MessageHandler::set_response_header(Connection *c) {
+void MessageHandler::execute_server_side(Connection *c) {
   response_handler_.setResponse(&c->getResponse(), &c->getBodyBuf());
   response_handler_.setServerConfig(c->getHttpConfig(), c->getSockaddrToConnect(), c->getRequest().getHeaderValue("Host"));
 

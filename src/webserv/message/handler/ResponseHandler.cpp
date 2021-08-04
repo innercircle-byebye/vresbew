@@ -44,31 +44,10 @@ void ResponseHandler::setDefaultHeader(Connection *c, Request *request) {
       // TODO: string 안 만들고...
       std::string temp = request->getPath().substr(extension_len, request->getPath().size());
       response_->setHeader("Content-Type", MimeType::of(temp));
-      std::cout << "check this out: [" << request->getHeaderValue("Content-Type") << "]" << std::endl;
     }
   }
-
-  if (response_->getStatusCode() == 201) {
-    char str[INET_ADDRSTRLEN];
-
-    inet_ntop(AF_INET, &(c->getSockaddrToConnect().sin_addr.s_addr), str, INET_ADDRSTRLEN);
-
-    std::string address = ((strcmp(str, "127.0.0.1") == 0) ? "localhost" : str);
-    std::string port = SSTR(htons(c->getSockaddrToConnect().sin_port));
-    std::cout << "sockaddr :[" << address << "]" << std::endl;
-    std::cout << "port :[" << htons(c->getSockaddrToConnect().sin_port) << "]" << std::endl;
-    std::string full_uri;
-
-    if (request->getSchema().empty())
-      request->setSchema("http://");
-    if (request->getHost().empty())
-      request->setHost(address);
-    if (request->getPort().empty())
-      request->setPort(port);
-
-    full_uri = request->getSchema() + request->getHost() + ":" + request->getPort() + request->getPath();
-    response_->setHeader("Location", full_uri);
-  }
+  if (response_->getStatusCode() == 201)
+    createLocationHeaderFor201(c, request);
 }
 /*-----------------------MAKING RESPONSE MESSAGE-----------------------------*/
 
@@ -376,6 +355,25 @@ int ResponseHandler::remove_directory(std::string directory_name) {
   }
   std::cout << "sucess remove file " << directory_name << std::endl;
   return (0);
+}
+
+void ResponseHandler::createLocationHeaderFor201(Connection *c, Request *request) {
+  // TODO: 리팩토링..
+  char str[INET_ADDRSTRLEN];
+
+  inet_ntop(AF_INET, &(c->getSockaddrToConnect().sin_addr.s_addr), str, INET_ADDRSTRLEN);
+
+  std::string full_uri;
+
+  if (request->getSchema().empty())
+    request->setSchema("http://");
+  if (request->getHost().empty())
+    request->setHost(((strcmp(str, "127.0.0.1") == 0) ? "localhost" : str));
+  if (request->getPort().empty())
+    request->setPort(SSTR(htons(c->getSockaddrToConnect().sin_port)));
+
+  full_uri = request->getSchema() + request->getHost() + ":" + request->getPort() + request->getPath();
+  response_->setHeader("Location", full_uri);
 }
 
 /*--------------------------EXECUTING METHODS END--------------------------------*/

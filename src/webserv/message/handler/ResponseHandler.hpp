@@ -82,6 +82,8 @@ class ResponseHandler {
   int remove_directory(std::string directory_name);
   // executing methods helper end
 
+  void createLocationHeaderFor201(Connection *c, Request *request);
+
   /*--------------------------EXECUTING METHODS END--------------------------------*/
 };
 }  // namespace ft

@@ -34,6 +34,12 @@ void MessageHandler::check_request_header(Connection *c) {
     return;
   }
 
+  if (request_handler_.isHostHeaderExist() == false) {
+    c->status_code_ = 400;
+    c->setRecvPhase(MESSAGE_BODY_COMPLETE);
+    return;
+  }
+
   if (request_handler_.isUriFileExist(locationconfig_test) == false &&
       c->getRequest().getMethod() != "PUT") {
     c->status_code_ = 404;

@@ -30,13 +30,14 @@ void ResponseHandler::executeMethod(Request *request) {
     processDeleteMethod(request->getPath(), location);
 }
 
-void ResponseHandler::setDefaultHeader(Request *request) {
+void ResponseHandler::setDefaultHeader(Connection *c, Request *request) {
   response_->setHeader("Content-Length",
                        std::to_string(this->body_buf_->size()));
 
   response_->setHeader("Date", Time::getCurrentDate());
-  if (response_->getStatusCode() > 400) {
-    response_->setHeader("Content-Type", "text/html; UTF-8");
+
+  if (response_->getStatusCode() > 299) {  // TODO: 조건 다시 확인
+    response_->setHeader("Content-Type", "text/html");
   } else {
     size_t extension_len;
     if ((extension_len = request->getPath().find('.')) != std::string::npos) {
@@ -45,6 +46,28 @@ void ResponseHandler::setDefaultHeader(Request *request) {
       response_->setHeader("Content-Type", MimeType::of(temp));
       std::cout << "check this out: [" << request->getHeaderValue("Content-Type") << "]" << std::endl;
     }
+  }
+
+  if (response_->getStatusCode() == 201) {
+    char str[INET_ADDRSTRLEN];
+
+    inet_ntop(AF_INET, &(c->getSockaddrToConnect().sin_addr.s_addr), str, INET_ADDRSTRLEN);
+
+    std::string address = ((strcmp(str, "127.0.0.1") == 0) ? "localhost" : str);
+    std::string port = SSTR(htons(c->getSockaddrToConnect().sin_port));
+    std::cout << "sockaddr :[" << address << "]" << std::endl;
+    std::cout << "port :[" << htons(c->getSockaddrToConnect().sin_port) << "]" << std::endl;
+    std::string full_uri;
+
+    if (request->getSchema().empty())
+      request->setSchema("http://");
+    if (request->getHost().empty())
+      request->setHost(address);
+    if (request->getPort().empty())
+      request->setPort(port);
+
+    full_uri = request->getSchema() + request->getHost() + ":" + request->getPort() + request->getPath();
+    response_->setHeader("Location", full_uri);
   }
 }
 /*-----------------------MAKING RESPONSE MESSAGE-----------------------------*/

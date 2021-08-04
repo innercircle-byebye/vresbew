@@ -185,11 +185,11 @@ int RequestHandler::parseUri(std::string uri_str) {
   if (request_->getPath().empty())
     request_->setPath("/");
   // std::cout << "uri: " << request_->getUri() << std::endl;
-  // std::cout << "schema: " << request_->getSchema() << std::endl;
-  // std::cout << "host: " << request_->getHost() << std::endl;
-  // std::cout << "port: " << request_->getPort() << std::endl;
-  // std::cout << "path: " << request_->getPath() << std::endl;
-  // std::cout << "query_string: |" << request_->getQueryString() << "|" << std::endl;
+  std::cout << "schema: " << request_->getSchema() << std::endl;
+  std::cout << "host: " << request_->getHost() << std::endl;
+  std::cout << "port: " << request_->getPort() << std::endl;
+  std::cout << "path: " << request_->getPath() << std::endl;
+  std::cout << "query_string: |" << request_->getQueryString() << "|" << std::endl;
   return (PARSE_VALID_URI);
 }
 

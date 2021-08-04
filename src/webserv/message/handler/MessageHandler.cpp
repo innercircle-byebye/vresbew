@@ -116,10 +116,9 @@ void MessageHandler::set_response_message(Connection *c) {
 }
 
 void MessageHandler::send_response_to_client(Connection *c) {
-  if (c->getRequest().getMethod() == "HEAD")
-    c->getBodyBuf().clear();
   send(c->getFd(), c->getResponse().getHeaderMsg().c_str(), c->getResponse().getHeaderMsg().size(), 0);
-  send(c->getFd(), c->getBodyBuf().c_str(), c->getBodyBuf().size(), 0);
+  if (c->getRequest().getMethod() != "HEAD")
+    send(c->getFd(), c->getBodyBuf().c_str(), c->getBodyBuf().size(), 0);
 }
 
 void MessageHandler::executePutMethod(std::string path, std::string content) {

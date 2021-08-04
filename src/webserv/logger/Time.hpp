@@ -22,20 +22,18 @@ public:
 		return ss.str();
 	}
 
+  // 형태 : Tue, 25 May 2021 12:29:05 GMT
   static std::string  getCurrentDate() {
-    //TODO: 개선이 필요함
-    std::stringstream	ss;
-    time_t t;       // t passed as argument in function time()
-    struct tm *tt;  // decalring variable for localtime()
+    struct timeval		tv;
+		time_t				sec;
+		std::stringstream	ss;
+		char				buf[26];
 
-    time(&t);       //passing argument to time()
-    tt = gmtime(&t);
-    // current_time.append(asctime(tt), strlen(asctime(tt)) - 1);
-    // current_time.append(" GMT");
-
-    ss << asctime(tt);
-    ss << " GMT";
-    return ss.str();
+		gettimeofday(&tv, NULL);
+		sec = tv.tv_sec;
+		strftime(buf, sizeof(buf), "%a, %d %b %Y %H:%M:%S", localtime(&sec));
+		ss << buf << " GMT";
+		return ss.str();
   }
 };
 }

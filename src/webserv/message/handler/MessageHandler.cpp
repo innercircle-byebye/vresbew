@@ -54,7 +54,10 @@ void MessageHandler::check_request_header(Connection *c) {
 
   // TODO: 조건문 정리 CHUNKED_CHUNKED
   if (c->getRequest().getMethod() == "GET")
+  {
+    c->getBodyBuf().clear();
     c->setRecvPhase(MESSAGE_BODY_COMPLETE);
+  }
   else if ((c->getStringBufferContentLength() == (int)c->getBodyBuf().size()))
     c->setRecvPhase(MESSAGE_BODY_COMPLETE);
   else

@@ -55,6 +55,7 @@ class Connection {
   char buffer_[BUF_SIZE];
   bool interrupted;
   std::string body_buf_;
+  size_t need_more_append_length;
   pid_t cgi_pid;
   int writepipe[2], readpipe[2];
   int chunked_checker;

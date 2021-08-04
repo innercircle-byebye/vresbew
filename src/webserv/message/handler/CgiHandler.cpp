@@ -122,20 +122,23 @@ void CgiHandler::receive_cgi_process_body(Connection *c, ssize_t recv_len) {
     char *ptr = (char *)c->getBodyBuf().c_str();
     if (c->need_more_append_length) {  // 이전에 동작에서 메세지가 끊어져서 들어온경우 남은 메세지를 append 한다.
       std::cout << "!!!!!!append first!!!!!!" << std::endl;
-      write(c->writepipe[1], c->getBodyBuf().c_str(), std::min(c->need_more_append_length, strlen(c->getBodyBuf().c_str())));
+      // write(c->writepipe[1], c->getBodyBuf().c_str(), std::min(c->need_more_append_length, strlen(c->getBodyBuf().c_str())));
+      write(c->writepipe[1], ptr, std::min(c->need_more_append_length, strlen(ptr)));
     }
     // calc chunked type length
     size_t length = 0;
-    const char *ptr;
-    while (length = strtoul(c->getBodyBuf().c_str() + length, &ptr, 16)) {
+    // while (length = strtoul(c->getBodyBuf().c_str() + length, &ptr, 16)) {
+    while (length = strtoul(ptr + length, &ptr, 16)) {
       // check ptr 뒤에 CRLF
       std::string new_str = ptr;
       // new_str.compare(0, 2, "\r\n");
       if (new_str.compare(0, 2, "\r\n") != 0) {
-        c->setRecvPhase(MESSAGE_CGI_ERROR);
+        // c->setRecvPhase(MESSAGE_CGI_ERROR);
+        c->setRecvPhase(MESSAGE_CGI_COMPLETE);
         return ;
       }
-      c->need_more_append_length = length - write(c->writepipe[1], c->getBodyBuf().c_str() + 2, std::min(length, strlen(c->getBodyBuf().c_str())));
+      // c->need_more_append_length = length - write(c->writepipe[1], c->getBodyBuf().c_str() + 2, std::min(length, strlen(c->getBodyBuf().c_str())));
+      c->need_more_append_length = length - write(c->writepipe[1], ptr + 2, std::min(length, strlen(ptr)));
       length += 2;
     }
     // 0 을 만난 경우
@@ -146,7 +149,8 @@ void CgiHandler::receive_cgi_process_body(Connection *c, ssize_t recv_len) {
         c->setRecvPhase(MESSAGE_CGI_COMPLETE);
       } else {
         std::cout << "chunked decord FAIL...." << std::endl;
-        c->setRecvPhase(MESSAGE_CGI_ERROR);
+        // c->setRecvPhase(MESSAGE_CGI_ERROR);
+        c->setRecvPhase(MESSAGE_CGI_COMPLETE);
         // 0 뒤에 CRLF CRLF 가 아닌 다른게 온 경우 (잘못된 경우입니다.!)
       }
     }

@@ -114,7 +114,11 @@ void ResponseHandler::setAutoindexBody(const std::string &uri) {
     if (strcmp(item->d_name, ".") == 0 || strcmp(item->d_name, "..") == 0)
       continue ;
     std::string pathname = std::string(item->d_name);
-    if (isDirectory(url + pathname))
+    if (stat((url + pathname).c_str(), &this->stat_buffer_) < 0) {
+      // Logger::logError();
+      return ;
+    }
+    if (S_ISDIR(this->stat_buffer_.st_mode))
       pathname += "/";
     ss << "<a href=\"" + pathname + "\">" + pathname + "</a>";
     ss << std::setw(70 - pathname.size()) << Time::getFileModifiedTime(this->stat_buffer_.st_mtime);
@@ -144,9 +148,9 @@ bool ResponseHandler::isDirectory(const std::string &path) {
 
 void ResponseHandler::processGetAndHeaderMethod(Request *request, LocationConfig *&location) {
   //need last modified header
-  if (isDirectory(request->getPath())) {
+  if (isDirectory(getAccessPath(request->getPath()))) {
     setStatusLineWithCode(200);
-    setAutoindexBody();
+    setAutoindexBody(request->getPath());
     return ;
   }
 

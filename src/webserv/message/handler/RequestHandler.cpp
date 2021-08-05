@@ -303,8 +303,9 @@ void RequestHandler::applyReturnDirectiveStatusCode(Connection *c, LocationConfi
       location->getReturnCode() == 303 || location->getReturnCode() == 307 ||
       location->getReturnCode() == 308) {
     c->status_code_ = location->getReturnCode();
-    if (c->status_code_ == 302)
-      c->getResponse().setStatusMessage("Moved Temporarily");
+    // TODO: 필요한지 안한지 결정하기
+    // if (c->status_code_ == 302)
+    //   c->getResponse().setStatusMessage("Moved Temporarily");
     if (!location->getReturnValue().empty())
       c->getResponse().setHeader("Location", location->getReturnValue());
     else

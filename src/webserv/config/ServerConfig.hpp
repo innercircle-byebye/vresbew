@@ -23,8 +23,6 @@ class ServerConfig {
   bool autoindex;
   unsigned long client_max_body_size;
   std::map<int, std::string> error_page;
-  int return_code;
-  std::string return_value;
 
   std::vector<LocationConfig *> location_configs;
 
@@ -42,9 +40,6 @@ class ServerConfig {
   const bool &getAutoindex(void) const;
   const unsigned long &getClientMaxBodySize(void) const;
   const std::map<int, std::string> &getErrorPage(void) const;
-  int getReturnCode(void) const;
-  const std::string &getReturnValue(void) const;
-  bool checkReturn(void) const;
 
   // for debug
   void print_status_for_debug(std::string prefix);                      // TODO : remove

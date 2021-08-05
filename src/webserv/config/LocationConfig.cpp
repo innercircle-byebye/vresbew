@@ -207,6 +207,7 @@ LocationConfig::LocationConfig(std::vector<std::string> tokens, ServerConfig *se
           if (!isdigit(*i))
             throw std::runtime_error("webserv: [emerg] invalid return code \"" + code + "\"");
         }
+        this->return_code = stoi(code);   // TODO : remove (c++11)
         this->return_value = *(it + 2);
         it += 4;
       }

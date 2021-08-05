@@ -28,27 +28,18 @@ void MessageHandler::check_request_header(Connection *c) {
   // 있어야되는지??
   // request_handler_.setRequest(&c->getRequest());
 
-
   if (request_handler_.isHostHeaderExist() == false) {
     c->status_code_ = 400;
     c->setRecvPhase(MESSAGE_BODY_COMPLETE);
     return;
   }
 
-  if (serverconfig_test->getReturnCode() || !serverconfig_test->getReturnValue().empty() )
-  {
-    std::cout << "=======serverconfig:==========" << std::endl;
-    std::cout << "return_code: " << serverconfig_test->getReturnCode() << std::endl;
-    std::cout << "return_value: " << serverconfig_test->getReturnCode() << std::endl;
-    std::cout << "=======serverconfig:==========" << std::endl;
-  }
-
-  if (locationconfig_test->getReturnCode() || !locationconfig_test->getReturnValue().empty() )
-  {
-    std::cout << "=======locationconfig:==========" << std::endl;
-    std::cout << "return_code: " << locationconfig_test->getReturnCode() << std::endl;
-    std::cout << "return_value: " << locationconfig_test->getReturnCode() << std::endl;
-    std::cout << "=======locationconfig:==========" << std::endl;
+  if (locationconfig_test->getReturnCode() || !locationconfig_test->getReturnValue().empty()) {
+    if (locationconfig_test->getReturnCode() != -1) {
+      c->status_code_ = locationconfig_test->getReturnCode();
+      c->setRecvPhase(MESSAGE_BODY_COMPLETE);
+      return ;
+    }
   }
 
   if (request_handler_.isUriFileExist(locationconfig_test) == false &&

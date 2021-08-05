@@ -120,6 +120,10 @@ void MessageHandler::handle_request_body(Connection *c) {
       ptr = (char *)c->temp_buf_.c_str();
       chunked_decode(ptr, c);
       c->temp_buf_.clear();
+      // test print body_buffer_
+      std::cout << "------c->body_buffer_------" << std::endl;
+      std::cout << c->body_buf_ << std::endl;
+      std::cout << "---------------------------" << std::endl;
     }
 
     /*
@@ -200,8 +204,11 @@ void MessageHandler::check_interrupt_received(Connection *c) {
 void MessageHandler::chunked_decode(char *ptr, Connection *c) {
   if (c->need_more_append_length) {  // 이전에 동작에서 메세지가 끊어져서 들어온경우 남은 메세지를 append 한다.
     std::cout << "!!!!!!append first!!!!!!" << std::endl;
-    c->body_buf_.append(ptr, std::min(c->need_more_append_length, strlen(ptr)));
-    c->need_more_append_length += std::min(c->need_more_append_length, strlen(ptr));
+    std::cout << "need_more_append_length : " << c->need_more_append_length << std::endl;
+    // c->body_buf_.append(ptr, std::min(c->need_more_append_length, strlen(ptr)));
+    // c->need_more_append_length += std::min(c->need_more_append_length, strlen(ptr));
+    c->body_buf_.append(ptr, c->need_more_append_length);
+    c->need_more_append_length -= c->need_more_append_length;
   }
   // calc chunked type length
   size_t length = 0;
@@ -218,8 +225,10 @@ void MessageHandler::chunked_decode(char *ptr, Connection *c) {
       return;
     }
     // c->need_more_append_length = length - write(c->writepipe[1], ptr + 2, std::min(length, strlen(ptr)));
-    c->body_buf_.append(ptr + 2, std::min(length, strlen(ptr)));
-    c->need_more_append_length -= std::min(length, strlen(ptr));
+    // c->body_buf_.append(ptr + 2, std::min(length, strlen(ptr)));
+    // c->need_more_append_length -= std::min(length, strlen(ptr));
+    c->body_buf_.append(ptr + 2, length);
+    c->need_more_append_length -= length;
     length += 2;
   }
   // 향후 필요 없을 수도 있음. 잘 고려해보세요.
@@ -251,7 +260,7 @@ bool MessageHandler::is_chunk_finish(Connection *c) {
 bool MessageHandler::check_flow_client_max_body_size(Connection *c) {
   if (c->client_max_body_size_ < c->temp_buf_.length()) {
     c->temp_buf_.erase(c->client_max_body_size_ + 1);
-    std::cout << "flow client max body size : " << std::endl;
+    std::cout << "flow client max body size : " << c->client_max_body_size_ << std::endl;
     std::cout << "client max body size : " << c->client_max_body_size_ << std::endl;
     std::cout << "temp buffer length : " << c->temp_buf_.length() << std::endl;
     std::cout << "true" << std::endl;

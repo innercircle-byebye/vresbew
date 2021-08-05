@@ -42,10 +42,13 @@ typedef int socket_t;
 
 #define CTRL_C_LIST 4
 
+// in_addr_t inet_addr2(const char *cp) { return inet_addr(strcmp(cp, "localhost") == 0 ? "127.0.0.1" : cp); }
+
 // ref:
 // https://stackoverflow.com/questions/5590381/easiest-way-to-convert-int-to-string-in-c
-#define SSTR( x ) static_cast< std::ostringstream & >( \
-        ( std::ostringstream() << std::dec << x ) ).str()
+#define SSTR(x) static_cast<std::ostringstream &>(           \
+                    (std::ostringstream() << std::dec << x)) \
+                    .str()
 
 const char ctrl_c[CTRL_C_LIST] = {0xff, 0xf4, 0xfd, 0x06};
 

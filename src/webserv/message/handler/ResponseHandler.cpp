@@ -30,22 +30,24 @@ void ResponseHandler::executeMethod(Request &request) {
     processDeleteMethod(request.getPath(), location);
 }
 
-void ResponseHandler::setDefaultHeader(Request &request) {
+void ResponseHandler::setDefaultHeader(Connection *c, Request &request) {
   response_->setHeader("Content-Length",
                        std::to_string(this->body_buf_->size()));
 
   response_->setHeader("Date", Time::getCurrentDate());
-  if (response_->getStatusCode() > 400) {
-    response_->setHeader("Content-Type", "text/html; UTF-8");
+
+  if (response_->getStatusCode() > 299) {  // TODO: 조건 다시 확인
+    response_->setHeader("Content-Type", "text/html");
   } else {
     size_t extension_len;
     if ((extension_len = request.getPath().find('.')) != std::string::npos) {
       // TODO: string 안 만들고...
       std::string temp = request.getPath().substr(extension_len, request.getPath().size());
       response_->setHeader("Content-Type", MimeType::of(temp));
-      std::cout << "check this out: [" << request.getHeaderValue("Content-Type") << "]" << std::endl;
     }
   }
+  if (response_->getStatusCode() == 201)
+    createLocationHeaderFor201(c, request);
 }
 /*-----------------------MAKING RESPONSE MESSAGE-----------------------------*/
 
@@ -79,16 +81,17 @@ void ResponseHandler::setResponseHeader() {
 }
 
 void ResponseHandler::setStatusLineWithCode(int status_code) {
-  this->response_->setStatusCode(status_code);
-  this->response_->setStatusMessage(StatusMessage::of(status_code));
-  this->response_->setConnectionHeaderByStatusCode(status_code);
+  response_->setStatusCode(status_code);
+  if (response_->getStatusMessage().empty())
+    response_->setStatusMessage(StatusMessage::of(status_code));
+  response_->setConnectionHeaderByStatusCode(status_code);
 }
 
 void ResponseHandler::setDefaultErrorBody() {
   body_buf_->append("<html>\r\n");
-  body_buf_->append("<head><title>" + SSTR(response_->getStatusCode()) + " " + response_->getStatusMessage() + "</title></head>\r\n");
+  body_buf_->append("<head><title>" + SSTR(response_->getStatusCode()) + " " + StatusMessage::of(response_->getStatusCode()) + "</title></head>\r\n");
   body_buf_->append("<body>\r\n");
-  body_buf_->append("<center><h1>" + SSTR(response_->getStatusCode()) + " " + response_->getStatusMessage() + "</h1></center>\r\n");
+  body_buf_->append("<center><h1>" + SSTR(response_->getStatusCode()) + " " + StatusMessage::of(response_->getStatusCode()) + "</h1></center>\r\n");
   body_buf_->append("<hr><center>" + response_->getHeaderValue("Server") + "</center>\r\n");
   body_buf_->append("</body>\r\n");
   body_buf_->append("</html>\r\n");
@@ -397,6 +400,25 @@ int ResponseHandler::remove_directory(std::string directory_name) {
   }
   std::cout << "sucess remove file " << directory_name << std::endl;
   return (0);
+}
+
+void ResponseHandler::createLocationHeaderFor201(Connection *c, Request &request) {
+  // TODO: 리팩토링..
+  char str[INET_ADDRSTRLEN];
+
+  inet_ntop(AF_INET, &(c->getSockaddrToConnect().sin_addr.s_addr), str, INET_ADDRSTRLEN);
+
+  std::string full_uri;
+
+  if (request.getSchema().empty())
+    request.setSchema("http://");
+  if (request.getHost().empty())
+    request.setHost(((strcmp(str, "127.0.0.1") == 0) ? "localhost" : str));
+  if (request.getPort().empty())
+    request.setPort(SSTR(htons(c->getSockaddrToConnect().sin_port)));
+
+  full_uri = request.getSchema() + request.getHost() + ":" + request.getPort() + request.getPath();
+  response_->setHeader("Location", full_uri);
 }
 
 /*--------------------------EXECUTING METHODS END--------------------------------*/

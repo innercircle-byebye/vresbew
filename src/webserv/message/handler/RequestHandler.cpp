@@ -185,11 +185,11 @@ int RequestHandler::parseUri(std::string uri_str) {
   if (request_->getPath().empty())
     request_->setPath("/");
   // std::cout << "uri: " << request_->getUri() << std::endl;
-  // std::cout << "schema: " << request_->getSchema() << std::endl;
-  // std::cout << "host: " << request_->getHost() << std::endl;
-  // std::cout << "port: " << request_->getPort() << std::endl;
-  // std::cout << "path: " << request_->getPath() << std::endl;
-  // std::cout << "query_string: |" << request_->getQueryString() << "|" << std::endl;
+  std::cout << "schema: " << request_->getSchema() << std::endl;
+  std::cout << "host: " << request_->getHost() << std::endl;
+  std::cout << "port: " << request_->getPort() << std::endl;
+  std::cout << "path: " << request_->getPath() << std::endl;
+  std::cout << "query_string: |" << request_->getQueryString() << "|" << std::endl;
   return (PARSE_VALID_URI);
 }
 
@@ -296,6 +296,26 @@ bool RequestHandler::isUriFileExist(LocationConfig *location) {
 
 bool RequestHandler::isAllowedMethod(LocationConfig *location) {
   return (location->checkAcceptedMethod(request_->getMethod()));
+}
+
+void RequestHandler::applyReturnDirectiveStatusCode(Connection *c, LocationConfig *location) {
+  if (location->getReturnCode() == 301 || location->getReturnCode() == 302 ||
+      location->getReturnCode() == 303 || location->getReturnCode() == 307 ||
+      location->getReturnCode() == 308) {
+    c->status_code_ = location->getReturnCode();
+    // TODO: 필요한지 안한지 결정하기
+    // if (c->status_code_ == 302)
+    //   c->getResponse().setStatusMessage("Moved Temporarily");
+    if (!location->getReturnValue().empty())
+      c->getResponse().setHeader("Location", location->getReturnValue());
+    else
+      c->getResponse().setHeader("Location", " ");
+    return;
+  }
+  if (!location->getReturnValue().empty()) {
+    c->setBodyBuf(location->getReturnValue());
+  }
+  c->status_code_ = location->getReturnCode();
 }
 
 }  // namespace ft

@@ -36,7 +36,7 @@ class ResponseHandler {
   void setResponse(Response *response, std::string *msg_body_buf);
   void setServerConfig(HttpConfig *http_config, struct sockaddr_in &addr, const std::string &host);
   void executeMethod(Request &request);
-  void setDefaultHeader(Request &request);
+  void setDefaultHeader(Connection *c, Request &request);
   void makeResponseMsg();
   void makeResponseHeader();
   void setResponseBody();
@@ -83,6 +83,8 @@ class ResponseHandler {
   int remove_file(std::string file_name);
   int remove_directory(std::string directory_name);
   // executing methods helper end
+
+  void createLocationHeaderFor201(Connection *c, Request &request);
 
   /*--------------------------EXECUTING METHODS END--------------------------------*/
 };

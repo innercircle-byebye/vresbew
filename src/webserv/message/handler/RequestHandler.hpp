@@ -42,6 +42,7 @@ class RequestHandler {
   bool isHostHeaderExist();
   bool isUriFileExist(LocationConfig *location);
   bool isAllowedMethod(LocationConfig *location);
+  void applyReturnDirectiveStatusCode(Connection *c, LocationConfig *location);
 
  private:
   void checkMsgForStartLine(Connection *c);

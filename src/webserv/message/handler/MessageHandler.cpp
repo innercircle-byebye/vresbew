@@ -10,7 +10,7 @@ MessageHandler::~MessageHandler() {}
 
 void MessageHandler::handle_request_header(Connection *c) {
   if (c->getRecvPhase() == MESSAGE_START_LINE_INCOMPLETE && !std::string(c->buffer_).compare("\r\n"))
-    return ;
+    return;
   // 1. request_handler의 request가 c의 request가 되도록 세팅
   request_handler_.setRequest(&c->getRequest());
   // 2. buffer 안에서 ctrl_c 가 전송 되었는지 확인
@@ -92,9 +92,55 @@ void MessageHandler::handle_request_body(Connection *c) {
   } else {
     ////// 여기
     std::cout << "====chunked_body_place==========" << std::endl;
+    std::cout << c->body_buf_ << std::endl;
+    std::cout << "====chunked_body_place==========" << std::endl;
+    std::cout << "====chunked_body_place==========" << std::endl;
     std::cout << c->buffer_ << std::endl;
     std::cout << "====chunked_body_place==========" << std::endl;
     ////// 여기
+
+    /* TODO: c->body_buf_ 에 append 를 할것이 아니라 temp_buf_ 에 해야합니다. 수정을 요합니다.
+    // buffer
+    char *ptr;
+    // body_buf_ 처리
+    ptr = (char *)c->getBodyBuf().c_str();
+    // c->buffer_ 처리
+    ptr = c->buffer_;
+    if (c->need_more_append_length) {  // 이전에 동작에서 메세지가 끊어져서 들어온경우 남은 메세지를 append 한다.
+      std::cout << "!!!!!!append first!!!!!!" << std::endl;
+      // write(c->writepipe[1], ptr, std::min(c->need_more_append_length, strlen(ptr)));
+      c->body_buf_.append(ptr, std::min(c->need_more_append_length, strlen(ptr)));
+      c->need_more_append_length += std::min(c->need_more_append_length, strlen(ptr));
+    }
+    // calc chunked type length
+    size_t length = 0;
+    // while (length = strtoul(c->getBodyBuf().c_str() + length, &ptr, 16)) {
+    while (length = strtoul(ptr + length, &ptr, 16)) {
+      // check ptr 뒤에 CRLF
+      std::string new_str = ptr;
+      // new_str.compare(0, 2, "\r\n");
+      if (new_str.compare(0, 2, "\r\n") != 0) {
+        c->setRecvPhase(MESSAGE_BODY_COMPLETE);
+        return;
+      }
+      // c->need_more_append_length = length - write(c->writepipe[1], ptr + 2, std::min(length, strlen(ptr)));
+      c->body_buf_.append(ptr + 2, std::min(length, strlen(ptr)));
+      c->need_more_append_length -= std::min(length, strlen(ptr));
+      length += 2;
+    }
+    // 0 을 만난 경우
+    if (length == 0) {
+      // 0 CRLF CRLF
+      if (strcmp(ptr, "\r\n\r\n") == 0) {
+        std::cout << "finish chunked decord" << std::endl;
+        c->setRecvPhase(MESSAGE_BODY_COMPLETE);
+      } else {
+        std::cout << "chunked decord FAIL...." << std::endl;
+        c->setRecvPhase(MESSAGE_BODY_COMPLETE);
+        // 0 뒤에 CRLF CRLF 가 아닌 다른게 온 경우 (잘못된 경우입니다.!)
+      }
+    }
+    */
   }
 }
 

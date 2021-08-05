@@ -61,16 +61,18 @@ void MessageHandler::check_request_header(Connection *c) {
     c->setRecvPhase(MESSAGE_BODY_COMPLETE);
   } else if ((c->getStringBufferContentLength() == (int)c->getBodyBuf().size()))
     c->setRecvPhase(MESSAGE_BODY_COMPLETE);
-  else
+  else {
     c->setRecvPhase(MESSAGE_BODY_INCOMING);
+
+    // client max body size 를 Connection 의 변수로 미리 저장하기
+    std::cout << "set client max body size" << std::endl;
+    c->client_max_body_size_ = locationconfig_test->getClientMaxBodySize();
+  }
 }
 
 void MessageHandler::check_cgi_process(Connection *c) {
   ServerConfig *serverconfig_test = c->getHttpConfig()->getServerConfig(c->getSockaddrToConnect().sin_port, c->getSockaddrToConnect().sin_addr.s_addr, c->getRequest().getHeaderValue("Host"));
   LocationConfig *locationconfig_test = serverconfig_test->getLocationConfig(c->getRequest().getPath());
-
-  // client max body size 를 Connection 의 변수로 미리 저장하기
-  c->client_max_body_size_ = locationconfig_test->getClientMaxBodySize();
 
   if (!locationconfig_test->getCgiPath().empty() &&
       locationconfig_test->checkCgiExtension(c->getRequest().getPath())) {
@@ -105,13 +107,13 @@ void MessageHandler::handle_request_body(Connection *c) {
     // temp_buf 에 계속 이어 붙이자...
     if (*c->buffer_) {
       c->temp_buf_.append(c->buffer_);
-    }
-    else {
+    } else {
       c->temp_buf_.append(c->body_buf_);
       c->body_buf_.clear();
     }
     // 0 CRLF CRLF 가 오면 끝납니다.
     // client max body size 가 넘어도 끝납니다.
+    // 현재 문제 이곳에서 찾지를 못하고 있네요.. 이런 문제입니다...
     if (is_chunk_finish(c) || check_flow_client_max_body_size(c)) {
       char *ptr;
 
@@ -198,7 +200,7 @@ void MessageHandler::check_interrupt_received(Connection *c) {
 void MessageHandler::chunked_decode(char *ptr, Connection *c) {
   if (c->need_more_append_length) {  // 이전에 동작에서 메세지가 끊어져서 들어온경우 남은 메세지를 append 한다.
     std::cout << "!!!!!!append first!!!!!!" << std::endl;
-    c->temp_buf_.append(ptr, std::min(c->need_more_append_length, strlen(ptr)));
+    c->body_buf_.append(ptr, std::min(c->need_more_append_length, strlen(ptr)));
     c->need_more_append_length += std::min(c->need_more_append_length, strlen(ptr));
   }
   // calc chunked type length
@@ -208,14 +210,15 @@ void MessageHandler::chunked_decode(char *ptr, Connection *c) {
     // test print length
     std::cout << "in while length : " << length << std::endl;
     // check ptr 뒤에 CRLF
+    // 향후 필요 없을 수도 있습니다. 고려해보세요.
     std::string new_str = ptr;
     if (new_str.compare(0, 2, "\r\n") != 0) {
-      std::cout << "Error: can't pss compare clrf" << std::endl;
+      std::cout << "Error: can't pass compare clrf" << std::endl;
       c->setRecvPhase(MESSAGE_BODY_COMPLETE);
       return;
     }
     // c->need_more_append_length = length - write(c->writepipe[1], ptr + 2, std::min(length, strlen(ptr)));
-    c->temp_buf_.append(ptr + 2, std::min(length, strlen(ptr)));
+    c->body_buf_.append(ptr + 2, std::min(length, strlen(ptr)));
     c->need_more_append_length -= std::min(length, strlen(ptr));
     length += 2;
   }
@@ -236,17 +239,22 @@ void MessageHandler::chunked_decode(char *ptr, Connection *c) {
   }
 }
 
-bool is_chunk_finish(Connection *c) {
-  size_t found = c->temp_buf_.find_last_not_of("0\r\n\r\n");
-  if (found != std::string::npos)  // 찾음
+bool MessageHandler::is_chunk_finish(Connection *c) {
+  std::cout << "temp length : " << c->temp_buf_.length() << std::endl;
+  if (c->temp_buf_.compare(c->temp_buf_.length() - 5, 5, "0\r\n\r\n") == 0) {
+    std::cout << "check chunk finish true" << std::endl;
     return (true);
+  }
   return (false);
 }
 
-bool check_flow_client_max_body_size(Connection *c) {
-  if (c->client_max_body_size_ < c->temp_buf_.length())
-  {
+bool MessageHandler::check_flow_client_max_body_size(Connection *c) {
+  if (c->client_max_body_size_ < c->temp_buf_.length()) {
     c->temp_buf_.erase(c->client_max_body_size_ + 1);
+    std::cout << "flow client max body size : " << std::endl;
+    std::cout << "client max body size : " << c->client_max_body_size_ << std::endl;
+    std::cout << "temp buffer length : " << c->temp_buf_.length() << std::endl;
+    std::cout << "true" << std::endl;
     return (true);
   }
   return (false);

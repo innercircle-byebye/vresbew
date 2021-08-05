@@ -69,6 +69,9 @@ void MessageHandler::check_cgi_process(Connection *c) {
   ServerConfig *serverconfig_test = c->getHttpConfig()->getServerConfig(c->getSockaddrToConnect().sin_port, c->getSockaddrToConnect().sin_addr.s_addr, c->getRequest().getHeaderValue("Host"));
   LocationConfig *locationconfig_test = serverconfig_test->getLocationConfig(c->getRequest().getPath());
 
+  // client max body size 를 Connection 의 변수로 미리 저장하기
+  c->client_max_body_size_ = locationconfig_test->getClientMaxBodySize();
+
   if (!locationconfig_test->getCgiPath().empty() &&
       locationconfig_test->checkCgiExtension(c->getRequest().getPath())) {
     CgiHandler::init_cgi_child(c);
@@ -76,8 +79,8 @@ void MessageHandler::check_cgi_process(Connection *c) {
 }
 
 void MessageHandler::handle_request_body(Connection *c) {
+  std::cout << "in handle request body" << std::endl;
   check_interrupt_received(c);
-
   // TODO: 조건문 수정 CHUNKED_CHUNKED
   // Transfer-Encoding : chunked 아닐 때
   if (c->getStringBufferContentLength() != -1) {
@@ -91,62 +94,45 @@ void MessageHandler::handle_request_body(Connection *c) {
     }
   } else {
     ////// 여기
-    std::cout << "====chunked_body_place==========" << std::endl;
+    std::cout << "====c->body_buf_==========" << std::endl;
     std::cout << c->body_buf_ << std::endl;
-    std::cout << "====chunked_body_place==========" << std::endl;
-    std::cout << "====chunked_body_place==========" << std::endl;
+    std::cout << "==========================" << std::endl;
+    std::cout << "====c->buffer_  ==========" << std::endl;
     std::cout << c->buffer_ << std::endl;
-    std::cout << "====chunked_body_place==========" << std::endl;
+    std::cout << "==========================" << std::endl;
     ////// 여기
 
-    // TODO: c->body_buf_ 에 append 를 할것이 아니라 temp_buf_ 에 해야합니다. 수정을 요합니다.
+    // temp_buf 에 계속 이어 붙이자...
+    if (*c->buffer_) {
+      c->temp_buf_.append(c->buffer_);
+    }
+    else {
+      c->temp_buf_.append(c->body_buf_);
+      c->body_buf_.clear();
+    }
+    // 0 CRLF CRLF 가 오면 끝납니다.
+    // client max body size 가 넘어도 끝납니다.
+    if (is_chunk_finish(c) || check_flow_client_max_body_size(c)) {
+      char *ptr;
+
+      ptr = (char *)c->temp_buf_.c_str();
+      chunked_decode(ptr, c);
+      c->temp_buf_.clear();
+    }
+
+    /*
     // buffer
     char *ptr;
 
     if (*c->buffer_)
-      // c->buffer_ 처리
       ptr = c->buffer_;
     else
-      // body_buf_ 처리
       ptr = (char *)c->getBodyBuf().c_str();
-    // 아래 기능을 함수로 만들어 보는 것도 좋을 듯합니다.
     chunked_decode(ptr, c);
-    /*
-    if (c->need_more_append_length) {  // 이전에 동작에서 메세지가 끊어져서 들어온경우 남은 메세지를 append 한다.
-      std::cout << "!!!!!!append first!!!!!!" << std::endl;
-      // write(c->writepipe[1], ptr, std::min(c->need_more_append_length, strlen(ptr)));
-      c->body_buf_.append(ptr, std::min(c->need_more_append_length, strlen(ptr)));
-      c->need_more_append_length += std::min(c->need_more_append_length, strlen(ptr));
-    }
-    // calc chunked type length
-    size_t length = 0;
-    // while (length = strtoul(c->getBodyBuf().c_str() + length, &ptr, 16)) {
-    while (length = strtoul(ptr + length, &ptr, 16)) {
-      // check ptr 뒤에 CRLF
-      std::string new_str = ptr;
-      // new_str.compare(0, 2, "\r\n");
-      if (new_str.compare(0, 2, "\r\n") != 0) {
-        c->setRecvPhase(MESSAGE_BODY_COMPLETE);
-        return;
-      }
-      // c->need_more_append_length = length - write(c->writepipe[1], ptr + 2, std::min(length, strlen(ptr)));
-      c->body_buf_.append(ptr + 2, std::min(length, strlen(ptr)));
-      c->need_more_append_length -= std::min(length, strlen(ptr));
-      length += 2;
-    }
-    // 0 을 만난 경우
-    if (length == 0) {
-      // 0 CRLF CRLF
-      if (strcmp(ptr, "\r\n\r\n") == 0) {
-        std::cout << "finish chunked decord" << std::endl;
-        c->setRecvPhase(MESSAGE_BODY_COMPLETE);
-        c->body_buf_.clear();
-      } else {
-        std::cout << "chunked decord FAIL...." << std::endl;
-        c->setRecvPhase(MESSAGE_BODY_COMPLETE);
-        // 0 뒤에 CRLF CRLF 가 아닌 다른게 온 경우 (잘못된 경우입니다.!)
-      }
-    }
+    // temp_buf_ 에 있는 nomal form data 를 body_buf_ 로 옮기자
+    c->body_buf_.clear();
+    c->body_buf_.assin(c->temp_buf_);
+    c->temp_buf_.clear();
     */
   }
 }
@@ -212,8 +198,6 @@ void MessageHandler::check_interrupt_received(Connection *c) {
 void MessageHandler::chunked_decode(char *ptr, Connection *c) {
   if (c->need_more_append_length) {  // 이전에 동작에서 메세지가 끊어져서 들어온경우 남은 메세지를 append 한다.
     std::cout << "!!!!!!append first!!!!!!" << std::endl;
-    // write(c->writepipe[1], ptr, std::min(c->need_more_append_length, strlen(ptr)));
-    // c->body_buf_.append(ptr, std::min(c->need_more_append_length, strlen(ptr)));
     c->temp_buf_.append(ptr, std::min(c->need_more_append_length, strlen(ptr)));
     c->need_more_append_length += std::min(c->need_more_append_length, strlen(ptr));
   }
@@ -221,10 +205,12 @@ void MessageHandler::chunked_decode(char *ptr, Connection *c) {
   size_t length = 0;
   // while (length = strtoul(c->getBodyBuf().c_str() + length, &ptr, 16)) {
   while ((length = strtoul(ptr + length, &ptr, 16))) {
+    // test print length
+    std::cout << "in while length : " << length << std::endl;
     // check ptr 뒤에 CRLF
     std::string new_str = ptr;
-    // new_str.compare(0, 2, "\r\n");
     if (new_str.compare(0, 2, "\r\n") != 0) {
+      std::cout << "Error: can't pss compare clrf" << std::endl;
       c->setRecvPhase(MESSAGE_BODY_COMPLETE);
       return;
     }
@@ -233,23 +219,37 @@ void MessageHandler::chunked_decode(char *ptr, Connection *c) {
     c->need_more_append_length -= std::min(length, strlen(ptr));
     length += 2;
   }
+  // 향후 필요 없을 수도 있음. 잘 고려해보세요.
   // 0 을 만난 경우
   if (length == 0) {
     // 0 CRLF CRLF
     if (strcmp(ptr, "\r\n\r\n") == 0) {
       std::cout << "finish chunked decord" << std::endl;
       c->setRecvPhase(MESSAGE_BODY_COMPLETE);
-      c->body_buf_ = c->temp_buf_;
-      return ;
+      return;
     } else {
       std::cout << "chunked decord FAIL...." << std::endl;
       c->setRecvPhase(MESSAGE_BODY_COMPLETE);
       // 0 뒤에 CRLF CRLF 가 아닌 다른게 온 경우 (잘못된 경우입니다.!)
-      c->body_buf_ = c->temp_buf_;
-      return ;
+      return;
     }
   }
-  c->body_buf_.clear();
+}
+
+bool is_chunk_finish(Connection *c) {
+  size_t found = c->temp_buf_.find_last_not_of("0\r\n\r\n");
+  if (found != std::string::npos)  // 찾음
+    return (true);
+  return (false);
+}
+
+bool check_flow_client_max_body_size(Connection *c) {
+  if (c->client_max_body_size_ < c->temp_buf_.length())
+  {
+    c->temp_buf_.erase(c->client_max_body_size_ + 1);
+    return (true);
+  }
+  return (false);
 }
 
 }  // namespace ft

@@ -57,6 +57,7 @@ class Connection {
   std::string body_buf_;  // header 의 남은 찌거기 -> entity body 처음부분
   std::string temp_buf_;
   size_t need_more_append_length;
+  unsigned long client_max_body_size_;
   pid_t cgi_pid;
   int writepipe[2], readpipe[2];
   int chunked_checker;

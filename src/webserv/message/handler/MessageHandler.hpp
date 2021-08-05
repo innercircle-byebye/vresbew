@@ -38,7 +38,10 @@ class MessageHandler {
 
  private:
   static void executePutMethod(std::string path, std::string content);
+  // handle_request_body chunked 할때 필요한 함수들
   static void chunked_decode(char *ptr, Connection *c);
+  static bool is_chunk_finish(Connection *c);
+  static bool check_flow_client_max_body_size(Connection *c);
 };
 }  // namespace ft
 #endif

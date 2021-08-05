@@ -34,7 +34,7 @@ void MessageHandler::check_request_header(Connection *c) {
     return;
   }
 
-  if (locationconfig_test->getReturnCode() || !locationconfig_test->getReturnValue().empty()) {
+  if (locationconfig_test->checkReturn()) {
     request_handler_.applyReturnDirectiveStatusCode(c, locationconfig_test);
     c->setRecvPhase(MESSAGE_BODY_COMPLETE);
     return;

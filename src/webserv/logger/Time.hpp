@@ -35,6 +35,16 @@ public:
 		ss << buf << " GMT";
 		return ss.str();
   }
+
+  // 형태 04-Aug-2021 09:52
+  static std::string  getFileModifiedTime(time_t sec) {
+		std::stringstream	ss;
+    char				buf[18];
+    
+    strftime(buf, sizeof(buf), "%d-%b-%Y %H:%M", localtime(&sec));
+    ss << buf;
+    return ss.str();
+  }
 };
 }
 #endif

@@ -97,7 +97,7 @@ void MessageHandler::execute_server_side(Connection *c) {
     return;
   }
 
-  response_handler_.executeMethod(&c->getRequest());
+  response_handler_.executeMethod(c->getRequest());
 
   if (c->getRequest().getMethod() == "PUT" &&
       (c->getResponse().getStatusCode() == 201 || (c->getResponse().getStatusCode() == 204))) {
@@ -117,8 +117,7 @@ void MessageHandler::set_response_message(Connection *c) {
         c->getResponse().getStatusCode() == 204))
     response_handler_.setDefaultErrorBody();
 
-  response_handler_.setDefaultHeader(c, &c->getRequest());
-
+  response_handler_.setDefaultHeader(c, c->getRequest());
   response_handler_.makeResponseHeader();
 }
 

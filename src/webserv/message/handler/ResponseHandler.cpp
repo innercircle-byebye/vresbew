@@ -17,20 +17,20 @@ void ResponseHandler::setServerConfig(HttpConfig *http_config, struct sockaddr_i
   this->server_config_ = http_config->getServerConfig(addr.sin_port, addr.sin_addr.s_addr, host);
 }
 
-void ResponseHandler::executeMethod(Request *request) {
-  LocationConfig *location = this->server_config_->getLocationConfig(request->getPath());
+void ResponseHandler::executeMethod(Request &request) {
+  LocationConfig *location = this->server_config_->getLocationConfig(request.getPath());
 
-  if (request->getMethod() == "GET" || request->getMethod() == "HEAD")
+  if (request.getMethod() == "GET" || request.getMethod() == "HEAD")
     processGetAndHeaderMethod(request, location);
-  else if (request->getMethod() == "PUT")
+  else if (request.getMethod() == "PUT")
     processPutMethod(request, location);
-  else if (request->getMethod() == "POST")
+  else if (request.getMethod() == "POST")
     processPostMethod(request, location);
-  else if (request->getMethod() == "DELETE")
-    processDeleteMethod(request->getPath(), location);
+  else if (request.getMethod() == "DELETE")
+    processDeleteMethod(request.getPath(), location);
 }
 
-void ResponseHandler::setDefaultHeader(Connection *c, Request *request) {
+void ResponseHandler::setDefaultHeader(Connection *c, Request &request) {
   response_->setHeader("Content-Length",
                        std::to_string(this->body_buf_->size()));
 
@@ -40,9 +40,9 @@ void ResponseHandler::setDefaultHeader(Connection *c, Request *request) {
     response_->setHeader("Content-Type", "text/html");
   } else {
     size_t extension_len;
-    if ((extension_len = request->getPath().find('.')) != std::string::npos) {
+    if ((extension_len = request.getPath().find('.')) != std::string::npos) {
       // TODO: string 안 만들고...
-      std::string temp = request->getPath().substr(extension_len, request->getPath().size());
+      std::string temp = request.getPath().substr(extension_len, request.getPath().size());
       response_->setHeader("Content-Type", MimeType::of(temp));
     }
   }
@@ -74,7 +74,7 @@ void ResponseHandler::setResponseHeader() {
       response_->getHeaderMsg() += ": ";
       response_->getHeaderMsg() += it->second;
       response_->getHeaderMsg() += "\r\n";
-      std::cout << "[" << it->first << "] [" << it->second << "]" << std::endl;
+      // std::cout << "[" << it->first << "] [" << it->second << "]" << std::endl;
     }
   }
   response_->getHeaderMsg() += "\r\n";
@@ -95,6 +95,41 @@ void ResponseHandler::setDefaultErrorBody() {
   body_buf_->append("</body>\r\n");
   body_buf_->append("</html>\r\n");
 }
+
+void ResponseHandler::setAutoindexBody(const std::string &uri) {
+  std::stringstream ss;
+  std::string url = getAccessPath(uri);
+  DIR *dir_ptr;
+  struct dirent *item;
+
+  ss << "<html>\r\n";
+  ss << "<head><title>Index of " + uri + "</title></head>\r\n";
+  ss << "<body>\r\n";
+  ss << "<h1>Index of " + uri + "</h1><hr><pre>";
+  ss << "<a href=\"../\">../</a>\r\n";
+  if (!(dir_ptr = opendir(url.c_str()))) {
+    // Logger::logError();
+    return ;
+  }
+  while ((item = readdir(dir_ptr))) {
+    if (strcmp(item->d_name, ".") == 0 || strcmp(item->d_name, "..") == 0)
+      continue ;
+    std::string pathname = std::string(item->d_name);
+    if (stat((url + pathname).c_str(), &this->stat_buffer_) < 0) {
+      // Logger::logError();
+      return ;
+    }
+    if (S_ISDIR(this->stat_buffer_.st_mode))
+      pathname += "/";
+    ss << "<a href=\"" + pathname + "\">" + pathname + "</a>";
+    ss << std::setw(70 - pathname.size()) << Time::getFileModifiedTime(this->stat_buffer_.st_mtime);
+    std::string filesize = (S_ISDIR(this->stat_buffer_.st_mode) ? "-" : SSTR(this->stat_buffer_.st_size));
+    ss << std::right << std::setw(20) << filesize << "\r\n";
+  }
+  ss << "</pre><hr></body>\r\n";
+  ss << "</html>\r\n";
+  body_buf_->append(ss.str());
+}
 // making response message end
 
 /*-----------------------MAKING RESPONSE MESSAGE END-----------------------------*/
@@ -103,8 +138,17 @@ void ResponseHandler::setDefaultErrorBody() {
 
 // ***********blocks for setResponseFields begin*************** //
 
-void ResponseHandler::processGetAndHeaderMethod(Request *request, LocationConfig *&location) {
+void ResponseHandler::processGetAndHeaderMethod(Request &request, LocationConfig *&location) {
   //need last modified header
+  if (stat(getAccessPath(request.getPath()).c_str(), &this->stat_buffer_) < 0) {
+      // Logger::logError();
+      return ;
+  }
+  if (location->getAutoindex() && S_ISDIR(this->stat_buffer_.st_mode)) {
+    setStatusLineWithCode(200);
+    setAutoindexBody(request.getPath());
+    return ;
+  }
 
   // TODO: connection의 status_code를 보고 결정하도록...
   if (this->response_->getHeaderValue("X-Powered-By") == "PHP/8.0.7" &&
@@ -114,38 +158,38 @@ void ResponseHandler::processGetAndHeaderMethod(Request *request, LocationConfig
   }
 
   // TODO: REQUEST에서 처리 해야될 수도 있을것같음
-  if (*(request->getPath().rbegin()) == '/') {
+  if (*(request.getPath().rbegin()) == '/') {
     findIndexForGetWhenOnlySlash(request, location);
-    if (!request->getPath().compare("/")) {
+    if (*(request.getPath().rbegin()) == '/') {
       setStatusLineWithCode(403);
       return;
     }
   }
-  if (!isFileExist(request->getPath(), location)) {
+  if (!isFileExist(request.getPath(), location)) {
     setStatusLineWithCode(404);
     return;
   } else {
     if (S_ISDIR(this->stat_buffer_.st_mode)) {
       setStatusLineWithCode(301);
       // TODO: string 을 생성 하지 않도록 수정하는 작업 필요
-      // std::string temp_url = "http://" + request->getHeaderValue("Host") + request->getUri();
-      std::string temp_url = "http://" + request->getHeaderValue("Host") + ":" + request->getPort() + request->getPath();
+      // std::string temp_url = "http://" + request.getHeaderValue("Host") + request.getUri();
+      std::string temp_url = "http://" + request.getHeaderValue("Host") + ":" + request.getPort() + request.getPath();
       this->response_->setHeader("Location", temp_url);
       return;
     }
     setStatusLineWithCode(200);
     // body가 만들져 있지 않는 경우의 조건 추가
     if (body_buf_->empty())
-      setResponseBodyFromFile(request->getPath(), location);
+      setResponseBodyFromFile(request.getPath(), location);
   }
 }
 
-void ResponseHandler::processPutMethod(Request *request, LocationConfig *&location) {
-  if (*(request->getPath().rbegin()) == '/') {
+void ResponseHandler::processPutMethod(Request &request, LocationConfig *&location) {
+  if (*(request.getPath().rbegin()) == '/') {
     setStatusLineWithCode(409);
     return;
   }
-  if (!isFileExist(request->getPath(), location)) {
+  if (!isFileExist(request.getPath(), location)) {
     // 경로가 디렉토리 이거나, 경로에 파일을 쓸 수 없을때
     if (S_ISDIR(this->stat_buffer_.st_mode) || (this->stat_buffer_.st_mode & S_IRWXU)) {
       setStatusLineWithCode(500);
@@ -157,12 +201,12 @@ void ResponseHandler::processPutMethod(Request *request, LocationConfig *&locati
   }
 }
 
-void ResponseHandler::processPostMethod(Request *request, LocationConfig *&location) {
+void ResponseHandler::processPostMethod(Request &request, LocationConfig *&location) {
   if (this->response_->getStatusCode() == 302) {
     setStatusLineWithCode(this->response_->getStatusCode());
     return;
   }
-  if (!location->checkCgiExtension(request->getPath()) ||
+  if (!location->checkCgiExtension(request.getPath()) ||
       location->getCgiPath().empty()) {
     setStatusLineWithCode(405);
     return;
@@ -326,13 +370,13 @@ int ResponseHandler::deletePathRecursive(std::string &path) {
   return (0);
 }
 
-void ResponseHandler::findIndexForGetWhenOnlySlash(Request *request, LocationConfig *&location) {
+void ResponseHandler::findIndexForGetWhenOnlySlash(Request &request, LocationConfig *&location) {
   std::vector<std::string>::const_iterator it_index;
   std::string temp;
   for (it_index = location->getIndex().begin(); it_index != location->getIndex().end(); it_index++) {
-    temp = location->getRoot() + request->getPath() + *it_index;
+    temp = location->getRoot() + request.getPath() + *it_index;
     if (isFileExist(temp)) {
-      request->setPath(request->getPath() + *it_index);
+      request.setPath(request.getPath() + *it_index);
       break;
     }
     temp.clear();
@@ -357,7 +401,7 @@ int ResponseHandler::remove_directory(std::string directory_name) {
   return (0);
 }
 
-void ResponseHandler::createLocationHeaderFor201(Connection *c, Request *request) {
+void ResponseHandler::createLocationHeaderFor201(Connection *c, Request &request) {
   // TODO: 리팩토링..
   char str[INET_ADDRSTRLEN];
 
@@ -365,14 +409,14 @@ void ResponseHandler::createLocationHeaderFor201(Connection *c, Request *request
 
   std::string full_uri;
 
-  if (request->getSchema().empty())
-    request->setSchema("http://");
-  if (request->getHost().empty())
-    request->setHost(((strcmp(str, "127.0.0.1") == 0) ? "localhost" : str));
-  if (request->getPort().empty())
-    request->setPort(SSTR(htons(c->getSockaddrToConnect().sin_port)));
+  if (request.getSchema().empty())
+    request.setSchema("http://");
+  if (request.getHost().empty())
+    request.setHost(((strcmp(str, "127.0.0.1") == 0) ? "localhost" : str));
+  if (request.getPort().empty())
+    request.setPort(SSTR(htons(c->getSockaddrToConnect().sin_port)));
 
-  full_uri = request->getSchema() + request->getHost() + ":" + request->getPort() + request->getPath();
+  full_uri = request.getSchema() + request.getHost() + ":" + request.getPort() + request.getPath();
   response_->setHeader("Location", full_uri);
 }
 

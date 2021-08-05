@@ -50,6 +50,10 @@ class ResponseHandler {
   std::string getAccessPath(const std::string &uri, LocationConfig *&location);
 
  private:
+  void setAutoindexBody(const std::string &uri);
+  bool isDirectory(const std::string &path);
+
+
   // Response::response_ setter begin
   // 흐름상 가장 아래에 위치함
   void setResponseStatusLine();

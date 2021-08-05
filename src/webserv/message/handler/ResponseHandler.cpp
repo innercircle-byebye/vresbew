@@ -93,6 +93,47 @@ void ResponseHandler::setDefaultErrorBody() {
   body_buf_->append("</body>\r\n");
   body_buf_->append("</html>\r\n");
 }
+
+void ResponseHandler::setAutoindexBody(const std::string &uri) {
+  std::stringstream ss;
+  std::string url = getAccessPath(uri);
+  DIR *dir_ptr;
+  struct dirent *item;
+
+  ss << "<html>\r\n";
+  ss << "<head><title>Index of " + uri + "</title></head>\r\n";
+  ss << "<body>\r\n";
+  ss << "<h1>Index of /</h1><hr><pre>";
+  ss << "<a href=\"../\">../</a>\r\n";
+
+  if (!(dir_ptr = opendir(url.c_str()))) {
+    // Logger::logError();
+    return ;
+  }
+  while ((item = readdir(dir_ptr))) {
+    if (strcmp(item->d_name, ".") == 0 || strcmp(item->d_name, "..") == 0)
+      continue ;
+    std::string pathname = std::string(item->d_name);
+    if (isDirectory(url + pathname))
+      pathname += "/";
+    ss << "<a href=\"" + pathname + "\">" + pathname + "</a>";
+    ss << std::setw(70 - pathname.size()) << Time::getFileModifiedTime(this->stat_buffer_.st_mtime);
+    std::string filesize = (S_ISDIR(this->stat_buffer_.st_mode) ? "-" : SSTR(this->stat_buffer_.st_size));
+    ss << std::right << std::setw(20) << filesize << "\r\n";
+  }
+  ss << "</pre><hr></body>\r\n";
+  ss << "</html>\r\n";
+  body_buf_->append(ss.str());
+}
+
+bool ResponseHandler::isDirectory(const std::string &path) {
+  if (stat(path.c_str(), &this->stat_buffer_) < 0) {
+      // Logger::logError();
+      return false;
+  }
+  return S_ISDIR(this->stat_buffer_.st_mode);
+}
+
 // making response message end
 
 /*-----------------------MAKING RESPONSE MESSAGE END-----------------------------*/
@@ -103,6 +144,11 @@ void ResponseHandler::setDefaultErrorBody() {
 
 void ResponseHandler::processGetAndHeaderMethod(Request *request, LocationConfig *&location) {
   //need last modified header
+  if (isDirectory(request->getPath())) {
+    setStatusLineWithCode(200);
+    setAutoindexBody();
+    return ;
+  }
 
   // TODO: connection의 status_code를 보고 결정하도록...
   if (this->response_->getHeaderValue("X-Powered-By") == "PHP/8.0.7" &&

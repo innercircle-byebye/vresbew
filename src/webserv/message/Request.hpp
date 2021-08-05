@@ -40,21 +40,7 @@ struct Request {
   // entity body
   std::string entity_body_;
 
-<<<<<<< HEAD
-  // int   method_;
-  // int   http_version_;
-
-  // std::string   request_line_;
-  // std::string   uri;
-  // std::string   unparsed_uri;
-
-  // std::string   method_name;
-
-
-public:
-=======
  public:
->>>>>>> master
   Request();
   ~Request();
 

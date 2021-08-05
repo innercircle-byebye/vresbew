@@ -11,6 +11,7 @@ int main(int argc, char *argv[]) {
 
     try {
       ft::HttpConfig *httpconfig = new ft::HttpConfig(argv[0], config_file_name);
+      httpconfig->print_all_server_location_for_debug();
       ft::Cycle cycle(httpconfig);
 
       cycle.webservCycle();

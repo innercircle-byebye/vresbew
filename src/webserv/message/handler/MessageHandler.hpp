@@ -38,7 +38,7 @@ class MessageHandler {
 
  private:
   static void executePutMethod(std::string path, std::string content);
-  // void chunked_docode(char *ptr, Connection *c);
+  static void chunked_decode(char *ptr, Connection *c);
 };
 }  // namespace ft
 #endif

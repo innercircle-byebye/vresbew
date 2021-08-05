@@ -16,6 +16,7 @@ enum MessageFromBufferStatus {
   MESSAGE_HEADER_INCOMPLETE,
   MESSAGE_HEADER_COMPLETE,
   MESSAGE_HEADER_PARSED,
+  MESSAGE_CGI_PROCESS,
   MESSAGE_CGI_INCOMING,
   MESSAGE_CGI_COMPLETE,
   MESSAGE_BODY_INCOMING,
@@ -51,9 +52,11 @@ class Connection {
   int string_buffer_content_length_;
 
  public:
-  char buffer_[BUF_SIZE];
+  char buffer_[BUF_SIZE];  // 다음 메세지
   bool interrupted;
-  std::string body_buf_;
+  std::string body_buf_;  // header 의 남은 찌거기 -> entity body 처음부분
+  std::string temp_buf_;
+  size_t need_more_append_length;
   pid_t cgi_pid;
   int writepipe[2], readpipe[2];
   int chunked_checker;

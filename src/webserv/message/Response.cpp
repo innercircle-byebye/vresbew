@@ -48,13 +48,16 @@ void Response::setHeader(std::string key, std::string value) { headers_[key] = v
 void Response::setHeaderMsg(std::string header_msg) { header_msg_ = header_msg; }
 
 void Response::setConnectionHeaderByStatusCode(int status_code) {
-  if (status_code == 403 ||
+  if (status_code == 200 ||
+      status_code == 201 ||
+      status_code == 204 ||
+      status_code == 302 ||
+      status_code == 403 ||
       status_code == 404 ||
       status_code == 405 ||  // TODO: 재확인 필요
       status_code == 409 ||  // TODO: 재확인 필요
-      status_code == 200 ||
-      status_code == 201 ||
-      status_code == 204)
+      status_code == 501 ||
+      status_code == 503)
     setHeader("Connection", "keep-alive");
   else
     setHeader("Connection", "close");

@@ -81,16 +81,17 @@ void ResponseHandler::setResponseHeader() {
 }
 
 void ResponseHandler::setStatusLineWithCode(int status_code) {
-  this->response_->setStatusCode(status_code);
-  this->response_->setStatusMessage(StatusMessage::of(status_code));
-  this->response_->setConnectionHeaderByStatusCode(status_code);
+  response_->setStatusCode(status_code);
+  if (response_->getStatusMessage().empty())
+    response_->setStatusMessage(StatusMessage::of(status_code));
+  response_->setConnectionHeaderByStatusCode(status_code);
 }
 
 void ResponseHandler::setDefaultErrorBody() {
   body_buf_->append("<html>\r\n");
-  body_buf_->append("<head><title>" + SSTR(response_->getStatusCode()) + " " + response_->getStatusMessage() + "</title></head>\r\n");
+  body_buf_->append("<head><title>" + SSTR(response_->getStatusCode()) + " " + StatusMessage::of(response_->getStatusCode()) + "</title></head>\r\n");
   body_buf_->append("<body>\r\n");
-  body_buf_->append("<center><h1>" + SSTR(response_->getStatusCode()) + " " + response_->getStatusMessage() + "</h1></center>\r\n");
+  body_buf_->append("<center><h1>" + SSTR(response_->getStatusCode()) + " " + StatusMessage::of(response_->getStatusCode()) + "</h1></center>\r\n");
   body_buf_->append("<hr><center>" + response_->getHeaderValue("Server") + "</center>\r\n");
   body_buf_->append("</body>\r\n");
   body_buf_->append("</html>\r\n");

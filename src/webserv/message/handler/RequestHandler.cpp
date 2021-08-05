@@ -298,4 +298,23 @@ bool RequestHandler::isAllowedMethod(LocationConfig *location) {
   return (location->checkAcceptedMethod(request_->getMethod()));
 }
 
+void RequestHandler::applyReturnDirectiveStatusCode(Connection *c, LocationConfig *location) {
+  if (location->getReturnCode() == 301 || location->getReturnCode() == 302 ||
+      location->getReturnCode() == 303 || location->getReturnCode() == 307 ||
+      location->getReturnCode() == 308) {
+    c->status_code_ = location->getReturnCode();
+    if (c->status_code_ == 302)
+      c->getResponse().setStatusMessage("Moved Temporarily");
+    if (!location->getReturnValue().empty())
+      c->getResponse().setHeader("Location", location->getReturnValue());
+    else
+      c->getResponse().setHeader("Location", " ");
+    return;
+  }
+  if (!location->getReturnValue().empty()) {
+    c->setBodyBuf(location->getReturnValue());
+  }
+  c->status_code_ = location->getReturnCode();
+}
+
 }  // namespace ft

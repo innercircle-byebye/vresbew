@@ -6,6 +6,7 @@ const std::map<unsigned int, std::string> StatusMessage::status_messages_ = Stat
 
 std::map<unsigned int, std::string> StatusMessage::makeStatusMessages(void) {
   std::map<unsigned int, std::string> messages;
+  messages[-1] = "";
   messages[200] = "OK";
   messages[201] = "Created";
   messages[204] = "No Content";
@@ -28,7 +29,10 @@ std::map<unsigned int, std::string> StatusMessage::makeStatusMessages(void) {
 StatusMessage::StatusMessage(void) {}
 
 const std::string &StatusMessage::of(unsigned int status_code) {
-  return (status_messages_.find(status_code))->second;
+  std::map<unsigned int, std::string>::const_iterator it = status_messages_.find(status_code);
+	if (it != status_messages_.end())
+		return it->second;
+	return status_messages_.find(-1)->second;
 }
 
 }  // namespace ft

@@ -1,6 +1,8 @@
 #ifndef REQUEST_HANDLER_HPP
 #define REQUEST_HANDLER_HPP
 
+#include <sys/stat.h>
+
 #include <iostream>
 #include <istream>
 #include <sstream>  // std::istringstream
@@ -8,11 +10,14 @@
 
 #include "webserv/config/HttpConfig.hpp"
 #include "webserv/message/Request.hpp"
+#include "webserv/socket/Connection.hpp"
 
 namespace ft {
 
-#define START_LINE_DELIMITER ' '
-#define HEADER_DELIMITER ':'
+#define SPACE ' '
+
+#define PARSE_VALID_URI 1
+#define PARSE_INVALID_URI 0
 
 enum StartLineItem {
   RQ_METHOD,
@@ -20,10 +25,8 @@ enum StartLineItem {
   RQ_VERSION
 };
 
-// class HttpConfig;
-
 class RequestHandler {
-private:
+ private:
   Request *request_;
 
  public:
@@ -33,21 +36,28 @@ private:
   void setRequest(Request *request);
 
   void appendMsg(const char *buffer);
-  void processByRecvPhase();
-private:
-  void checkMsgForHeader();
-  void checkMsgForEntityBody();
+  void processByRecvPhase(Connection *c);
+  static std::vector<std::string> splitByDelimiter(std::string const &str, char delimiter);
 
-  int parseStartLine();
-  void parseHeaderLines();
+  bool isHostHeaderExist();
+  bool isUriFileExist(LocationConfig *location);
+  bool isAllowedMethod(LocationConfig *location);
+
+ private:
+  void checkMsgForStartLine(Connection *c);
+  void checkMsgForHeader(Connection *c);
+
+  void parseStartLine(Connection *c);
+  int parseUri(std::string uri_str);
+  void parseHeaderLines(Connection *c);
   int parseHeaderLine(std::string &one_header_line);
   void parseEntityBody();
-
-  static int getCountOfDelimiter(std::string const &str, char delimiter);
+  // static std::vector<std::string> splitByDelimiter(std::string const &str, char delimiter);
   static bool isValidHeaderKey(std::string const &key);
-  static bool isValidStartLine(int item_ident, std::string const &item);
+  static bool isValidMethod(std::string const &method);
 
-
+  int checkHttpVersionErrorCode(std::string const &http_version);
+  void checkCgiRequest(Connection *c);
 };
 }  // namespace ft
 #endif

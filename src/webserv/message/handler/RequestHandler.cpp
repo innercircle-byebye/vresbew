@@ -13,165 +13,290 @@ void RequestHandler::appendMsg(const char *buffer) {
   request_->getMsg().append(buffer);
 }
 
-void RequestHandler::processByRecvPhase() {
-  if (request_->getRecvPhase() == MESSAGE_HEADER_INCOMPLETE)
-    checkMsgForHeader();
-  if (request_->getRecvPhase() == MESSAGE_HEADER_COMPLETE) {
-    parseStartLine();
-    parseHeaderLines();
-  }
-  if (request_->getRecvPhase() == MESSAGE_BODY_NO_NEED)
-    return ;
-  if (request_->getRecvPhase() == MESSAGE_BODY_INCOMING)
-    checkMsgForEntityBody();
-  if (request_->getRecvPhase() == MESSAGE_BODY_COMPLETE)
-    parseEntityBody();
+void RequestHandler::processByRecvPhase(Connection *c) {
+  if (c->getRecvPhase() == MESSAGE_START_LINE_INCOMPLETE)
+    checkMsgForStartLine(c);
+  if (c->getRecvPhase() == MESSAGE_START_LINE_COMPLETE)
+    parseStartLine(c);
+  if (c->getRecvPhase() == MESSAGE_HEADER_INCOMPLETE)
+    checkMsgForHeader(c);
+  if (c->getRecvPhase() == MESSAGE_HEADER_COMPLETE)
+    parseHeaderLines(c);
 }
 
 /* CHECK FUNCTIONS */
-void RequestHandler::checkMsgForHeader() {
-  // append string first
-  // check \r\n\r\n
+void RequestHandler::checkMsgForStartLine(Connection *c) {
   size_t pos;
-  if ((pos = request_->getMsg().find("\r\n\r\n")) != std::string::npos) {
-    request_->setRecvPhase(MESSAGE_HEADER_COMPLETE);
-  }
+
+  if (c->interrupted == true) {
+    c->setRecvPhase(MESSAGE_BODY_COMPLETE);
+  } else if ((pos = request_->getMsg().find("\r\n")) != std::string::npos)
+    c->setRecvPhase(MESSAGE_START_LINE_COMPLETE);
 }
 
-void RequestHandler::checkMsgForEntityBody() {
-  if ((size_t)request_->getContentLength() <= request_->getMsg().size()) {
-    request_->setRecvPhase(MESSAGE_BODY_COMPLETE);
-  }
+void RequestHandler::checkMsgForHeader(Connection *c) {
+  size_t pos;
+
+  std::string temp_rn_ctrlc = "\r\n";
+  temp_rn_ctrlc += ctrl_c[0];
+  if ((pos = request_->getMsg().find("\r\n\r\n")) != std::string::npos)
+    c->setRecvPhase(MESSAGE_HEADER_COMPLETE);
+  else if (request_->getMsg().find(temp_rn_ctrlc) != request_->getMsg().npos)
+    c->setRecvPhase(MESSAGE_INTERRUPTED);
+  else if (request_->getMsg() == "\r\n")
+    c->setRecvPhase(MESSAGE_HEADER_COMPLETE);
 }
 
 /* PARSE FUNCTIONS */
-int RequestHandler::parseStartLine() {
+void RequestHandler::parseStartLine(Connection *c) {
+  // schema://host:port/uri?query
   size_t pos = request_->getMsg().find("\r\n");
   std::string const start_line = request_->getMsg().substr(0, pos);
   request_->getMsg().erase(0, pos + 2);
+  std::vector<std::string> start_line_split = RequestHandler::splitByDelimiter(start_line, SPACE);
 
-  int delimiter_count = this->getCountOfDelimiter(start_line,
-                                                    START_LINE_DELIMITER);
-  if (delimiter_count != 2) {
-    return (404);
+  if ((c->status_code_ = (start_line_split.size() == 3) ? -1 : 400) > 0) {
+    c->setRecvPhase(MESSAGE_BODY_COMPLETE);
+    return;
   }
-  int firstDelimiter = start_line.find(START_LINE_DELIMITER);
-  int secondDelimiter = start_line.find_last_of(START_LINE_DELIMITER);
+  if ((c->status_code_ = (RequestHandler::isValidMethod(start_line_split[0])) ? -1 : 400) > 0) {
+    c->setRecvPhase(MESSAGE_BODY_COMPLETE);
+    return;
+  }
+  request_->setMethod(start_line_split[0]);
+  request_->setUri(start_line_split[1]);
+  start_line_split[1].append(" ");
 
-  request_->setMethod(start_line.substr(0, firstDelimiter));
-  // if (!(this->isValidStartLine(idx, this->request_.method)))
-  //   return (404);
-  request_->setUri(start_line.substr(firstDelimiter + 1, (secondDelimiter - 1) - firstDelimiter));
-  // if (!(this->isValidStartLine(idx, this->request_.uri)))
-  //   return (404);
-  request_->setHttpVersion(start_line.substr(secondDelimiter + 1));
-  // if (!(this->isValidStartLine(idx, this->request_.version)))
-  //   return (404);
-  return (0);  // TODO: 성공했을 때 반환할 값 정의
+  if ((c->status_code_ = (parseUri(start_line_split[1]) == PARSE_VALID_URI) ? -1 : 400) > 0) {
+    c->setRecvPhase(MESSAGE_BODY_COMPLETE);
+    return;
+  }
+  if ((c->status_code_ = checkHttpVersionErrorCode(start_line_split[2])) > 0) {
+    c->setRecvPhase(MESSAGE_BODY_COMPLETE);
+    return;
+  }
+
+  request_->setHttpVersion(start_line_split[2]);
+
+  c->setRecvPhase(MESSAGE_HEADER_INCOMPLETE);
 }
 
-void RequestHandler::parseHeaderLines() {
-  size_t pos = request_->getMsg().find("\r\n\r\n");
-  std::string const header_line = request_->getMsg().substr(0, pos);
-  request_->getMsg().erase(0, pos + 4);
+// REQUEST_CHECK #3 -- 함수
+int RequestHandler::parseUri(std::string uri_str) {
+  enum {
+    schema = 0,
+    host,
+    port,
+    uri,
+    args,
+    uri_complete
+  } state;
 
-  std::istringstream is(header_line);
-  std::string line;
-  while (getline(is, line)) { // ????????
-    if (this->parseHeaderLine(line) != 0)  // TODO: 반환값(0) 확인 필요
-      request_->clear();
-  }
-  if (request_->getContentLength() == 0)
-    request_->setRecvPhase(MESSAGE_BODY_NO_NEED);
+  if (uri_str[0] == '/')
+    state = uri;
   else
-    request_->setRecvPhase(MESSAGE_BODY_INCOMING);
-}
-
-int RequestHandler::parseHeaderLine(std::string &one_header_line) {
-  std::string key;
-  std::string value;
-  int delimiter = one_header_line.find(HEADER_DELIMITER);
-
-  // parse key and validation
-  key = one_header_line.substr(0, delimiter);
-  value = one_header_line.substr(delimiter + 2);  // +2: ": "
-  // if (!(this->isValidHeaderKey(key)))
-  //   return (404);
-  if (request_->getMethod().compare("GET") && !key.compare("Content-Length")) {
-    try {
-      request_->setContentLength(stoi(value));
-    }
-    catch (std::exception &e) {
-      std::cout << e.what() << std::endl;
+    state = schema;
+  size_t pos;
+  while (state != uri_complete) {
+    switch (state) {
+      case schema:
+        if ((pos = uri_str.find("://")) == std::string::npos)
+          return (PARSE_INVALID_URI);
+        request_->setSchema(uri_str.substr(0, pos));
+        uri_str.erase(0, pos + 3);
+        state = host;
+        break;
+      case host:
+        if ((pos = uri_str.find_first_of(":/? ")) != std::string::npos) {
+          if (pos != 0)
+            request_->setHost(uri_str.substr(0, pos));
+          uri_str.erase(0, pos);
+        } else
+          return (PARSE_INVALID_URI);
+        switch (uri_str[0]) {
+          case ':':
+            state = port;
+            break;
+          case '/':
+            state = uri;
+            break;
+          case '?':
+            state = args;
+            break;
+          case ' ':
+            state = uri_complete;
+            break;
+          default:
+            return (PARSE_INVALID_URI);
+        }
+        break;
+      case port:
+        if ((pos = uri_str.find_first_of("/? ")) != std::string::npos) {
+          if (pos != 1)
+            request_->setPort(uri_str.substr(1, pos - 1));
+          uri_str.erase(0, pos);
+        } else
+          return (PARSE_INVALID_URI);
+        switch (uri_str[0]) {
+          case '/':
+            state = uri;
+            break;
+          case '?':
+            state = args;
+            break;
+          case ' ':
+            state = uri_complete;
+            break;
+          default:
+            return PARSE_INVALID_URI;
+        }
+        break;
+      case uri:
+        if ((pos = uri_str.find_first_of("? ")) != std::string::npos) {
+          if (pos != 1)
+            request_->setPath(uri_str.substr(0, pos));
+          uri_str.erase(0, pos);
+        } else
+          return (PARSE_INVALID_URI);
+        switch (uri_str[0]) {
+          case '?':
+            state = args;
+            break;
+          case ' ':
+            state = uri_complete;
+            break;
+          default:
+            return (PARSE_INVALID_URI);
+        }
+        break;
+      case args:
+        if ((pos = uri_str.find(" ")) != std::string::npos) {
+          if (pos != 1)
+            request_->setQueryString(uri_str.substr(1, pos - 1));
+          uri_str.erase(0, pos);
+        } else
+          return (PARSE_INVALID_URI);
+        state = uri_complete;
+        break;
+      case uri_complete:
+        break;
     }
   }
-  this->request_->setHeader(key, value);
-  return (0);
+  if (request_->getPath().empty())
+    request_->setPath("/");
+  // std::cout << "uri: " << request_->getUri() << std::endl;
+  // std::cout << "schema: " << request_->getSchema() << std::endl;
+  // std::cout << "host: " << request_->getHost() << std::endl;
+  // std::cout << "port: " << request_->getPort() << std::endl;
+  // std::cout << "path: " << request_->getPath() << std::endl;
+  // std::cout << "query_string: |" << request_->getQueryString() << "|" << std::endl;
+  return (PARSE_VALID_URI);
 }
 
-void RequestHandler::parseEntityBody() {
-  request_->setEntityBody(request_->getMsg().substr(0, request_->getContentLength()));
+void RequestHandler::parseHeaderLines(Connection *c) {
+  if (c->interrupted == true) {
+    c->setRecvPhase(MESSAGE_BODY_COMPLETE);
+    return;
+  }
+  size_t pos = request_->getMsg().find("\r\n\r\n");
+  std::string header_lines = request_->getMsg().substr(0, pos + 2);
+
+  request_->getMsg().erase(0, pos + 4);
+  if (!request_->getMsg().empty()) {
+    c->setBodyBuf(request_->getMsg());
+    request_->getMsg().clear();
+  }
+
+  while ((pos = header_lines.find("\r\n")) != std::string::npos) {
+    std::string one_header_line = header_lines.substr(0, pos);
+    if ((c->status_code_ = this->parseHeaderLine(one_header_line)) > 0) {
+      c->setRecvPhase(MESSAGE_BODY_COMPLETE);
+      return;
+    }
+    header_lines.erase(0, pos + 2);
+  }
+}
+
+// 실패 시 c->status_code_에 에러 코드가 발생 하도록
+int RequestHandler::parseHeaderLine(std::string &one_header_line) {
+  std::vector<std::string> key_and_value = RequestHandler::splitByDelimiter(one_header_line, SPACE);
+
+  if (key_and_value.size() != 2) {
+    key_and_value = RequestHandler::splitByDelimiter(one_header_line, ':');
+    if (key_and_value.size() != 2)
+      return (400);
+  }
+
+  std::string key, value;
+  // parse key and validation
+  if (key_and_value[0].at(key_and_value[0].size() - 1) == ' ')
+    key_and_value[0] = key_and_value[0].substr(0, key_and_value[0].size() - 1);
+  key_and_value[0] = key_and_value[0].substr(0, key_and_value[0].size() - 1);
+  key = key_and_value[0];
+  value = key_and_value[1];
+
+  if (!key.compare("Host") && !request_->getHost().empty())
+    value = request_->getHost();
+  // insert header
+  this->request_->setHeader(key, value);
+  return (-1);
 }
 
 /* UTILS */
-bool RequestHandler::isValidHeaderKey(std::string const &key) {
-  if (!(key == "Accept-Charset" ||
-        key == "Accept-Encoding" ||  // TODO: 유효한 헤더인지 확인
-        key == "Accept-Language" ||
-        key == "Authorization" ||
-        key == "Connection" ||  // TODO: 유효한 헤더인지 확인
-        key == "Content-Language" ||
-        key == "Content-Length" ||
-        key == "Content-Type" ||
-        key == "Host" ||
-        key == "Referer" ||
-        key == "User-Agent"))
+
+bool RequestHandler::isValidMethod(std::string const &method) {
+  int i;
+  i = 0;
+  while (method[i]) {
+    if (!isalpha(method[i]) && !isupper(method[i]))
+      return (false);
+    i++;
+  }
+  return (true);
+}
+
+int RequestHandler::checkHttpVersionErrorCode(std::string const &http_version) {
+  if (http_version.compare(0, 5, "HTTP/") != 0)
+    return (400);  // 400 Bad request
+  else if (!http_version.compare(5, 3, "1.1") || !http_version.compare(5, 3, "1.0"))
+    return (-1);
+  return (505);
+}
+
+std::vector<std::string> RequestHandler::splitByDelimiter(std::string const &str, char delimiter) {
+  std::vector<std::string> vc;
+  std::stringstream ss(str);
+  std::string temp;
+
+  while (getline(ss, temp, delimiter)) {
+    vc.push_back(temp);
+  }
+  return vc;
+}
+
+bool RequestHandler::isHostHeaderExist() {
+  if (request_->getHttpVersion().compare("HTTP/1.1") == 0 &&
+      !request_->getHeaderValue("Host").empty()) {
+    return (true);
+  } else if (request_->getHttpVersion().compare("HTTP/1.0") == 0) {
+    return (true);
+  }
+  return (false);
+}
+
+bool RequestHandler::isUriFileExist(LocationConfig *location) {
+  std::string filepath = location->getRoot() + request_->getPath();
+  struct stat stat_buffer_;
+
+  if (stat(filepath.c_str(), &stat_buffer_) < 0) {
     return (false);
-  return (true);
-}
-
-bool RequestHandler::isValidStartLine(int item_ident,
-                                      std::string const &item) {
-  switch (item_ident) {
-    case (RQ_METHOD):
-      if (!(item == "GET" || item == "POST" || item == "DELETE" ||
-            item == "PUT" || item == "HEAD"))
-        return (false);
-      break;
-
-    case (RQ_URI):
-      // TODO: URI 유효성 검사
-      break;
-
-    case (RQ_VERSION):
-      if (!(item == "HTTP/1.0" || item == "HTTP/1.1"))
-        return (false);
-      break;
-    default:
-      break;
   }
   return (true);
 }
 
-int RequestHandler::getCountOfDelimiter(std::string const &str, char delimiter) {
-  int ret = 0;
-
-  for (std::string::const_iterator it = str.begin(); it != str.end(); ++it) {
-    if ((*it) == delimiter) ++ret;
-  }
-  return (ret);
+bool RequestHandler::isAllowedMethod(LocationConfig *location) {
+  return (location->checkAcceptedMethod(request_->getMethod()));
 }
-
-// void RequestHandler::clearRequest(void) {
-//   request_->msg.clear();
-//   request_->recv_phase = MESSAGE_HEADER_INCOMPLETE;
-//   request_->method.clear();
-//   request_->uri.clear();
-//   request_->version.clear();
-//   request_->headers.clear();
-//   request_->content_length = 0;
-//   request_->entity_body.clear();
-// }
 
 
 /*

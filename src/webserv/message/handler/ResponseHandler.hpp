@@ -1,64 +1,88 @@
 #ifndef RESPONSE_HANDLER_HPP
 #define RESPONSE_HANDLER_HPP
 
+#include <dirent.h>  // opendir()
+#include <stdio.h>   // remove()
 #include <sys/stat.h>
+#include <unistd.h>  // rmdir(2)
 
 #include <fstream>
 #include <iostream>
 #include <istream>
 #include <sstream>  // std::istringstream
 #include <string>
-#include <stdio.h>  // remove()
-#include <unistd.h>  // rmdir(2)
-#include <dirent.h>  // opendir()
 
 #include "webserv/config/HttpConfig.hpp"
 #include "webserv/logger/Time.hpp"
 #include "webserv/message/Request.hpp"
 #include "webserv/message/Response.hpp"
 #include "webserv/message/StatusMessage.hpp"
+#include "webserv/socket/Connection.hpp"
+#include "webserv/message/MimeType.hpp"
 
 namespace ft {
 
 class ResponseHandler {
   Response *response_;
   ServerConfig *server_config_;
+  std::string *body_buf_;
 
   struct stat stat_buffer_;
-  struct dirent *entry_; // TODO: 지역변수로 전환 검토
-  DIR *dir_; // TODO: 지역변수로 전환 검토
 
  public:
   ResponseHandler();
   ~ResponseHandler();
 
-  void setResponse(Response *response);
+  void setResponse(Response *response, std::string *msg_body_buf);
   void setServerConfig(HttpConfig *http_config, struct sockaddr_in &addr, const std::string &host);
-  void setResponseFields(const std::string &method, std::string &uri);
+  void executeMethod(Request *request);
+  void setDefaultHeader(Request *request);
   void makeResponseMsg();
+  void makeResponseHeader();
+  void setResponseBody();
+  void setStatusLineWithCode(int status_code);
 
-  void setResponse400();
-  std::string getAccessPath(std::string uri);
+  // making response message begin
+  void setDefaultErrorBody();
+  // making response message end
+
+  std::string getAccessPath(const std::string &uri);
+  std::string getAccessPath(const std::string &uri, LocationConfig *&location);
 
  private:
+  // Response::response_ setter begin
+  // 흐름상 가장 아래에 위치함
   void setResponseStatusLine();
   void setResponseHeader();
-  void setResponseBody();
+  // void setResponseBody();
+  // Response::response_ setter end
 
-  // static bool isUriOnlySlash(std::string &uri);
-  bool isFileExist(std::string &uri);
-  bool isPathAccessable(std::string path, std::string &uri);
-  void setResponseBodyFromFile(std::string &uri);
-  void setResponse200();
-  void setResponse201();
-  void setResponse204();
-  void setResponse403();
-  void setResponse404();
-  void setResponse405();
-  void setResponse409();
-  void setResponse500();
+  // 애매함
+  void setResponseBodyFromFile(const std::string &uri, LocationConfig *&location);
+  // 애매함 end
 
-  std::string getDefaultErrorBody(std::string status_code, std::string status_message);
+  /*--------------------------EXECUTING METHODS--------------------------------*/
+
+  // blocks for setResponseFields begin
+  void processGetAndHeaderMethod(Request *request, LocationConfig *&location);
+  void processPutMethod(Request *request, LocationConfig *&location);
+  void processDeleteMethod(const std::string &uri, LocationConfig *&location);
+  void processPostMethod(Request *request, LocationConfig *&location);
+  // blocks for setResponseFields end
+
+  // executing methods helper begin
+  bool isFileExist(const std::string &path, LocationConfig *&location);
+  bool isFileExist(const std::string &path);
+  bool isPathAccessable(std::string &uri, LocationConfig *&location);
+  int deletePathRecursive(std::string &path);
+
+  void findIndexForGetWhenOnlySlash(Request *request, LocationConfig *&location);
+
+  int remove_file(std::string file_name);
+  int remove_directory(std::string directory_name);
+  // executing methods helper end
+
+  /*--------------------------EXECUTING METHODS END--------------------------------*/
 };
 }  // namespace ft
 #endif

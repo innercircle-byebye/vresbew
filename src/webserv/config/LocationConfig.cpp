@@ -1,17 +1,19 @@
-/* ************************************************************************** */
-/*                                                                            */
-/*                                                        :::      ::::::::   */
-/*   LocationConfig.cpp                                 :+:      :+:    :+:   */
-/*                                                    +:+ +:+         +:+     */
-/*   By: sucho <sucho@student.42seoul.kr>           +#+  +:+       +#+        */
-/*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2021/07/03 14:11:56 by kycho             #+#    #+#             */
-/*   Updated: 2021/07/14 17:18:28 by sucho            ###   ########.fr       */
-/*                                                                            */
-/* ************************************************************************** */
-
 #include "webserv/config/LocationConfig.hpp"
 namespace ft {
+
+LocationConfig::LocationConfig(ServerConfig *server_config) {
+  this->uri = "/";
+
+  this->root = server_config->getRoot();
+  this->index = server_config->getIndex();
+  this->autoindex = server_config->getAutoindex();
+  this->client_max_body_size = server_config->getClientMaxBodySize();
+  this->return_code = -1;
+  this->return_value = "";
+  this->cgi_path = "";
+  
+  this->error_page = server_config->getErrorPage();
+}
 
 LocationConfig::LocationConfig(std::vector<std::string> tokens, ServerConfig *server_config) {
   // 초기화부분
@@ -19,6 +21,9 @@ LocationConfig::LocationConfig(std::vector<std::string> tokens, ServerConfig *se
   this->index = server_config->getIndex();
   this->autoindex = server_config->getAutoindex();
   this->client_max_body_size = server_config->getClientMaxBodySize();
+  this->return_code = -1;
+  this->return_value = "";
+  this->cgi_path = "";
 
   // 한번이라도 세팅했었는지 체크하는 변수
   bool check_root_setting = false;
@@ -26,6 +31,9 @@ LocationConfig::LocationConfig(std::vector<std::string> tokens, ServerConfig *se
   bool check_autoindex_setting = false;
   bool check_client_max_body_size = false;
   bool check_limit_except = false;
+  bool check_return = false;
+  bool check_cgi = false;
+  bool check_cgi_path = false;
 
   std::vector<std::string>::iterator it = tokens.begin();  // "location"
   it++;                                                    // path
@@ -74,37 +82,73 @@ LocationConfig::LocationConfig(std::vector<std::string> tokens, ServerConfig *se
 
       check_autoindex_setting = true;
       it += 3;
-    } else if (*it == "error_page") {
-      // TODO : 예외처리해야함
 
-      int count = 2;
+    } else if (*it == "error_page") {
+      int count = 0;  // error_page 지시어 뒤에오는 단어의 개수
       while (*(it + count + 1) != ";")
         count++;
 
+      if (count < 2) {  // error_page 지시어 뒤에 단어가 2개 미만으로 들어오면 에러발생
+        throw std::runtime_error("webserv: [emerg] invalid number of arguments in \"error_page\" directive");
+      }
+
       for (int i = 1; i < count; i++) {
-        int status_code = atoi((*(it + i)).c_str());
+        std::string &code = *(it + i);
+
+        for (std::string::iterator i = code.begin(); i != code.end(); i++) {  // code에 숫자만 들어오는지 확인 // 함수로 빼는게 나을듯 ?
+          if (!isdigit(*i))
+            throw std::runtime_error("webserv: [emerg] invalid value \"" + code + "\"");
+        }
+
+        int status_code = atoi(code.c_str());
+        if (status_code < 300 || status_code > 599) {  // status_code의 범위 확인
+          throw std::runtime_error("webserv: [emerg] value \"" + code + "\" must be between 300 and 599");
+        }
 
         if (this->error_page.find(status_code) == this->error_page.end()) {
           this->error_page[status_code] = *(it + count);
         }
       }
       it += (count + 2);
+
     } else if (*it == "client_max_body_size") {
-      // TODO : 예외처리해야함
+      if (*(it + 1) == ";" || *(it + 2) != ";")
+        throw std::runtime_error("webserv: [emerg] invalid number of arguments in \"client_max_body_size\" directive");
+
       if (check_client_max_body_size == true)
         throw std::runtime_error("webserv: [emerg] \"client_max_body_size\" directive is duplicate");
 
-      std::string size_str = *(it + 1);
+      std::string &size_str = *(it + 1);
+      int num_of_mutifly_by_2 = 0;
+      if (*size_str.rbegin() == 'k') {
+        num_of_mutifly_by_2 = 10;
+      } else if (*size_str.rbegin() == 'm') {
+        num_of_mutifly_by_2 = 20;
+      } else if (*size_str.rbegin() == 'g') {
+        num_of_mutifly_by_2 = 30;
+      }
+      if (num_of_mutifly_by_2 != 0) {
+        size_str = size_str.substr(0, size_str.length() - 1);
+      }
 
-      this->client_max_body_size = atoi(size_str.c_str());
+      if (size_str.length() > 19) {
+        throw std::runtime_error("webserv: [emerg] \"client_max_body_size\" directive invalid value");
+      }
 
-      char last_char = size_str[size_str.length() - 1];
-      if (last_char == 'k') {
-        this->client_max_body_size *= 1000;
-      } else if (last_char == 'm') {
-        this->client_max_body_size *= 1000000;
-      } else if (last_char == 'g') {
-        this->client_max_body_size *= 1000000000;
+      for (std::string::iterator i = size_str.begin(); i != size_str.end(); i++) {  // code에 숫자만 들어오는지 확인 // 함수로 빼는게 나을듯 ?
+        if (!isdigit(*i))
+          throw std::runtime_error("webserv: [emerg] \"client_max_body_size\" directive invalid value");
+      }
+
+      this->client_max_body_size = strtoul(size_str.c_str(), NULL, 0);
+      if (this->client_max_body_size > LONG_MAX) {
+        throw std::runtime_error("webserv: [emerg] \"client_max_body_size\" directive invalid value");
+      }
+      for (int i = 0; i < num_of_mutifly_by_2; i++) {
+        this->client_max_body_size *= 2;
+        if (this->client_max_body_size > LONG_MAX) {
+          throw std::runtime_error("webserv: [emerg] \"client_max_body_size\" directive invalid value");
+        }
       }
 
       check_client_max_body_size = true;
@@ -126,9 +170,78 @@ LocationConfig::LocationConfig(std::vector<std::string> tokens, ServerConfig *se
 
       check_limit_except = true;
       it++;
+    } else if (*it == "return") {
+      int count = 1;
+      while (*(it + count) != ";")
+        count++;
+
+      if (count != 2 && count != 3)
+        throw std::runtime_error("webserv: [emerg] invalid number of arguments in \"return\" directive");
+
+      if (check_return == true) {
+        it += (count + 1);
+        continue;
+      }
+      check_return = true;
+
+      if (count == 2) {
+        if ((*(it + 1)).find("http://") == 0 || (*(it + 1)).find("https://") == 0) {
+          this->return_code = 302;
+          this->return_value = *(it + 1);
+        } else {
+          std::string &code = *(it + 1);
+          if (code.size() > 3)
+            throw std::runtime_error("webserv: [emerg] invalid return code \"" + code + "\"");
+          for (std::string::iterator i = code.begin(); i != code.end(); i++) {
+            if (!isdigit(*i))
+              throw std::runtime_error("webserv: [emerg] invalid return code \"" + code + "\"");
+          }
+          this->return_code = stoi(code);  // TODO : remove (c++11)
+        }
+        it += 3;
+      } else if (count == 3) {
+        std::string &code = *(it + 1);
+        if (code.size() > 3)
+          throw std::runtime_error("webserv: [emerg] invalid return code \"" + code + "\"");
+        for (std::string::iterator i = code.begin(); i != code.end(); i++) {
+          if (!isdigit(*i))
+            throw std::runtime_error("webserv: [emerg] invalid return code \"" + code + "\"");
+        }
+        this->return_value = *(it + 2);
+        it += 4;
+      }
+    } else if (*it == "cgi") {
+      if (check_cgi == true)
+        throw std::runtime_error("webserv: [emerg] \"cgi\" directive is duplicate");
+
+      it++;
+      if (*it == ";") {
+        throw std::runtime_error("webserv: [emerg] invalid number of arguments in \"cgi\" directive");
+      }
+
+      for (; *it != ";"; it++) {
+        if (it->find(".") != 0)
+          throw std::runtime_error("webserv: [emerg] invalid cgi extention \"" + (*it) + "\"");
+        this->cgi.push_back(*it);
+      }
+      it++;
+      check_cgi = true;
+    } else if (*it == "cgi_path") {
+      if (check_cgi_path == true)
+        throw std::runtime_error("webserv: [emerg] \"cgi_path\" directive is duplicate");
+      if (*(it + 1) == ";" || *(it + 2) != ";")
+        throw std::runtime_error("webserv: [emerg] invalid number of arguments in \"cgi_path\" directive");
+
+      this->cgi_path = *(it + 1);
+      it += 3;
+      check_cgi_path = true;
     } else {
       throw std::runtime_error("webserv: [emerg] unknown directive \"" + (*it) + "\"");
     }
+  }
+
+  if (check_cgi != check_cgi_path) {
+    throw std::runtime_error("webserv: [emerg] \"cgi\" and \"cgi_path\" directives must be used together");
   }
 
   for (std::map<int, std::string>::const_iterator i = server_config->getErrorPage().begin(); i != server_config->getErrorPage().end(); i++) {
@@ -162,7 +275,7 @@ const std::string &LocationConfig::getRoot(void) const {
   return this->root;
 }
 
-const std::vector<std::string> LocationConfig::getIndex(void) const {
+const std::vector<std::string> &LocationConfig::getIndex(void) const {
   return this->index;
 }
 
@@ -178,9 +291,35 @@ const std::map<int, std::string> &LocationConfig::getErrorPage(void) const {
   return this->error_page;
 }
 
-bool LocationConfig::checkAcceptedMethod(const std::string request_method) const {
+int LocationConfig::getReturnCode(void) const {
+  return this->return_code;
+}
+
+const std::string &LocationConfig::getReturnValue(void) const {
+  return this->return_value;
+}
+
+const std::string &LocationConfig::getCgiPath(void) const {
+  return this->cgi_path;
+}
+
+bool LocationConfig::checkReturn(void) const {
+  return this->return_code != -1;
+}
+
+bool LocationConfig::checkAcceptedMethod(const std::string &request_method) const {
   if (this->limit_except.size() == 0 || this->limit_except.count(request_method) == 1)
     return true;
+  if (!request_method.compare("HEAD") && this->limit_except.count("GET") == 1)
+    return true;
+  return false;
+}
+
+bool LocationConfig::checkCgiExtension(const std::string &request_uri) const {
+  for (std::vector<std::string>::const_iterator i = this->cgi.begin(); i != this->cgi.end(); i++) {
+    if (request_uri.rfind(*i) + i->length() == request_uri.length())  // request_uri의 suffix가 *i인지 확인
+      return true;
+  }
   return false;
 }
 
@@ -222,6 +361,42 @@ void LocationConfig::print_status_for_debug(std::string prefix)  // TODO : remov
     std::cout << *i << " ";
   }
   std::cout << std::endl;
+
+  std::cout << prefix;
+  std::cout << "return_code : " << this->return_code << std::endl;
+
+  std::cout << prefix;
+  std::cout << "return_value : " << this->return_value << std::endl;
+
+  std::cout << prefix;
+  std::cout << "checkReturn() : ";
+  if (this->checkReturn()) {
+    std::cout << "true" << std::endl;
+  } else {
+    std::cout << "false" << std::endl;
+  }
+
+  std::cout << prefix;
+  std::cout << "cgi : ";
+  for (std::vector<std::string>::iterator i = this->cgi.begin(); i != this->cgi.end(); i++) {
+    std::cout << *i << " ";
+  }
+  std::cout << std::endl;
+
+  std::cout << prefix;
+  std::cout << "cgi_path : " << this->cgi_path << std::endl;
+
+  std::cout << prefix;
+  std::cout << " - checkCgiExtention - " << std::endl;;
+  std::cout << prefix;
+  std::cout << ".bin : " << this->checkCgiExtension(".bin") << std::endl;
+  std::cout << prefix;
+  std::cout << ".bla : " << this->checkCgiExtension(".bla") << std::endl;
+  std::cout << prefix;
+  std::cout << ".cgi : " << this->checkCgiExtension(".cgi") << std::endl;
+  std::cout << prefix;
+  std::cout << ".test : " << this->checkCgiExtension(".test") << std::endl;
+
 
   std::cout << prefix;
   std::cout << "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~" << std::endl;

@@ -5,6 +5,7 @@
 #include "webserv/socket/SocketManager.hpp"
 #include "webserv/socket/Connection.hpp"
 #include "webserv/message/handler/MessageHandler.hpp"
+#include "webserv/message/handler/CgiHandler.hpp"
 
 namespace ft {
 class Kqueue {

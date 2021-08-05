@@ -110,7 +110,7 @@ void Kqueue::kqueueProcessEvents(SocketManager *sm) {
             } else
               CgiHandler::receive_cgi_body(c);
           }
-          MessageHandler::set_response_header(c);  // 서버가 실제 동작을 진행하는 부분
+          MessageHandler::execute_server_side(c);  // 서버가 실제 동작을 진행하는 부분
           MessageHandler::set_response_message(c);
           MessageHandler::send_response_to_client(c);
           if (!c->getResponse().getHeaderValue("Connection").compare("close") ||

@@ -10,7 +10,7 @@ MessageHandler::~MessageHandler() {}
 
 void MessageHandler::handle_request_header(Connection *c) {
   if (c->getRecvPhase() == MESSAGE_START_LINE_INCOMPLETE && !std::string(c->buffer_).compare("\r\n"))
-    return ;
+    return;
   // 1. request_handler의 request가 c의 request가 되도록 세팅
   request_handler_.setRequest(&c->getRequest());
   // 2. buffer 안에서 ctrl_c 가 전송 되었는지 확인
@@ -26,7 +26,7 @@ void MessageHandler::check_request_header(Connection *c) {
   LocationConfig *locationconfig_test = serverconfig_test->getLocationConfig(c->getRequest().getPath());
 
   // 있어야되는지??
-  request_handler_.setRequest(&c->getRequest());
+  // request_handler_.setRequest(&c->getRequest());
 
   if (request_handler_.isHostHeaderExist() == false) {
     c->status_code_ = 400;
@@ -78,7 +78,7 @@ void MessageHandler::handle_request_body(Connection *c) {
   }
 }
 
-void MessageHandler::set_response_header(Connection *c) {
+void MessageHandler::execute_server_side(Connection *c) {
   response_handler_.setResponse(&c->getResponse(), &c->getBodyBuf());
   response_handler_.setServerConfig(c->getHttpConfig(), c->getSockaddrToConnect(), c->getRequest().getHeaderValue("Host"));
 
@@ -88,7 +88,7 @@ void MessageHandler::set_response_header(Connection *c) {
     return;
   }
 
-  response_handler_.setResponseFields(c->getRequest());
+  response_handler_.executeMethod(&c->getRequest());
 
   if (c->getRequest().getMethod() == "PUT" &&
       (c->getResponse().getStatusCode() == 201 || (c->getResponse().getStatusCode() == 204))) {
@@ -101,16 +101,16 @@ void MessageHandler::set_response_header(Connection *c) {
 }
 
 void MessageHandler::set_response_message(Connection *c) {
+  // response_handler_.setResponse(&c->getResponse(), &c->getBodyBuf());
+
   // MUST BE EXECUTED ONLY WHEN BODY IS NOT PROVIDED
   // TODO: fix this garbage conditional statement...
-  std::cout << c->getResponse().getHeaderMsg() << std::endl;
   if (!(c->getResponse().getStatusCode() == 200 ||
         c->getResponse().getStatusCode() == 201 ||
         c->getResponse().getStatusCode() == 204))
     response_handler_.setDefaultErrorBody();
 
-  c->getResponse().setHeader("Content-Length",
-                             std::to_string(c->getBodyBuf().size()));
+  response_handler_.setDefaultHeader(&c->getRequest());
 
   response_handler_.makeResponseHeader();
 }

@@ -29,7 +29,7 @@ class MessageHandler {
   static void check_request_header(Connection *c);
   static void handle_request_body(Connection *c);
 
-  static void set_response_header(Connection *c);
+  static void execute_server_side(Connection *c);
   static void set_response_message(Connection *c);
   static void send_response_to_client(Connection *c);
 

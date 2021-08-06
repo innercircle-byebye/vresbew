@@ -331,16 +331,13 @@ void RequestHandler::handleChunked(Connection *c) {
     if ((pos = request_->getMsg().find("\r\n")) != std::string::npos) {
       c->chunked_str_size_ = (size_t)strtoul(request_->getMsg().substr(0, pos).c_str(), NULL, 16);
       request_->getMsg().erase(0, pos + 2);
-      if (c->chunked_str_size_ == 0) {
+      if (c->chunked_str_size_ == 0)
         c->chunked_checker_ = END;
-      }
       else
         c->chunked_checker_ = STR;
     }
   }
   if (c->chunked_checker_ == STR) {
-    // if ((pos = request_->getMsg().find_last_of("\r\n")) == c->chunked_str_size_ + 3) 
-    //if (c->chunked_str_size_ + 2 <= request_->getMsg().size() && request_->getMsg().size() <= c->chunked_str_size_ + 4) {
     if (request_->getMsg().size() >= c->chunked_str_size_ + 2) {
       if (!request_->getMsg().substr(c->chunked_str_size_, c->chunked_str_size_ + 2).compare("\r\n")) {
         c->appendBodyBuf((char *) request_->getMsg().c_str(), c->chunked_str_size_);
@@ -360,12 +357,6 @@ void RequestHandler::handleChunked(Connection *c) {
         return ;
       }
     }
-    // else if (pos != std::string::npos && pos > c->chunked_str_size_) {
-    //   c->getBodyBuf().clear();
-    //   c->status_code_ = 400;
-    //   c->setRecvPhase(MESSAGE_BODY_COMPLETE);
-    //   return ;
-    // }
   }
   if (c->chunked_checker_ == END) {
     if ((pos = request_->getMsg().find("\r\n")) == 0)

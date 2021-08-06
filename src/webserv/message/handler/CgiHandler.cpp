@@ -40,20 +40,14 @@ void CgiHandler::init_cgi_child(Connection *c) {
   // TODO: 실패 예외처리
   close(c->readpipe[1]);
 
-  if (!c->getBodyBuf().empty()) {
-    write(c->writepipe[1], c->getBodyBuf().c_str(), (size_t)c->getBodyBuf().size());
-    //숫자 확인
-    c->setStringBufferContentLength(c->getStringBufferContentLength() - c->getBodyBuf().size());
-    c->getBodyBuf().clear();  // 뒤에서 또 쓰일걸 대비해 혹시몰라 초기화.. #2
-  }
-  // TODO: 조건 확인후 변경
-  if ((c->getRequest().getMethod() == "POST" && c->getRequest().getHeaderValue("Content-Length").empty()) ||
-      c->getStringBufferContentLength() > 0)  // POST 요청에 request 헤더에 Content-Length가 안 주어 졌다
-    c->setRecvPhase(MESSAGE_CGI_INCOMING);
-  else {
-    c->setStringBufferContentLength(0);  // 뒤에서 또 쓰일걸 대비해 혹시몰라 초기화.. #2
-    c->setRecvPhase(MESSAGE_CGI_COMPLETE);
-  }
+  // if (!c->getBodyBuf().empty()) {
+  write(c->writepipe[1], c->getBodyBuf().c_str(), (size_t)c->getBodyBuf().size());
+  //숫자 확인
+  c->setStringBufferContentLength(0);
+  c->getBodyBuf().clear();  // 뒤에서 또 쓰일걸 대비해 혹시몰라 초기화.. #2
+  // }
+
+  c->setRecvPhase(MESSAGE_CGI_COMPLETE);
 }
 
 void CgiHandler::handle_cgi_header(Connection *c) {
@@ -91,73 +85,6 @@ void CgiHandler::handle_cgi_header(Connection *c) {
         c->getResponse().setHeader(key, value);
       cgi_output_response_header.erase(0, pos + 2);
     }
-  }
-}
-
-// *****************여기*********************************
-void CgiHandler::receive_cgi_process_body(Connection *c, ssize_t recv_len) {
-  std::cout << "i'm here" << std::endl;
-  // 한번의 버퍼 안에 전체 메세지가 다 들어 올 경우
-  if (recv_len == -1)
-    return;
-  // Transfer-Encoding : chunked 아닐 때 (= Content-Length가 있을 때)
-  if (c->getStringBufferContentLength() > 0) {
-    if (c->getStringBufferContentLength() > recv_len) {
-      c->setStringBufferContentLength(c->getStringBufferContentLength() - recv_len);
-      write(c->writepipe[1], c->buffer_, recv_len);
-    } else {
-      write(c->writepipe[1], c->buffer_, recv_len);
-      c->setStringBufferContentLength(0);
-      c->setRecvPhase(MESSAGE_CGI_COMPLETE);
-      close(c->writepipe[1]);
-    }
-  }
-  // Request에서 Content-Length 헤더가 주어지지 않을 때
-  // (= Transfer-Encoding: chunked 헤더가 주어 젔을 때)
-  else {
-    if (!c->getRequest().getMsg().empty()) {
-      std::cout << "hihi" << std::endl;
-      size_t pos;
-
-      while (c->getRequest().getMsg().find("\r\n") != std::string::npos) {
-        pos = c->getRequest().getMsg().find("\r\n");
-        std::string temp_msg = c->getRequest().getMsg().substr(0, pos + 2);
-        std::cout << "tempsize: " << pos << std::endl;
-
-        std::cout << "before: " << temp_msg << std::endl;
-        write(c->writepipe[1], temp_msg.c_str(), (size_t)temp_msg.size());
-        if (temp_msg == "0\r\n") {
-          c->chunked_checker = CHUNKED_ZERO_RN_RN;
-          // } else if (c->getRequest().getMsg().substr(0, pos) == "0\r\n\r\n") {
-          //   c->getRequest().setRecvPhase(MESSAGE_CGI_COMPLETE);
-          //   close(c->writepipe[1]);
-        } else if (c->chunked_checker == CHUNKED_ZERO_RN_RN && temp_msg == "\r\n") {
-          c->setRecvPhase(MESSAGE_CGI_COMPLETE);
-          close(c->writepipe[1]);
-        } else {
-          c->chunked_checker = CHUNKED_KEEP_COMING;
-        }
-        c->getRequest().getMsg().erase(0, pos + 2);
-        temp_msg.clear();
-        // std::cout << "after: " << c->getRequest().getMsg() << std::endl;
-      }
-      c->getRequest().getMsg().clear();
-    }
-    if (c->chunked_checker == CHUNKED_ZERO_RN_RN) {
-      std::cout << "hi" << std::endl;
-    }
-    std::cout << "aftermath: " << c->buffer_ << std::endl;
-    write(c->writepipe[1], c->buffer_, recv_len);
-    if (!strcmp(c->buffer_, "0\r\n")) {
-      c->chunked_checker = CHUNKED_ZERO_RN_RN;
-      // } else if (!strcmp(c->buffer_, "0\r\n\r\n")) {
-      //   c->getRequest().setRecvPhase(MESSAGE_CGI_COMPLETE);
-      //   close(c->writepipe[1]);
-    } else if (c->chunked_checker == CHUNKED_ZERO_RN_RN && !strcmp(c->buffer_, "\r\n")) {
-      c->setRecvPhase(MESSAGE_CGI_COMPLETE);
-      close(c->writepipe[1]);
-    } else
-      c->chunked_checker = CHUNKED_KEEP_COMING;
   }
 }
 

@@ -76,11 +76,11 @@ void Kqueue::kqueueProcessEvents(SocketManager *sm) {
         }
         if (c->getRecvPhase() == MESSAGE_HEADER_COMPLETE) {
           MessageHandler::check_request_header(c);
-        } else if (c->getRecvPhase() == MESSAGE_BODY_INCOMING) {
+        } else if (c->getRecvPhase() == MESSAGE_BODY_INCOMING)
           MessageHandler::handle_request_body(c);
-        } else if (c->getRecvPhase() == MESSAGE_CGI_INCOMING) {
-          CgiHandler::receive_cgi_process_body(c, recv_len);
-        }
+        // } else if (c->getRecvPhase() == MESSAGE_CGI_INCOMING) {
+        //   CgiHandler::receive_cgi_process_body(c, recv_len);
+        // }
         if (c->getRecvPhase() == MESSAGE_BODY_COMPLETE || c->getRecvPhase() == MESSAGE_CGI_COMPLETE) {
           kqueueSetEvent(c, EVFILT_WRITE, EV_ADD | EV_ONESHOT);
         }
@@ -95,6 +95,7 @@ void Kqueue::kqueueProcessEvents(SocketManager *sm) {
           sm->closeConnection(c);
           c->clear();
         } else {
+          MessageHandler::check_cgi_process(c);
           if (c->getRecvPhase() == MESSAGE_CGI_COMPLETE) {
             CgiHandler::handle_cgi_header(c);
             if (c->getRequest().getMethod() == "POST" &&

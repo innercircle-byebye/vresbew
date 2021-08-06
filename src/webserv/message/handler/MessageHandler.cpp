@@ -202,6 +202,7 @@ void MessageHandler::check_interrupt_received(Connection *c) {
 }
 
 void MessageHandler::chunked_decode(char *ptr, Connection *c) {
+  /*
   if (c->need_more_append_length) {  // 이전에 동작에서 메세지가 끊어져서 들어온경우 남은 메세지를 append 한다.
     std::cout << "!!!!!!append first!!!!!!" << std::endl;
     std::cout << "need_more_append_length : " << c->need_more_append_length << std::endl;
@@ -210,6 +211,7 @@ void MessageHandler::chunked_decode(char *ptr, Connection *c) {
     c->body_buf_.append(ptr, c->need_more_append_length);
     c->need_more_append_length -= c->need_more_append_length;
   }
+  */
   // calc chunked type length
   size_t length = 0;
   // while (length = strtoul(c->getBodyBuf().c_str() + length, &ptr, 16)) {

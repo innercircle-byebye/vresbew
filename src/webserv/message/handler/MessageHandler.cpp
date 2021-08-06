@@ -55,6 +55,8 @@ void MessageHandler::check_request_header(Connection *c) {
 
   if (!c->getRequest().getHeaderValue("Content-Length").empty())
     c->setStringBufferContentLength(stoi(c->getRequest().getHeaderValue("Content-Length")));
+  else
+    c->chunked_message = true;
 
   if (c->interrupted == true) {
     c->setRecvPhase(MESSAGE_INTERRUPTED);
@@ -66,7 +68,7 @@ void MessageHandler::check_request_header(Connection *c) {
     c->getBodyBuf().clear();
     c->setStringBufferContentLength(-1);
     c->setRecvPhase(MESSAGE_BODY_COMPLETE);
-  } else if ((c->getStringBufferContentLength() == (int)c->getBodyBuf().size()))
+  } else if ((c->getStringBufferContentLength() <= (int)c->getBodyBuf().size()))
     c->setRecvPhase(MESSAGE_BODY_COMPLETE);
   else
     c->setRecvPhase(MESSAGE_BODY_INCOMING);
@@ -128,7 +130,6 @@ void MessageHandler::execute_server_side(Connection *c) {
 }
 
 void MessageHandler::set_response_message(Connection *c) {
-
   // MUST BE EXECUTED ONLY WHEN BODY IS NOT PROVIDED
   // TODO: fix this garbage conditional statement...
   if (!(c->getResponse().getStatusCode() == 200 ||

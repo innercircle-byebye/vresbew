@@ -34,7 +34,14 @@ void MessageHandler::check_request_header(Connection *c) {
     return;
   }
 
-  if (request_handler_.isUriFileExist(locationconfig_test) == false) {
+  if (locationconfig_test->checkReturn()) {
+    request_handler_.applyReturnDirectiveStatusCode(c, locationconfig_test);
+    c->setRecvPhase(MESSAGE_BODY_COMPLETE);
+    return;
+  }
+
+  if (request_handler_.isUriFileExist(locationconfig_test) == false &&
+      c->getRequest().getMethod() != "PUT") {
     c->status_code_ = 404;
     c->setRecvPhase(MESSAGE_BODY_COMPLETE);
     return;
@@ -88,7 +95,7 @@ void MessageHandler::execute_server_side(Connection *c) {
     return;
   }
 
-  response_handler_.executeMethod(&c->getRequest());
+  response_handler_.executeMethod(c->getRequest());
 
   if (c->getRequest().getMethod() == "PUT" &&
       (c->getResponse().getStatusCode() == 201 || (c->getResponse().getStatusCode() == 204))) {
@@ -101,17 +108,16 @@ void MessageHandler::execute_server_side(Connection *c) {
 }
 
 void MessageHandler::set_response_message(Connection *c) {
-  // response_handler_.setResponse(&c->getResponse(), &c->getBodyBuf());
 
   // MUST BE EXECUTED ONLY WHEN BODY IS NOT PROVIDED
   // TODO: fix this garbage conditional statement...
   if (!(c->getResponse().getStatusCode() == 200 ||
         c->getResponse().getStatusCode() == 201 ||
-        c->getResponse().getStatusCode() == 204))
+        c->getResponse().getStatusCode() == 204) &&
+      c->getBodyBuf().empty())
     response_handler_.setDefaultErrorBody();
 
-  response_handler_.setDefaultHeader(&c->getRequest());
-
+  response_handler_.setDefaultHeader(c, c->getRequest());
   response_handler_.makeResponseHeader();
 }
 

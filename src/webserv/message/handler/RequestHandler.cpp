@@ -185,11 +185,11 @@ int RequestHandler::parseUri(std::string uri_str) {
   if (request_->getPath().empty())
     request_->setPath("/");
   // std::cout << "uri: " << request_->getUri() << std::endl;
-  // std::cout << "schema: " << request_->getSchema() << std::endl;
-  // std::cout << "host: " << request_->getHost() << std::endl;
-  // std::cout << "port: " << request_->getPort() << std::endl;
-  // std::cout << "path: " << request_->getPath() << std::endl;
-  // std::cout << "query_string: |" << request_->getQueryString() << "|" << std::endl;
+  std::cout << "schema: " << request_->getSchema() << std::endl;
+  std::cout << "host: " << request_->getHost() << std::endl;
+  std::cout << "port: " << request_->getPort() << std::endl;
+  std::cout << "path: " << request_->getPath() << std::endl;
+  std::cout << "query_string: |" << request_->getQueryString() << "|" << std::endl;
   return (PARSE_VALID_URI);
 }
 
@@ -298,308 +298,24 @@ bool RequestHandler::isAllowedMethod(LocationConfig *location) {
   return (location->checkAcceptedMethod(request_->getMethod()));
 }
 
-
-/*
-int   parse_request_line()
-{
-  enum {
-        sw_start = 0,
-        sw_method,
-        sw_spaces_before_uri,
-        sw_schema,
-        sw_schema_slash,
-        sw_schema_slash_slash,
-        sw_host_start,
-        sw_host,
-        sw_host_end,
-        sw_host_ip_literal,
-        sw_port,
-        sw_after_slash_in_uri,
-        sw_check_uri,
-        sw_uri,
-        sw_http_09,
-        sw_http_H,
-        sw_http_HT,
-        sw_http_HTT,
-        sw_http_HTTP,
-        sw_first_major_digit,
-        sw_major_digit,
-        sw_first_minor_digit,
-        sw_minor_digit,
-        sw_spaces_after_digit,
-        sw_almost_done
-    } state;
-
-  std::string msg = request_->getMsg();
-  state = request_->getState();
-  for (int i = 0; i < msg.size(); ++i) {
-    u_char ch = msg[i];
-
-    switch (state) {
-    // HTTP methods: GET, HEAD, POST
-    case sw_start:
-      request_->request_start_idx_ = i;
-      if (ch == CR || ch == LF) {
-        break ;
-      }
-      if ((ch < 'A' || ch > 'Z') && ch != '_' && ch != '-') {
-        return HTTP_PARSE_INVALID_METHOD;
-      }
-      state = sw_method;
-      break ;
-
-    case sw_method:
-      if (ch == ' ') {
-        switch (i - request_->request_start_idx_) {
-          case 3:
-            if (!msg.substr(0, 3).compare("GET")) {
-              request_->setMethod("GET");
-              break ;
-            }
-            if (!msg.substr(0, 3).compare("PUT")) {
-              request_->setMethod("PUT");
-              break ;
-            }
-            break ;
-
-          case 4:
-            if (!msg.substr(0, 4).compare("POST")) {
-              request_->setMethod("POST");
-              break ;
-            }
-            if (!msg.substr(0, 4).compare("HEAD")) {
-              request_->setMethod("HEAD");
-              break ;
-            }
-            break ;
-
-          case 6:
-            if (!msg.substr(0, 6).compare("DELETE")) {
-              request_->setMethod("DELETE");
-              break ;
-            }
-            break ;
-        }
-        state = sw_space_before_uri;
-        break ;
-      }
-      if ((ch < 'A' || ch > 'Z') && ch != '_' && ch != '-') {
-        return NGX_HTTP_PARSE_INVALID_METHOD;
-      }
-    case sw_space_before_uri:
-      if (ch == '/') {
-        request_->uri_start_idx_ = i;
-        state = sw_after_slash_in_uri;
-        break ;
-      }
-      u_char c = (u_char)(ch | 0x20);
-      if (c >= 'a' && c <= 'z') {
-        request_->shema_start_idx_ = i;
-        state = sw_schema;
-        break ;
-      }
-      switch (ch) {
-      case ' ':
-        break ;
-      default:
-        return HTTP_PARSE_INVALID_REQUEST;
-      }
-      break;
-    
-    case sw_schema:
-      c = (u_char)(ch | 0x20);
-      if (c >= 'a' && c <= 'z') {
-        break ;
-      }
-      if ((ch >= '0' && ch <= '9') || ch == '+' || ch == '-' || ch == '.') {
-        break ;
-      }
-
-      switch (ch) {
-      case ':':
-        r->shema_end_ind_ = i;
-        state = sw_shema_slash;
-        break ;
-      default:
-        return HTTP_PARSE_INVALID_REQUEST;
-      }
-      break;
-    
-    case sw_schema_slash:
-      switch (ch) {
-      case '/':
-        state = sw_shema_slash_slash;
-        break;
-      default:
-        return HTTP_PARSE_INVALID_REQUEST;
-      }
-    
-    case sw_host_start:
-      r->host_start_ind_ = i;
-
-      if (ch == '[') {
-        state = sw_host_ip_literal;
-        break ;
-      }
-      state = sw_host;
-
-    case sw_host:
-      c = (u_char) (ch | 0x20);
-      if (c >= 'a' && c <= 'z') {
-        break;
-      }
-      if ((ch >= '0' && ch <= '9') || ch == '.' || ch == '-') {
-        break;
-      }
-    
-    case sw_host_end:
-
-    } // switch (state)
+void RequestHandler::applyReturnDirectiveStatusCode(Connection *c, LocationConfig *location) {
+  if (location->getReturnCode() == 301 || location->getReturnCode() == 302 ||
+      location->getReturnCode() == 303 || location->getReturnCode() == 307 ||
+      location->getReturnCode() == 308) {
+    c->status_code_ = location->getReturnCode();
+    // TODO: 필요한지 안한지 결정하기
+    // if (c->status_code_ == 302)
+    //   c->getResponse().setStatusMessage("Moved Temporarily");
+    if (!location->getReturnValue().empty())
+      c->getResponse().setHeader("Location", location->getReturnValue());
+    else
+      c->getResponse().setHeader("Location", " ");
+    return;
   }
-
-}
-
-int   parse_header_line()
-{
-  enum {
-      sw_start = 0,
-      sw_name,
-      sw_space_before_value,
-      sw_value,
-      sw_space_after_value,
-      sw_ignore_line,
-      sw_almost_done,
-      sw_header_almost_done
-  } state;
-
-  state = request_->state;
-  std::string msg = request_->getMsg();
-
-  for (size_t i = 0; i < msg.size(); ++i) {
-    u_char ch = msg[i];
-
-    switch (state) {
-      //first char
-      case sw_start:
-        switch (ch) {
-          case CR:
-            state = sw_header_almost_done;
-            break ;
-          case LF:
-            goto header_done;
-          default:
-            state = sw_name;
-            if (ch <= 0x20 || ch == 0x7f || ch == ':') {
-              return HTTP_PARSE_INVALID_HEADER;
-            }
-            break ;
-        }
-        break ;
-
-      case sw_name:
-        if (ch == ':') {
-          state = sw_space_before_value;
-          break ;
-        }
-        if (ch == CR) {
-          state = sw_almost_done;
-          break ;
-        }
-        if (ch == LF) {
-          goto done;
-        }
-        if (ch <= 0x20 || ch == 0x7f) {
-          return HTTP_PARSE_INVALID_HEADER;
-        }
-        break ;
-
-      case sw_space_before_value:
-        switch(ch) {
-          case ' ':
-            break;
-          case CR:
-            state = sw_almost_done;
-            break ;
-          case LF:
-            goto done;
-          case '\0':
-            return HTTP_PARSE_INVALID_HEADER;
-          default:
-            state = sw_value;
-            break ;
-        }
-        break ;
-
-      case sw_value:
-        switch (ch) {
-          case ' ':
-            state = sw_space_after_value;
-            break ;
-          case CR:
-            state = sw_almost_done;
-            break ;
-          case LF:
-            goto done;
-          case '\0';
-            return HTTP_PARSE_INVALID_HEADER;
-        }
-        break ;
-
-      case sw_space_after_value:
-        switch(ch) {
-          case ' ':
-            break ;
-          case CR:
-            state = sw_almost_done;
-            break ;
-          case LF:
-            goto done;
-          case '\0':
-            return HTTP_PARSE_INVALID_HEADER;
-          default:
-            state = sw_value;
-            break ;
-        }
-        break ;
-
-      case sw_ignore_line:
-        switch (ch) {
-          case LF:
-            state = sw_start;
-            break;
-          default:
-            break;
-        }
-        break ;
-      
-      case sw_almost_done:
-        switch(ch) {
-          case LF:
-            goto done;
-          case CR:
-            break ;
-          default:
-            return HTTP_PARSE_INVALID_HEADER;
-        }
-        break ;
-      
-      case sw_header_almost_done:
-        switch(ch) {
-          case LF:
-            goto header_done;
-          default:
-            return HTTP_PARSE_INVALID_HEADER;
-        }
-    }
+  if (!location->getReturnValue().empty()) {
+    c->setBodyBuf(location->getReturnValue());
   }
-
-  return NGX_AGAIN;
-
-done:
-  return NGX_OK;
-header_done:
-  return HTTP_PARSE_HEADER_DONE;
+  c->status_code_ = location->getReturnCode();
 }
-*/
 
 }  // namespace ft

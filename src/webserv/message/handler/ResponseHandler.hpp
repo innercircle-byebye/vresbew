@@ -51,7 +51,6 @@ class ResponseHandler {
 
  private:
   void setAutoindexBody(const std::string &uri);
-  bool isDirectory(const std::string &path);
 
 
   // Response::response_ setter begin
@@ -64,8 +63,6 @@ class ResponseHandler {
   // 애매함
   void setResponseBodyFromFile(const std::string &uri, LocationConfig *&location);
   // 애매함 end
-
-  void setAutoindexBody(const std::string &uri);
 
   /*--------------------------EXECUTING METHODS--------------------------------*/
 

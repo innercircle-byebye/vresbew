@@ -7,11 +7,14 @@ Connection::Connection()
   sockaddr_to_connect_.sin_family = AF_INET;
   memset(buffer_, 0, BUF_SIZE);
   chunked_message = false;
+
   recv_phase_ = MESSAGE_START_LINE_INCOMPLETE;
   interrupted = false;
   status_code_ = -1;
   body_buf_ = "";
   string_buffer_content_length_ = -1;
+  chunked_checker_ = STR_SIZE;
+  chunked_str_size_ = 0;
 }
 
 Connection::~Connection() {}
@@ -58,6 +61,8 @@ void Connection::clear() {
   chunked_message = false;
   status_code_ = -1;
   interrupted = false;
+  chunked_checker_ = STR_SIZE;
+  chunked_str_size_ = 0;
 }
 
 /* SETTER */

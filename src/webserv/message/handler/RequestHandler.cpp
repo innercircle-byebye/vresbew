@@ -22,6 +22,8 @@ void RequestHandler::processByRecvPhase(Connection *c) {
     checkMsgForHeader(c);
   if (c->getRecvPhase() == MESSAGE_HEADER_COMPLETE)
     parseHeaderLines(c);
+  if (c->getRecvPhase() == MESSAGE_CHUNKED)
+    handleChunked(c);
 }
 
 /* CHECK FUNCTIONS */
@@ -185,11 +187,11 @@ int RequestHandler::parseUri(std::string uri_str) {
   if (request_->getPath().empty())
     request_->setPath("/");
   // std::cout << "uri: " << request_->getUri() << std::endl;
-  std::cout << "schema: " << request_->getSchema() << std::endl;
-  std::cout << "host: " << request_->getHost() << std::endl;
-  std::cout << "port: " << request_->getPort() << std::endl;
-  std::cout << "path: " << request_->getPath() << std::endl;
-  std::cout << "query_string: |" << request_->getQueryString() << "|" << std::endl;
+  // std::cout << "schema: " << request_->getSchema() << std::endl;
+  // std::cout << "host: " << request_->getHost() << std::endl;
+  // std::cout << "port: " << request_->getPort() << std::endl;
+  // std::cout << "path: " << request_->getPath() << std::endl;
+  // std::cout << "query_string: |" << request_->getQueryString() << "|" << std::endl;
   return (PARSE_VALID_URI);
 }
 
@@ -215,6 +217,10 @@ void RequestHandler::parseHeaderLines(Connection *c) {
     }
     header_lines.erase(0, pos + 2);
   }
+
+  if (request_->getMethod().compare("GET") && request_->getMethod().compare("HEAD") && 
+      request_->getHeaderValue("Content-Length").empty() && !request_->getHeaderValue("Transfer-Encoding").compare("chunked"))
+    c->setRecvPhase(MESSAGE_CHUNKED);
 }
 
 // 실패 시 c->status_code_에 에러 코드가 발생 하도록
@@ -316,6 +322,48 @@ void RequestHandler::applyReturnDirectiveStatusCode(Connection *c, LocationConfi
     c->setBodyBuf(location->getReturnValue());
   }
   c->status_code_ = location->getReturnCode();
+}
+
+void RequestHandler::handleChunked(Connection *c) {
+  size_t pos;
+
+  if (c->chunked_checker_ == STR_SIZE) {
+    if ((pos = request_->getMsg().find("\r\n")) != std::string::npos) {
+      c->chunked_str_size_ = (size_t)strtoul(request_->getMsg().substr(0, pos).c_str(), NULL, 16);
+      request_->getMsg().erase(0, pos + 2);
+      if (c->chunked_str_size_ == 0)
+        c->chunked_checker_ = END;
+      else
+        c->chunked_checker_ = STR;
+    }
+  }
+  if (c->chunked_checker_ == STR) {
+    if (request_->getMsg().size() >= c->chunked_str_size_ + 2) {
+      if (!request_->getMsg().substr(c->chunked_str_size_, c->chunked_str_size_ + 2).compare("\r\n")) {
+        c->appendBodyBuf((char *) request_->getMsg().c_str(), c->chunked_str_size_);
+        request_->getMsg().erase(0, c->chunked_str_size_ + 2);
+        c->chunked_checker_ = STR_SIZE;
+      }
+      if ((pos = request_->getMsg().substr(c->chunked_str_size_, c->chunked_str_size_ + 2).find("\r\n")) == std::string::npos) {
+        c->getBodyBuf().clear();
+        c->status_code_ = 400;
+        c->setRecvPhase(MESSAGE_BODY_COMPLETE);
+        return ;
+      }
+      else if (request_->getMsg().size() >= c->chunked_str_size_ + 4) {
+        c->getBodyBuf().clear();
+        c->status_code_ = 400;
+        c->setRecvPhase(MESSAGE_BODY_COMPLETE);
+        return ;
+      }
+    }
+  }
+  if (c->chunked_checker_ == END) {
+    if ((pos = request_->getMsg().find("\r\n")) == 0)
+      c->setRecvPhase(MESSAGE_BODY_COMPLETE);
+    else
+      request_->getMsg().clear();
+  }
 }
 
 }  // namespace ft

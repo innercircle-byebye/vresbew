@@ -17,6 +17,10 @@ typedef struct s_uri {
   std::string query_string_;
 } t_uri;
 
+// #define LF     (u_char) '\n'
+// #define CR     (u_char) '\r'
+// #define CRLF   "\r\n"
+
 struct Request {
  private:
   std::string msg_;

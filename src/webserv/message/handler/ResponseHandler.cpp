@@ -131,6 +131,7 @@ void ResponseHandler::setAutoindexBody(const std::string &uri) {
   ss << "</html>\r\n";
   body_buf_->append(ss.str());
 }
+
 // making response message end
 
 /*-----------------------MAKING RESPONSE MESSAGE END-----------------------------*/

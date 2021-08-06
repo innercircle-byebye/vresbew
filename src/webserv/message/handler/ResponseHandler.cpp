@@ -167,8 +167,10 @@ void ResponseHandler::processGetAndHeaderMethod(Request &request, LocationConfig
       return;
     }
   }
+  std::cout << "path: " << request.getPath() << std::endl;
   if (!isFileExist(request.getPath(), location)) {
     setStatusLineWithCode(404);
+    std::cout << "aaaaaaaaaaaaaaaaaa" << std::endl;
     return;
   } else {
     if (S_ISDIR(this->stat_buffer_.st_mode)) {
@@ -260,6 +262,7 @@ void ResponseHandler::processDeleteMethod(const std::string &uri, LocationConfig
   } else {  // "/" 가 아닌 경우
     std::string url = getAccessPath(uri);
     if (stat(url.c_str(), &this->stat_buffer_) < 0) {
+      std::cout << "bbbbbbbbbbbbbb" << std::endl;
       setStatusLineWithCode(404);
     } else {
       // file or directory

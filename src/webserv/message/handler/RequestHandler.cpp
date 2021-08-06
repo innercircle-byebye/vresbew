@@ -293,7 +293,7 @@ bool RequestHandler::isHostHeaderExist() {
 bool RequestHandler::isUriFileExist(LocationConfig *location) {
   std::string filepath = location->getRoot() + request_->getPath();
   struct stat stat_buffer_;
-
+  
   if (stat(filepath.c_str(), &stat_buffer_) < 0) {
     return (false);
   }

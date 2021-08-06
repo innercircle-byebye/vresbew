@@ -68,9 +68,9 @@ void Kqueue::kqueueProcessEvents(SocketManager *sm) {
           }
         }
         // TODO: remove; for debug
-        std::cout << "=========c->buffer_=========" << std::endl;
-        std::cout << c->buffer_ << std::endl;
-        std::cout << "=========c->buffer_=========" << std::endl;
+        // std::cout << "=========c->buffer_=========" << std::endl;
+        // std::cout << c->buffer_ << std::endl;
+        // std::cout << "=========c->buffer_=========" << std::endl;
         if (c->getRecvPhase() == MESSAGE_START_LINE_INCOMPLETE ||
             c->getRecvPhase() == MESSAGE_START_LINE_COMPLETE ||
             c->getRecvPhase() == MESSAGE_HEADER_INCOMPLETE ||
@@ -112,10 +112,13 @@ void Kqueue::kqueueProcessEvents(SocketManager *sm) {
             } else
               CgiHandler::receive_cgi_body(c);
           }
+//          std::cout << "status code0: " << c->getResponse().getStatusCode() << std::endl;
           MessageHandler::execute_server_side(c);  // 서버가 실제 동작을 진행하는 부분
+  //        std::cout << "status code1: " << c->getResponse().getStatusCode() << std::endl;
           MessageHandler::set_response_message(c);
+    //      std::cout << "status code2: " << c->getResponse().getStatusCode() << std::endl;
           MessageHandler::send_response_to_client(c);
-          std::cout << "status code: " << c->getResponse().getStatusCode() << std::endl;
+      //    std::cout << "status code3: " << c->getResponse().getStatusCode() << std::endl;
           if (!c->getResponse().getHeaderValue("Connection").compare("close") ||
               !c->getRequest().getHttpVersion().compare("HTTP/1.0")) {
             sm->closeConnection(c);

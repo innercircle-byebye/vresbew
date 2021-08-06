@@ -40,6 +40,8 @@ void MessageHandler::check_request_header(Connection *c) {
     return;
   }
 
+  
+  // 문제가 되는 부분
   if (request_handler_.isUriFileExist(locationconfig_test) == false &&
       c->getRequest().getMethod() != "PUT") {
     c->status_code_ = 404;

@@ -112,10 +112,13 @@ char **CgiHandler::setEnviron(Connection *c) {
     env_set["GATEWAY_INTERFACE"] = "CGI/1.1";
     env_set["PATH_TRANSLATED"] = location->getRoot() + c->getRequest().getPath();
     env_set["REMOTE_ADDR"] = "127.0.0.1";  // TODO: ip주소 받아오는 부분 찾기
+    env_set["REQUEST_URI"] = c->getRequest().getUri();
+    /*
     if (c->getRequest().getMethod() == "GET")
       env_set["REQUEST_URI"] = c->getRequest().getUri();
     else
       env_set["REQUEST_URI"] = location->getRoot() + c->getRequest().getPath();
+    */
     env_set["HTTP_HOST"] = c->getRequest().getHeaderValue("Host");
     env_set["SERVER_PORT"] = std::to_string(ntohs(c->getSockaddrToConnect().sin_port));
     env_set["SERVER_SOFTWARE"] = "versbew";

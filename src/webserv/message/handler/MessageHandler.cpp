@@ -96,12 +96,12 @@ void MessageHandler::handle_request_body(Connection *c) {
     }
   } else {
     ////// 여기
-    std::cout << "====c->body_buf_==========" << std::endl;
+    std::cout << "=c->body_buf_==========" << std::endl;
     std::cout << c->body_buf_ << std::endl;
-    std::cout << "==========================" << std::endl;
-    std::cout << "====c->buffer_  ==========" << std::endl;
+    std::cout << "=======================" << std::endl;
+    std::cout << "=c->buffer_  ==========" << std::endl;
     std::cout << c->buffer_ << std::endl;
-    std::cout << "==========================" << std::endl;
+    std::cout << "=======================" << std::endl;
     ////// 여기
 
     // temp_buf 에 계속 이어 붙이자...
@@ -230,8 +230,15 @@ void MessageHandler::chunked_decode(char *ptr, Connection *c) {
     // c->body_buf_.append(ptr + 2, std::min(length, strlen(ptr)));
     // c->need_more_append_length -= std::min(length, strlen(ptr));
     c->body_buf_.append(ptr + 2, length);
-    c->need_more_append_length -= length;
+    c->need_more_append_length -= length;  // 필요가 없음
     length += 2;
+    /*  length 뒤에도 CRLF check 가 필요합니다.
+    if (new_str.compare(0, 2, "\r\n") != 0) {
+      std::cout << "Error: can't pass compare clrf" << std::endl;
+      c->setRecvPhase(MESSAGE_BODY_COMPLETE);
+      return;
+    }
+    */
   }
   // 향후 필요 없을 수도 있음. 잘 고려해보세요.
   // 0 을 만난 경우

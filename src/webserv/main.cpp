@@ -7,7 +7,7 @@
 int main(int argc, char *argv[]) {
   if (argc <= 2) {
     std::string config_file_name;
-    config_file_name = ((argc == 1) ? "./config/config_sample.conf" : argv[1]);
+    config_file_name = ((argc == 1) ? "./config/config_tester.conf" : argv[1]);
 
     try {
       ft::HttpConfig *httpconfig = new ft::HttpConfig(argv[0], config_file_name);

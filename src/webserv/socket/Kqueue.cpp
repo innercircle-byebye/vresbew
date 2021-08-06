@@ -68,9 +68,9 @@ void Kqueue::kqueueProcessEvents(SocketManager *sm) {
           }
         }
         // TODO: remove; for debug
-        // std::cout << "=========c->buffer_=========" << std::endl;
-        // std::cout << c->buffer_ << std::endl;
-        // std::cout << "=========c->buffer_=========" << std::endl;
+        std::cout << "=========c->buffer_=========" << std::endl;
+        std::cout << c->buffer_ << std::endl;
+        std::cout << "=========c->buffer_=========" << std::endl;
         if (c->getRecvPhase() == MESSAGE_START_LINE_INCOMPLETE ||
             c->getRecvPhase() == MESSAGE_START_LINE_COMPLETE ||
             c->getRecvPhase() == MESSAGE_HEADER_INCOMPLETE ||

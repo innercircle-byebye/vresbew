@@ -89,7 +89,7 @@ void MessageHandler::handle_request_body(Connection *c) {
 
   // TODO: 조건문 수정 CHUNKED_CHUNKED
   // Transfer-Encoding : chunked 아닐 때
-  if (c->getStringBufferContentLength() != -1) {
+  if (c->chunked_message == false) {
     if ((size_t)c->getStringBufferContentLength() <= strlen(c->buffer_)) {
       c->appendBodyBuf(c->buffer_, c->getStringBufferContentLength());
       c->setStringBufferContentLength(-1);

@@ -66,9 +66,10 @@ void Kqueue::kqueueProcessEvents(SocketManager *sm) {
           }
         }
         // TODO: remove; for debug
-        // std::cout << "=========c->buffer_=========" << std::endl;
-        // std::cout << c->buffer_ << std::endl;
-        // std::cout << "=========c->buffer_=========" << std::endl;
+        std::cout << "=========c->buffer_=========" << std::endl;
+        std::cout << c->buffer_ << std::endl;
+        std::cout << "=========recv phase=========" << std::endl;
+        std::cout << c->getRecvPhase() << std::endl;
         if (c->getRecvPhase() == MESSAGE_START_LINE_INCOMPLETE ||
             c->getRecvPhase() == MESSAGE_START_LINE_COMPLETE ||
             c->getRecvPhase() == MESSAGE_HEADER_INCOMPLETE ) {
@@ -83,6 +84,8 @@ void Kqueue::kqueueProcessEvents(SocketManager *sm) {
         }
         memset(c->buffer_, 0, recv_len);
       }
+      std::cout << "====after recv phase=========" << std::endl;
+      std::cout << c->getRecvPhase() << std::endl;
     } else if (event_list_[i].filter == EVFILT_WRITE) {
       if (event_list_[i].flags & EV_EOF) {
         Logger::logError(LOG_ALERT, "%d kevent() reported about an %d reader disconnects", events, (int)event_list_[i].ident);

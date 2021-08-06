@@ -62,6 +62,9 @@ void CgiHandler::handle_cgi_header(Connection *c) {
   std::string cgi_output_response_header;
   {
     size_t pos = c->getBodyBuf().find("\r\n\r\n");
+    std::cout << "body buf : " << c->getBodyBuf() << std::endl;
+    std::cout << "body buf length : " << c->getBodyBuf().length() << std::endl;
+    std::cout << "pos : " << pos << std::endl;
     cgi_output_response_header = c->getBodyBuf().substr(0, pos);
     c->getBodyBuf().erase(0, pos + 4);
     while ((pos = cgi_output_response_header.find("\r\n")) != std::string::npos) {
@@ -95,6 +98,8 @@ char **CgiHandler::setEnviron(Connection *c) {
   {
     if (!c->getRequest().getHeaderValue("Content-Length").empty()) {
       env_set["CONTENT_LENGTH"] = c->getRequest().getHeaderValue("Content-Length");
+    } else {
+      env_set["CONTENT_LENGTH"] = SSTR(c->body_buf_.length());
     }
     if (c->getRequest().getMethod() == "GET") {
       // TODO: getEntityBody 삭제 필요, 구조체로 변경

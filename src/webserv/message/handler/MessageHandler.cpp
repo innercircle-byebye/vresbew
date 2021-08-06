@@ -9,6 +9,7 @@ MessageHandler::MessageHandler() {}
 MessageHandler::~MessageHandler() {}
 
 void MessageHandler::handle_request_header(Connection *c) {
+  std::cout << "handle_request_header" << std::endl;
   if (c->getRecvPhase() == MESSAGE_START_LINE_INCOMPLETE && !std::string(c->buffer_).compare("\r\n"))
     return;
   // 1. request_handler의 request가 c의 request가 되도록 세팅
@@ -68,12 +69,16 @@ void MessageHandler::check_request_header(Connection *c) {
     c->getBodyBuf().clear();
     c->setStringBufferContentLength(-1);
     c->setRecvPhase(MESSAGE_BODY_COMPLETE);
-  } else if ((c->getStringBufferContentLength() <= (int)c->getBodyBuf().size()))
+  // } else if ((c->getStringBufferContentLength() <= (int)c->getBodyBuf().size())) {
+  } else if ((c->getStringBufferContentLength() <= (int)c->getBodyBuf().size()) && (c->chunked_message == false)) {
+    std::cout << "here?" << std::endl;
     c->setRecvPhase(MESSAGE_BODY_COMPLETE);
+  }
   else
     c->setRecvPhase(MESSAGE_BODY_INCOMING);
 
   c->client_max_body_size_ = locationconfig_test->getClientMaxBodySize();
+  std::cout << "client max body size : " << c->client_max_body_size_ << std::endl;
 }
 
 void MessageHandler::check_cgi_process(Connection *c) {
@@ -87,6 +92,7 @@ void MessageHandler::check_cgi_process(Connection *c) {
 }
 
 void MessageHandler::handle_request_body(Connection *c) {
+  std::cout << "여기 오긴함?!" << std::endl;
   check_interrupt_received(c);
 
   // TODO: 조건문 수정 CHUNKED_CHUNKED
@@ -112,11 +118,14 @@ void MessageHandler::handle_request_body(Connection *c) {
 
     // temp_buf 에 계속 이어 붙이자...
     if (*c->buffer_) {
+      // chunked append 기능구현 필요
       c->temp_buf_.append(c->buffer_);
     } else {
+      // chunked append 기능 구현 필요
       c->temp_buf_.append(c->body_buf_);
       c->body_buf_.clear();
     }
+
     // 0 CRLF CRLF 가 오면 끝납니다.
     // client max body size 가 넘어도 끝납니다.
     // 현재 문제 이곳에서 찾지를 못하고 있네요.. 이런 문제입니다...

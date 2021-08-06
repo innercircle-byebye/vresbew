@@ -55,33 +55,55 @@ void MessageHandler::check_request_header(Connection *c) {
 
   if (!c->getRequest().getHeaderValue("Content-Length").empty())
     c->setStringBufferContentLength(stoi(c->getRequest().getHeaderValue("Content-Length")));
+  else
+    c->chunked_message = true;
 
   if (c->interrupted == true) {
     c->setRecvPhase(MESSAGE_INTERRUPTED);
     return;
   }
 
-  //TODO: c->getRequest().getUri().find_last_of() 부분을 메세지 헤더의 mime_types로 확인하도록 교체/ 확인 필요
+  // TODO: 조건문 정리 CHUNKED_CHUNKED
+  if (c->getRequest().getMethod() == "GET") {
+    c->getBodyBuf().clear();
+    c->setStringBufferContentLength(-1);
+    c->setRecvPhase(MESSAGE_BODY_COMPLETE);
+  } else if ((c->getStringBufferContentLength() <= (int)c->getBodyBuf().size()))
+    c->setRecvPhase(MESSAGE_BODY_COMPLETE);
+  else
+    c->setRecvPhase(MESSAGE_BODY_INCOMING);
+}
+
+void MessageHandler::check_cgi_process(Connection *c) {
+  ServerConfig *serverconfig_test = c->getHttpConfig()->getServerConfig(c->getSockaddrToConnect().sin_port, c->getSockaddrToConnect().sin_addr.s_addr, c->getRequest().getHeaderValue("Host"));
+  LocationConfig *locationconfig_test = serverconfig_test->getLocationConfig(c->getRequest().getPath());
+
   if (!locationconfig_test->getCgiPath().empty() &&
       locationconfig_test->checkCgiExtension(c->getRequest().getPath())) {
     CgiHandler::init_cgi_child(c);
-  } else {
-    if (c->getStringBufferContentLength() == 0)
-      c->setRecvPhase(MESSAGE_BODY_COMPLETE);
-    else
-      c->setRecvPhase(MESSAGE_BODY_INCOMING);
   }
 }
 
 void MessageHandler::handle_request_body(Connection *c) {
   check_interrupt_received(c);
-  if ((size_t)c->getStringBufferContentLength() <= strlen(c->buffer_)) {
-    c->appendBodyBuf(c->buffer_, c->getStringBufferContentLength());
-    c->setStringBufferContentLength(0);
-    c->setRecvPhase(MESSAGE_BODY_COMPLETE);
+
+  // TODO: 조건문 수정 CHUNKED_CHUNKED
+  // Transfer-Encoding : chunked 아닐 때
+  if (c->chunked_message == false) {
+    if ((size_t)c->getStringBufferContentLength() <= strlen(c->buffer_)) {
+      c->appendBodyBuf(c->buffer_, c->getStringBufferContentLength());
+      c->setStringBufferContentLength(-1);
+      c->setRecvPhase(MESSAGE_BODY_COMPLETE);
+    } else {
+      c->setStringBufferContentLength(c->getStringBufferContentLength() - strlen(c->buffer_));
+      c->setBodyBuf(c->buffer_);
+    }
   } else {
-    c->setStringBufferContentLength(c->getStringBufferContentLength() - strlen(c->buffer_));
-    c->setBodyBuf(c->buffer_);
+    ////// 여기
+    std::cout << "====chunked_body_place==========" << std::endl;
+    std::cout << c->buffer_ << std::endl;
+    std::cout << "====chunked_body_place==========" << std::endl;
+    ////// 여기
   }
 }
 
@@ -108,7 +130,6 @@ void MessageHandler::execute_server_side(Connection *c) {
 }
 
 void MessageHandler::set_response_message(Connection *c) {
-
   // MUST BE EXECUTED ONLY WHEN BODY IS NOT PROVIDED
   // TODO: fix this garbage conditional statement...
   if (!(c->getResponse().getStatusCode() == 200 ||

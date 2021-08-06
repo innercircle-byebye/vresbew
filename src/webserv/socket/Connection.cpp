@@ -6,11 +6,12 @@ Connection::Connection()
     : listen_(false), fd_(-1), type_(SOCK_STREAM), listening_(NULL), request_(), response_() {
   sockaddr_to_connect_.sin_family = AF_INET;
   memset(buffer_, 0, BUF_SIZE);
-  chunked_checker = CHUNKED_KEEP_COMING;
+  chunked_message = false;
   recv_phase_ = MESSAGE_START_LINE_INCOMPLETE;
   interrupted = false;
   status_code_ = -1;
   body_buf_ = "";
+  string_buffer_content_length_ = -1;
 }
 
 Connection::~Connection() {}
@@ -53,13 +54,11 @@ void Connection::clear() {
   response_.clear();
   body_buf_.clear();
   recv_phase_ = MESSAGE_START_LINE_INCOMPLETE;
-  string_buffer_content_length_ = 0;
-  chunked_checker = 0;
+  string_buffer_content_length_ = -1;
+  chunked_message = false;
   status_code_ = -1;
   interrupted = false;
- }
-
-
+}
 
 /* SETTER */
 void Connection::setListen(bool listen) { listen_ = listen; }
@@ -121,8 +120,7 @@ void Connection::setBodyBuf(std::string body_buf) {
 void Connection::appendBodyBuf(char *buffer) {
   body_buf_.append(buffer);
 }
-void Connection::appendBodyBuf(char *buffer, size_t size)
-{
+void Connection::appendBodyBuf(char *buffer, size_t size) {
   body_buf_.append(buffer, size);
 }
 

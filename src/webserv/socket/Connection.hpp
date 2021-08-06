@@ -23,12 +23,6 @@ enum MessageFromBufferStatus {
   MESSAGE_INTERRUPTED
 };
 
-enum ChunkedMessageStatus {
-  CHUNKED_KEEP_COMING = 0,
-  CHUNKED_ZERO_RN_RN,
-  CHUNKED_END  //  필요없긴함
-};
-
 class Connection {
  private:
   bool listen_;
@@ -56,7 +50,7 @@ class Connection {
   std::string body_buf_;
   pid_t cgi_pid;
   int writepipe[2], readpipe[2];
-  int chunked_checker;
+  bool chunked_message;
   int status_code_;
 
   std::string temp_chunked;     //TODO: remove

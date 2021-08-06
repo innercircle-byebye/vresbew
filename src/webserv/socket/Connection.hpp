@@ -15,7 +15,8 @@ enum MessageFromBufferStatus {
   MESSAGE_START_LINE_COMPLETE,
   MESSAGE_HEADER_INCOMPLETE,
   MESSAGE_HEADER_COMPLETE,
-  MESSAGE_HEADER_PARSED,
+  MESSAGE_HEADER_PARSED,  // ?? 어디서 사용되는지
+  MESSAGE_CHUNKED,        // to test chunked
   MESSAGE_CGI_INCOMING,
   MESSAGE_CGI_COMPLETE,
   MESSAGE_BODY_INCOMING,
@@ -27,6 +28,12 @@ enum ChunkedMessageStatus {
   CHUNKED_KEEP_COMING = 0,
   CHUNKED_ZERO_RN_RN,
   CHUNKED_END  //  필요없긴함
+};
+
+enum ChunkedMessageStatus2{
+  STR_SIZE = 0,
+  STR,
+  END
 };
 
 class Connection {
@@ -56,10 +63,12 @@ class Connection {
   std::string body_buf_;
   pid_t cgi_pid;
   int writepipe[2], readpipe[2];
-  int chunked_checker;
   int status_code_;
 
-  std::string temp_chunked;     //TODO: remove
+  int chunked_checker_;
+  size_t chunked_str_size_;
+
+  // std::string temp_chunked;     //TODO: remove
   // std::string cgi_output_temp;  //TODO: remove
 
   Connection();

@@ -127,15 +127,15 @@ void CgiHandler::receive_cgi_process_body(Connection *c, ssize_t recv_len) {
         std::cout << "before: " << temp_msg << std::endl;
         write(c->writepipe[1], temp_msg.c_str(), (size_t)temp_msg.size());
         if (temp_msg == "0\r\n") {
-          c->chunked_checker = CHUNKED_ZERO_RN_RN;
+          c->chunked_checker_ = CHUNKED_ZERO_RN_RN;
           // } else if (c->getRequest().getMsg().substr(0, pos) == "0\r\n\r\n") {
           //   c->getRequest().setRecvPhase(MESSAGE_CGI_COMPLETE);
           //   close(c->writepipe[1]);
-        } else if (c->chunked_checker == CHUNKED_ZERO_RN_RN && temp_msg == "\r\n") {
+        } else if (c->chunked_checker_ == CHUNKED_ZERO_RN_RN && temp_msg == "\r\n") {
           c->setRecvPhase(MESSAGE_CGI_COMPLETE);
           close(c->writepipe[1]);
         } else {
-          c->chunked_checker = CHUNKED_KEEP_COMING;
+          c->chunked_checker_ = CHUNKED_KEEP_COMING;
         }
         c->getRequest().getMsg().erase(0, pos + 2);
         temp_msg.clear();
@@ -143,21 +143,21 @@ void CgiHandler::receive_cgi_process_body(Connection *c, ssize_t recv_len) {
       }
       c->getRequest().getMsg().clear();
     }
-    if (c->chunked_checker == CHUNKED_ZERO_RN_RN) {
+    if (c->chunked_checker_ == CHUNKED_ZERO_RN_RN) {
       std::cout << "hi" << std::endl;
     }
     std::cout << "aftermath: " << c->buffer_ << std::endl;
     write(c->writepipe[1], c->buffer_, recv_len);
     if (!strcmp(c->buffer_, "0\r\n")) {
-      c->chunked_checker = CHUNKED_ZERO_RN_RN;
+      c->chunked_checker_ = CHUNKED_ZERO_RN_RN;
       // } else if (!strcmp(c->buffer_, "0\r\n\r\n")) {
       //   c->getRequest().setRecvPhase(MESSAGE_CGI_COMPLETE);
       //   close(c->writepipe[1]);
-    } else if (c->chunked_checker == CHUNKED_ZERO_RN_RN && !strcmp(c->buffer_, "\r\n")) {
+    } else if (c->chunked_checker_ == CHUNKED_ZERO_RN_RN && !strcmp(c->buffer_, "\r\n")) {
       c->setRecvPhase(MESSAGE_CGI_COMPLETE);
       close(c->writepipe[1]);
     } else
-      c->chunked_checker = CHUNKED_KEEP_COMING;
+      c->chunked_checker_ = CHUNKED_KEEP_COMING;
   }
 }
 

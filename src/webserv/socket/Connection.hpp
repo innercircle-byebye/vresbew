@@ -48,12 +48,15 @@ class Connection {
   char buffer_[BUF_SIZE];
   bool interrupted;
   std::string body_buf_;
+  std::string temp_buf_;
   pid_t cgi_pid;
   int writepipe[2], readpipe[2];
   bool chunked_message;
+  unsigned long client_max_body_size_;
+
   int status_code_;
 
-  std::string temp_chunked;     //TODO: remove
+  std::string temp_chunked;  //TODO: remove
   // std::string cgi_output_temp;  //TODO: remove
 
   Connection();

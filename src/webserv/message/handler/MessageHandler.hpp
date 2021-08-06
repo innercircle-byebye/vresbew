@@ -39,6 +39,11 @@ class MessageHandler {
 
  private:
   static void executePutMethod(std::string path, std::string content);
+
+  static void chunked_decode(char *ptr, Connection *c);
+  static bool is_chunk_finish(Connection *c);
+  static bool check_flow_client_max_body_size(Connection *c);
+
 };
 }  // namespace ft
 #endif

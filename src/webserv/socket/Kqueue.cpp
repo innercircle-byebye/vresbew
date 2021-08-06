@@ -92,7 +92,8 @@ void Kqueue::kqueueProcessEvents(SocketManager *sm) {
           sm->closeConnection(c);
           c->clear();
         } else {
-          MessageHandler::check_cgi_process(c);
+          if (c->status_code_ < 0) // c->status_code_ 기본값 (-1) 일때 == 에러코드가 결정 되지 않았을 때 == 정상 request message 일 때
+            MessageHandler::check_cgi_process(c);
           if (c->getRecvPhase() == MESSAGE_CGI_COMPLETE) {
             CgiHandler::handle_cgi_header(c);
             if (c->getRequest().getMethod() == "POST" &&

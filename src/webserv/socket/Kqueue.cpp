@@ -74,9 +74,9 @@ void Kqueue::kqueueProcessEvents(SocketManager *sm) {
             c->getRecvPhase() == MESSAGE_HEADER_INCOMPLETE ) {
           MessageHandler::handle_request_header(c);
         }
-        if (c->getRecvPhase() == MESSAGE_HEADER_COMPLETE) {
+        if (c->getRecvPhase() == MESSAGE_HEADER_COMPLETE)
           MessageHandler::check_request_header(c);
-        } if (c->getRecvPhase() == MESSAGE_BODY_INCOMING)
+        else if (c->getRecvPhase() == MESSAGE_BODY_INCOMING)
           MessageHandler::handle_request_body(c);
         if (c->getRecvPhase() == MESSAGE_BODY_COMPLETE || c->getRecvPhase() == MESSAGE_CGI_COMPLETE) {
           kqueueSetEvent(c, EVFILT_WRITE, EV_ADD | EV_ONESHOT);

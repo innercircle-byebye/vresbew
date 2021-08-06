@@ -92,7 +92,7 @@ void MessageHandler::handle_request_body(Connection *c) {
   if (c->getStringBufferContentLength() != -1) {
     if ((size_t)c->getStringBufferContentLength() <= strlen(c->buffer_)) {
       c->appendBodyBuf(c->buffer_, c->getStringBufferContentLength());
-      c->setStringBufferContentLength(0);
+      c->setStringBufferContentLength(-1);
       c->setRecvPhase(MESSAGE_BODY_COMPLETE);
     } else {
       c->setStringBufferContentLength(c->getStringBufferContentLength() - strlen(c->buffer_));

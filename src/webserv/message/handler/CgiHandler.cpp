@@ -43,7 +43,7 @@ void CgiHandler::init_cgi_child(Connection *c) {
   // if (!c->getBodyBuf().empty()) {
   write(c->writepipe[1], c->getBodyBuf().c_str(), (size_t)c->getBodyBuf().size());
   //숫자 확인
-  c->setStringBufferContentLength(0);
+  c->setStringBufferContentLength(-1);
   c->getBodyBuf().clear();  // 뒤에서 또 쓰일걸 대비해 혹시몰라 초기화.. #2
   // }
 

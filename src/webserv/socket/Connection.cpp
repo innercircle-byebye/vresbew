@@ -6,7 +6,7 @@ Connection::Connection()
     : listen_(false), fd_(-1), type_(SOCK_STREAM), listening_(NULL), request_(), response_() {
   sockaddr_to_connect_.sin_family = AF_INET;
   memset(buffer_, 0, BUF_SIZE);
-  chunked_checker = CHUNKED_KEEP_COMING;
+  chunked_message = false;
   recv_phase_ = MESSAGE_START_LINE_INCOMPLETE;
   interrupted = false;
   status_code_ = -1;
@@ -55,7 +55,7 @@ void Connection::clear() {
   body_buf_.clear();
   recv_phase_ = MESSAGE_START_LINE_INCOMPLETE;
   string_buffer_content_length_ = -1;
-  chunked_checker = 0;
+  chunked_message = false;
   status_code_ = -1;
   interrupted = false;
 }

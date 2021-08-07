@@ -2,9 +2,13 @@
 
 namespace ft {
 
-ResponseHandler::ResponseHandler() {}
+ResponseHandler::ResponseHandler() {
+  memset(&this->stat_buffer_, 0, sizeof(this->stat_buffer_));
+}
 
-ResponseHandler::~ResponseHandler() {}
+ResponseHandler::~ResponseHandler() {
+  memset(&this->stat_buffer_, 0, sizeof(this->stat_buffer_));
+}
 
 void ResponseHandler::setResponse(Response *response, std::string *body_buf) {
   response_ = response;
@@ -110,15 +114,15 @@ void ResponseHandler::setAutoindexBody(const std::string &uri) {
   ss << "<a href=\"../\">../</a>\r\n";
   if (!(dir_ptr = opendir(url.c_str()))) {
     // Logger::logError();
-    return ;
+    return;
   }
   while ((item = readdir(dir_ptr))) {
     if (strcmp(item->d_name, ".") == 0 || strcmp(item->d_name, "..") == 0)
-      continue ;
+      continue;
     std::string pathname = std::string(item->d_name);
     if (stat((url + pathname).c_str(), &this->stat_buffer_) < 0) {
       // Logger::logError();
-      return ;
+      return;
     }
     if (S_ISDIR(this->stat_buffer_.st_mode))
       pathname += "/";
@@ -143,13 +147,13 @@ void ResponseHandler::setAutoindexBody(const std::string &uri) {
 void ResponseHandler::processGetAndHeaderMethod(Request &request, LocationConfig *&location) {
   //need last modified header
   if (stat(getAccessPath(request.getPath()).c_str(), &this->stat_buffer_) < 0) {
-      // Logger::logError();
-      return ;
+    // Logger::logError();
+    return;
   }
   if (location->getAutoindex() && S_ISDIR(this->stat_buffer_.st_mode)) {
     setStatusLineWithCode(200);
     setAutoindexBody(request.getPath());
-    return ;
+    return;
   }
 
   // TODO: connection의 status_code를 보고 결정하도록...

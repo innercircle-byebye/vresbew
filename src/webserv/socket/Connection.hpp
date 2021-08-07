@@ -58,8 +58,6 @@ class Connection {
   pid_t cgi_pid;
   int writepipe[2], readpipe[2];
 
-  bool chunked_message;
-
   int status_code_;
 
   int chunked_checker_;

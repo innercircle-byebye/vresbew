@@ -55,8 +55,6 @@ void MessageHandler::check_request_header(Connection *c) {
 
   if (!c->getRequest().getHeaderValue("Content-Length").empty())
     c->setStringBufferContentLength(stoi(c->getRequest().getHeaderValue("Content-Length")));
-  else
-    c->chunked_message = true;
 
   if (c->interrupted == true) {
     c->setRecvPhase(MESSAGE_INTERRUPTED);
@@ -89,21 +87,13 @@ void MessageHandler::handle_request_body(Connection *c) {
 
   // TODO: 조건문 수정 CHUNKED_CHUNKED
   // Transfer-Encoding : chunked 아닐 때
-  if (c->chunked_message == false) {
-    if ((size_t)c->getStringBufferContentLength() <= strlen(c->buffer_)) {
-      c->appendBodyBuf(c->buffer_, c->getStringBufferContentLength());
-      c->setStringBufferContentLength(-1);
-      c->setRecvPhase(MESSAGE_BODY_COMPLETE);
-    } else {
-      c->setStringBufferContentLength(c->getStringBufferContentLength() - strlen(c->buffer_));
-      c->setBodyBuf(c->buffer_);
-    }
+  if ((size_t)c->getStringBufferContentLength() <= strlen(c->buffer_)) {
+    c->appendBodyBuf(c->buffer_, c->getStringBufferContentLength());
+    c->setStringBufferContentLength(-1);
+    c->setRecvPhase(MESSAGE_BODY_COMPLETE);
   } else {
-    ////// 여기
-    std::cout << "====chunked_body_place==========" << std::endl;
-    std::cout << c->buffer_ << std::endl;
-    std::cout << "====chunked_body_place==========" << std::endl;
-    ////// 여기
+    c->setStringBufferContentLength(c->getStringBufferContentLength() - strlen(c->buffer_));
+    c->setBodyBuf(c->buffer_);
   }
 }
 

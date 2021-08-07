@@ -42,7 +42,7 @@ void MessageHandler::check_request_header(Connection *c) {
   
   // 문제가 되는 부분
   if (request_handler_.isUriFileExist(locationconfig_test) == false &&
-      c->getRequest().getMethod() != "PUT") {
+      c->getRequest().getMethod() != "PUT" && c->getRequest().getMethod() != "POST") {
     c->status_code_ = 404;
     c->setRecvPhase(MESSAGE_BODY_COMPLETE);
     return;
@@ -83,6 +83,7 @@ void MessageHandler::check_cgi_process(Connection *c) {
       locationconfig_test->checkCgiExtension(c->getRequest().getPath())) {
     CgiHandler::init_cgi_child(c);
   }
+  std::cout << "cgi??" << std::endl;
 }
 
 void MessageHandler::handle_request_body(Connection *c) {

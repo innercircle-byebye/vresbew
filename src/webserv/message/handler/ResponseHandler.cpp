@@ -167,7 +167,7 @@ void ResponseHandler::processGetAndHeaderMethod(Request &request, LocationConfig
       return;
     }
   }
-  std::cout << "path: " << request.getPath() << std::endl;
+  // std::cout << "path: " << request.getPath() << std::endl;
   if (!isFileExist(request.getPath(), location)) {
     setStatusLineWithCode(404);
     std::cout << "aaaaaaaaaaaaaaaaaa" << std::endl;

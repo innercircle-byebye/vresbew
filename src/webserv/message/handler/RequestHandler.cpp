@@ -17,7 +17,7 @@ void RequestHandler::processByRecvPhase(Connection *c) {
   if (c->getRecvPhase() == MESSAGE_START_LINE_INCOMPLETE)
     checkMsgForStartLine(c);
   if (c->getRecvPhase() == MESSAGE_START_LINE_COMPLETE)
-    parseStartLine(c);
+    parseStartLine(c); 
   if (c->getRecvPhase() == MESSAGE_HEADER_INCOMPLETE)
     checkMsgForHeader(c);
   if (c->getRecvPhase() == MESSAGE_HEADER_COMPLETE)
@@ -134,6 +134,10 @@ int RequestHandler::parseUri(std::string uri_str) {
         break;
       case port:
         if ((pos = uri_str.find_first_of("/? ")) != std::string::npos) {
+          for (size_t i = 1; i < pos; ++i) {
+            if (!isdigit(uri_str[i]))
+              return (PARSE_INVALID_URI);
+          }
           if (pos != 1)
             request_->setPort(uri_str.substr(1, pos - 1));
           uri_str.erase(0, pos);
@@ -290,14 +294,23 @@ bool RequestHandler::isHostHeaderExist() {
   return (false);
 }
 
+#include <dirent.h>
 bool RequestHandler::isUriFileExist(LocationConfig *location) {
+  DIR *dir_ptr;
   std::string filepath = location->getRoot() + request_->getPath();
   struct stat stat_buffer_;
-  
+
+  if ((dir_ptr = opendir(filepath.c_str()))) {  // directory
+    if (*filepath.rbegin() != '/')
+      filepath += "/";
+    if (location->getIndex().empty())
+      return false;
+    filepath += location->getIndex()[0];
+  }
   if (stat(filepath.c_str(), &stat_buffer_) < 0) {
     return (false);
   }
-  return (true);
+  return true;
 }
 
 bool RequestHandler::isAllowedMethod(LocationConfig *location) {

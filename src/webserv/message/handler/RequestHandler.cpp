@@ -291,10 +291,10 @@ bool RequestHandler::isHostHeaderExist() {
 }
 
 bool RequestHandler::isUriFileExist(LocationConfig *location) {
-  std::string filepath = location->getRoot() + request_->getPath();
+  (void)location;
   struct stat stat_buffer_;
 
-  if (stat(filepath.c_str(), &stat_buffer_) < 0) {
+  if (stat(request_->getFilePath().c_str(), &stat_buffer_) < 0) {
     return (false);
   }
   return (true);
@@ -368,19 +368,40 @@ void RequestHandler::handleChunked(Connection *c) {
 
 void RequestHandler::setupUriStruct(LocationConfig *location) {
   std::string filepath;
-  // std::cout << "request_uri: [" << request_->getUri() << "]" << std::endl;
-  // std::cout << "location_uri: [" << location->getUri() << "]" << std::endl;
-  // std::cout << "location_root: [" << location->getRoot() << "]" << std::endl;
+  std::cout << "request_uri: [" << request_->getUri() << "]" << std::endl;
+  std::cout << "location_uri: [" << location->getUri() << "]" << std::endl;
+  std::cout << "location_root: [" << location->getRoot() << "]" << std::endl;
 
   filepath = location->getRoot();
 
-  if (!request_->getUri().substr(location->getUri().length()).empty())
-    filepath.append(request_->getUri().substr(location->getUri().length()));
-  else
+  if (!request_->getUri().substr(location->getUri().length()).empty()) {
+    if (location->getUri() == "/")
+      filepath.append(request_->getUri().substr(location->getUri().length() - 1));
+    else
+      filepath.append(request_->getUri().substr(location->getUri().length()));
+  } else
     filepath.append("/");
 
+  // struct stat stat_buffer_;
+
+  // std::vector<std::string>::const_iterator it_index;
+  // std::string temp;
+  // for (it_index = location->getIndex().begin(); it_index != location->getIndex().end(); it_index++) {
+  //   temp = request_->getFilePath() + *it_index;
+  //   std::cout << "temp: [" << temp << "]" << std::endl;
+  //   if (stat(temp.c_str(), &stat_buffer_) < 0) {
+  //     std::cout << "yo" << std::endl;
+
+  //     while (1) {
+  //       ;
+  //     }
+  //     break;
+  //   }
+  //   temp.clear();
+  // }
+
   request_->setFilePath(filepath);
-  // std::cout << "filepath: [" << request_->getFilePath() << "]" << std::endl;
+  std::cout << "filepath: [" << request_->getFilePath() << "]" << std::endl;
 }
 
 }  // namespace ft

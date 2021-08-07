@@ -164,14 +164,15 @@ void ResponseHandler::processGetAndHeaderMethod(Request &request, LocationConfig
   }
 
   // TODO: REQUEST에서 처리 해야될 수도 있을것같음
-  if (*(request.getPath().rbegin()) == '/') {
+  if (*(request.getFilePath().rbegin()) == '/') {
     findIndexForGetWhenOnlySlash(request, location);
-    if (*(request.getPath().rbegin()) == '/') {
+    if (*(request.getFilePath().rbegin()) == '/') {
       setStatusLineWithCode(403);
       return;
     }
   }
-  if (!isFileExist(request.getPath(), location)) {
+  std::cout << "filepath: [" << request.getFilePath() << std::endl;
+  if (!isFileExist(request.getFilePath()) ){
     setStatusLineWithCode(404);
     return;
   } else {
@@ -179,7 +180,7 @@ void ResponseHandler::processGetAndHeaderMethod(Request &request, LocationConfig
       setStatusLineWithCode(301);
       // TODO: string 을 생성 하지 않도록 수정하는 작업 필요
       // std::string temp_url = "http://" + request.getHeaderValue("Host") + request.getUri();
-      std::string temp_url = "http://" + request.getHeaderValue("Host") + ":" + request.getPort() + request.getPath();
+      std::string temp_url = "http://" + request.getHeaderValue("Host")  + request.getPath() ;
       this->response_->setHeader("Location", temp_url);
       return;
     }
@@ -380,9 +381,9 @@ void ResponseHandler::findIndexForGetWhenOnlySlash(Request &request, LocationCon
   std::vector<std::string>::const_iterator it_index;
   std::string temp;
   for (it_index = location->getIndex().begin(); it_index != location->getIndex().end(); it_index++) {
-    temp = location->getRoot() + request.getPath() + *it_index;
+    temp = request.getFilePath() + *it_index;
     if (isFileExist(temp)) {
-      request.setPath(request.getPath() + *it_index);
+      request.setFilePath(request.getFilePath() + *it_index);
       break;
     }
     temp.clear();

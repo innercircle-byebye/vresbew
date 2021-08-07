@@ -267,6 +267,12 @@ bool LocationConfig::checkPrefixMatchUri(std::string request_uri) {
     }
   }
   return false;
+  // if (this->uri.length() <= request_uri.length()) {
+  //   if (request_uri.compare(0, this->uri.length(), this->uri) == 0) {
+  //     return true;
+  //   }
+  // }
+  // return false;
 }
 
 const std::string &LocationConfig::getUri(void) const {

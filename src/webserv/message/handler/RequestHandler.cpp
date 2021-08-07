@@ -301,14 +301,20 @@ bool RequestHandler::isUriFileExist(LocationConfig *location) {
   struct stat stat_buffer_;
 
   if ((dir_ptr = opendir(filepath.c_str()))) {  // directory
-    if (*filepath.rbegin() != '/')
+    if (*filepath.rbegin() != '/') {
+      request_->setPath(request_->getPath() + "/");
       filepath += "/";
+    }
     if (location->getIndex().empty())
       return false;
     filepath += location->getIndex()[0];
   }
   if (stat(filepath.c_str(), &stat_buffer_) < 0) {
-    return (false);
+    size_t pos = request_->getPath().find(".");
+    std::string path = request_->getPath();
+    if (location->getUri().compare(path.substr(0, path.find_last_of("/") + 1)) || location->getIndex().empty() || pos == std::string::npos)
+      return false;
+    request_->setPath(location->getUri() + location->getIndex()[0]);
   }
   return true;
 }

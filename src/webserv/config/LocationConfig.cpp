@@ -260,8 +260,9 @@ LocationConfig::~LocationConfig(void) {
 }
 
 bool LocationConfig::checkPrefixMatchUri(std::string request_uri) {
-  if (this->uri.length() <= request_uri.length()) {
-    if (request_uri.compare(0, this->uri.length(), this->uri) == 0) {
+  if (this->uri.length() <= request_uri.length() + 1) {
+    size_t compare_length = request_uri.length() > this->uri.length() ? this->uri.length() : request_uri.length();
+    if (request_uri.compare(0, compare_length, this->uri, 0, compare_length) == 0) {
       return true;
     }
   }

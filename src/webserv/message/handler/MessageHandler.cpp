@@ -28,6 +28,9 @@ void MessageHandler::check_request_header(Connection *c) {
   // 있어야되는지??
   request_handler_.setRequest(&c->getRequest());
 
+  //t_uri uri_struct 전체 셋업하는 부분으로...
+  request_handler_.setupUriStruct(locationconfig_test);
+
   if (request_handler_.isHostHeaderExist() == false) {
     c->status_code_ = 400;
     c->setRecvPhase(MESSAGE_BODY_COMPLETE);

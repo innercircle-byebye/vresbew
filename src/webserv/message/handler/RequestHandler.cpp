@@ -218,7 +218,7 @@ void RequestHandler::parseHeaderLines(Connection *c) {
     header_lines.erase(0, pos + 2);
   }
 
-  if (request_->getMethod().compare("GET") && request_->getMethod().compare("HEAD") && 
+  if (request_->getMethod().compare("GET") && request_->getMethod().compare("HEAD") &&
       request_->getHeaderValue("Content-Length").empty() && !request_->getHeaderValue("Transfer-Encoding").compare("chunked"))
     c->setRecvPhase(MESSAGE_CHUNKED);
 }
@@ -340,7 +340,7 @@ void RequestHandler::handleChunked(Connection *c) {
   if (c->chunked_checker_ == STR) {
     if (request_->getMsg().size() >= c->chunked_str_size_ + 2) {
       if (!request_->getMsg().substr(c->chunked_str_size_, c->chunked_str_size_ + 2).compare("\r\n")) {
-        c->appendBodyBuf((char *) request_->getMsg().c_str(), c->chunked_str_size_);
+        c->appendBodyBuf((char *)request_->getMsg().c_str(), c->chunked_str_size_);
         request_->getMsg().erase(0, c->chunked_str_size_ + 2);
         c->chunked_checker_ = STR_SIZE;
       }
@@ -348,13 +348,12 @@ void RequestHandler::handleChunked(Connection *c) {
         c->getBodyBuf().clear();
         c->status_code_ = 400;
         c->setRecvPhase(MESSAGE_BODY_COMPLETE);
-        return ;
-      }
-      else if (request_->getMsg().size() >= c->chunked_str_size_ + 4) {
+        return;
+      } else if (request_->getMsg().size() >= c->chunked_str_size_ + 4) {
         c->getBodyBuf().clear();
         c->status_code_ = 400;
         c->setRecvPhase(MESSAGE_BODY_COMPLETE);
-        return ;
+        return;
       }
     }
   }
@@ -362,10 +361,26 @@ void RequestHandler::handleChunked(Connection *c) {
     if ((pos = request_->getMsg().find("\r\n")) == 0) {
       request_->getMsg().clear();
       c->setRecvPhase(MESSAGE_BODY_COMPLETE);
-    }
-    else if (pos != std::string::npos)
+    } else if (pos != std::string::npos)
       request_->getMsg().clear();
   }
+}
+
+void RequestHandler::setupUriStruct(LocationConfig *location) {
+  std::string filepath;
+  // std::cout << "request_uri: [" << request_->getUri() << "]" << std::endl;
+  // std::cout << "location_uri: [" << location->getUri() << "]" << std::endl;
+  // std::cout << "location_root: [" << location->getRoot() << "]" << std::endl;
+
+  filepath = location->getRoot();
+
+  if (!request_->getUri().substr(location->getUri().length()).empty())
+    filepath.append(request_->getUri().substr(location->getUri().length()));
+  else
+    filepath.append("/");
+
+  request_->setFilePath(filepath);
+  // std::cout << "filepath: [" << request_->getFilePath() << "]" << std::endl;
 }
 
 }  // namespace ft

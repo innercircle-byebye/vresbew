@@ -297,8 +297,15 @@ bool RequestHandler::isHostHeaderExist() {
 #include <dirent.h>
 bool RequestHandler::isUriFileExist(LocationConfig *location) {
   DIR *dir_ptr;
-  std::string filepath = location->getRoot() + request_->getPath();
   struct stat stat_buffer_;
+  std::string filepath = location->getRoot() + request_->getPath();
+
+  if (request_->getMethod() != "GET" && request_->getMethod() != "HEAD") {
+    if (stat(filepath.c_str(), &stat_buffer_) < 0)
+      return false;
+    else
+      return true;
+  }
 
   if ((dir_ptr = opendir(filepath.c_str()))) {  // directory
     if (*filepath.rbegin() != '/') {

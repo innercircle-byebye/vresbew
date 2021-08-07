@@ -26,7 +26,7 @@ void MessageHandler::check_request_header(Connection *c) {
   LocationConfig *locationconfig_test = serverconfig_test->getLocationConfig(c->getRequest().getPath());
 
   // 있어야되는지??
-  // request_handler_.setRequest(&c->getRequest());
+  request_handler_.setRequest(&c->getRequest());
 
   if (request_handler_.isHostHeaderExist() == false) {
     c->status_code_ = 400;

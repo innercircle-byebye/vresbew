@@ -59,6 +59,8 @@ class RequestHandler {
 
   int checkHttpVersionErrorCode(std::string const &http_version);
   void checkCgiRequest(Connection *c);
+
+  void handleChunked(Connection *c);
 };
 }  // namespace ft
 #endif

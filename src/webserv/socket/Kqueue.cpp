@@ -47,6 +47,7 @@ void Kqueue::kqueueProcessEvents(SocketManager *sm) {
   }
   for (int i = 0; i < events; ++i) {
     Connection *c = (Connection *)event_list_[i].udata;
+    
     if (event_list_[i].flags & EV_ERROR) {
       Logger::logError(LOG_ALERT, "%d kevent() error on %d filter:%d", events, (int)event_list_[i].ident, (int)event_list_[i].filter);
       continue;
@@ -58,6 +59,7 @@ void Kqueue::kqueueProcessEvents(SocketManager *sm) {
         Logger::logError(LOG_ALERT, "%d kevent() reported about an closed connection %d", events, (int)event_list_[i].ident);
         sm->closeConnection(c);
       } else {
+        //std::cout << "accept chunked_chcker: " << c->chunked_checker_ << std::endl;
         ssize_t recv_len = recv(c->getFd(), c->buffer_, BUF_SIZE, 0);
         if (c->getRecvPhase() == MESSAGE_INTERRUPTED) {
           if (strchr(c->buffer_, ctrl_c[0])) {
@@ -66,12 +68,13 @@ void Kqueue::kqueueProcessEvents(SocketManager *sm) {
           }
         }
         // TODO: remove; for debug
-        // std::cout << "=========c->buffer_=========" << std::endl;
-        // std::cout << c->buffer_ << std::endl;
-        // std::cout << "=========c->buffer_=========" << std::endl;
+        std::cout << "=========c->buffer_=========" << std::endl;
+        std::cout << c->buffer_ << std::endl;
+        std::cout << "=========c->buffer_=========" << std::endl;
         if (c->getRecvPhase() == MESSAGE_START_LINE_INCOMPLETE ||
             c->getRecvPhase() == MESSAGE_START_LINE_COMPLETE ||
-            c->getRecvPhase() == MESSAGE_HEADER_INCOMPLETE ) {
+            c->getRecvPhase() == MESSAGE_HEADER_INCOMPLETE ||
+            c->getRecvPhase() == MESSAGE_CHUNKED) {
           MessageHandler::handle_request_header(c);
         }
         if (c->getRecvPhase() == MESSAGE_HEADER_COMPLETE)
@@ -112,6 +115,7 @@ void Kqueue::kqueueProcessEvents(SocketManager *sm) {
           MessageHandler::execute_server_side(c);  // 서버가 실제 동작을 진행하는 부분
           MessageHandler::set_response_message(c);
           MessageHandler::send_response_to_client(c);
+          std::cout << "status code: " << c->getResponse().getStatusCode() << std::endl;
           if (!c->getResponse().getHeaderValue("Connection").compare("close") ||
               !c->getRequest().getHttpVersion().compare("HTTP/1.0")) {
             sm->closeConnection(c);

@@ -4,7 +4,7 @@ namespace ft {
 
 void CgiHandler::init_cgi_child(Connection *c) {
   ServerConfig *server_config = c->getHttpConfig()->getServerConfig(c->getSockaddrToConnect().sin_port, c->getSockaddrToConnect().sin_addr.s_addr, c->getRequest().getHeaderValue("Host"));
-  LocationConfig *location = server_config->getLocationConfig(c->getRequest().getPath());
+  LocationConfig *location = server_config->getLocationConfig(c->getRequest().getUri());
   // char **environ;
   // char **command;
   // environ = setEnviron(c);
@@ -32,7 +32,7 @@ void CgiHandler::init_cgi_child(Connection *c) {
 
     // execve(location->getCgiPath().c_str(), command, environ);
     execve(location->getCgiPath().c_str(),
-           setCommand(location->getCgiPath(), location->getRoot() + c->getRequest().getPath()),
+           setCommand(location->getCgiPath(), c->getRequest().getFilePath()),
            setEnviron(c));
   }
   // TODO: 실패 예외처리
@@ -90,7 +90,7 @@ void CgiHandler::handle_cgi_header(Connection *c) {
 
 char **CgiHandler::setEnviron(Connection *c) {
   ServerConfig *server_config = c->getHttpConfig()->getServerConfig(c->getSockaddrToConnect().sin_port, c->getSockaddrToConnect().sin_addr.s_addr, c->getRequest().getHeaderValue("Host"));
-  LocationConfig *location = server_config->getLocationConfig(c->getRequest().getPath());
+  LocationConfig *location = server_config->getLocationConfig(c->getRequest().getUri());
   std::map<std::string, std::string> env_set;
   {
     if (!c->getRequest().getHeaderValue("Content-Length").empty()) {
@@ -102,12 +102,12 @@ char **CgiHandler::setEnviron(Connection *c) {
     }
     env_set["REQUEST_METHOD"] = c->getRequest().getMethod();
     env_set["REDIRECT_STATUS"] = "CGI";
-    env_set["SCRIPT_FILENAME"] = location->getRoot() + c->getRequest().getPath();
+    env_set["SCRIPT_FILENAME"] = c->getRequest().getFilePath();
     env_set["SERVER_PROTOCOL"] = "HTTP/1.1";
     env_set["PATH_INFO"] = c->getRequest().getPath();
     env_set["CONTENT_TYPE"] = c->getRequest().getHeaderValue("Content-Type");
     env_set["GATEWAY_INTERFACE"] = "CGI/1.1";
-    env_set["PATH_TRANSLATED"] = location->getRoot() + c->getRequest().getPath();
+    env_set["PATH_TRANSLATED"] = c->getRequest().getFilePath();
     env_set["REMOTE_ADDR"] = "127.0.0.1";  // TODO: ip주소 받아오는 부분 찾기
     env_set["REQUEST_URI"] = c->getRequest().getUri();
     env_set["HTTP_HOST"] = c->getRequest().getHeaderValue("Host");

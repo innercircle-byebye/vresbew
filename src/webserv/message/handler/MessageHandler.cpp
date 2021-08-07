@@ -39,7 +39,6 @@ void MessageHandler::check_request_header(Connection *c) {
     c->setRecvPhase(MESSAGE_BODY_COMPLETE);
     return;
   }
-
   
   // 문제가 되는 부분
   if (request_handler_.isUriFileExist(locationconfig_test) == false &&

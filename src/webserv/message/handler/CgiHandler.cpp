@@ -4,7 +4,7 @@ namespace ft {
 
 void CgiHandler::init_cgi_child(Connection *c) {
   ServerConfig *server_config = c->getHttpConfig()->getServerConfig(c->getSockaddrToConnect().sin_port, c->getSockaddrToConnect().sin_addr.s_addr, c->getRequest().getHeaderValue("Host"));
-  LocationConfig *location = server_config->getLocationConfig(c->getRequest().getPath());
+  LocationConfig *location = server_config->getLocationConfig(c->getRequest().getUri());
   // char **environ;
   // char **command;
   // environ = setEnviron(c);
@@ -32,7 +32,7 @@ void CgiHandler::init_cgi_child(Connection *c) {
 
     // execve(location->getCgiPath().c_str(), command, environ);
     execve(location->getCgiPath().c_str(),
-           setCommand(location->getCgiPath(), location->getRoot() + c->getRequest().getPath()),
+           setCommand(location->getCgiPath(), c->getRequest().getFilePath()),
            setEnviron(c));
   }
   // TODO: 실패 예외처리
@@ -40,12 +40,22 @@ void CgiHandler::init_cgi_child(Connection *c) {
   // TODO: 실패 예외처리
   close(c->readpipe[1]);
 
-  // if (!c->getBodyBuf().empty()) {
-  write(c->writepipe[1], c->getBodyBuf().c_str(), (size_t)c->getBodyBuf().size());
-  //숫자 확인
-  c->setStringBufferContentLength(-1);
-  c->getBodyBuf().clear();  // 뒤에서 또 쓰일걸 대비해 혹시몰라 초기화.. #2
-  // }
+  // std::cout << "check body buf" << std::endl;
+  // std::cout << c->getBodyBuf() << std::endl;
+  // std::cout << "check body buf" << std::endl;
+  if (c->getBodyBuf().size() == 0) {  //자식 프로세스로 보낼 c->body_buf_ 가 비어있는 경우 파이프 닫음
+    close(c->writepipe[1]);
+  } else {
+    // // TODO: 수정 필요
+    size_t size = c->getBodyBuf().size();
+    for (size_t i = 0; i < size; i += 10) {
+      // std::cout << c->getBodyBuf().substr(i, 10 + i) << std::endl;
+      write(c->writepipe[1], c->getBodyBuf().substr(i, 10 + i).c_str(), 10);
+    }
+    //숫자 확인
+    c->setStringBufferContentLength(-1);
+    c->getBodyBuf().clear();  // 뒤에서 또 쓰일걸 대비해 혹시몰라 초기화.. #2
+  }
 
   c->setRecvPhase(MESSAGE_CGI_COMPLETE);
 }
@@ -56,6 +66,7 @@ void CgiHandler::handle_cgi_header(Connection *c) {
   std::cout << "am i even working" << std::endl;
   size_t nbytes;
   nbytes = read(c->readpipe[0], c->buffer_, BUF_SIZE);
+  std::cout << "c->buffer" << c->buffer_ << std::endl;
   c->appendBodyBuf(c->buffer_);
   memset(c->buffer_, 0, nbytes);
 
@@ -90,11 +101,13 @@ void CgiHandler::handle_cgi_header(Connection *c) {
 
 char **CgiHandler::setEnviron(Connection *c) {
   ServerConfig *server_config = c->getHttpConfig()->getServerConfig(c->getSockaddrToConnect().sin_port, c->getSockaddrToConnect().sin_addr.s_addr, c->getRequest().getHeaderValue("Host"));
-  LocationConfig *location = server_config->getLocationConfig(c->getRequest().getPath());
+  LocationConfig *location = server_config->getLocationConfig(c->getRequest().getUri());
   std::map<std::string, std::string> env_set;
   {
     if (!c->getRequest().getHeaderValue("Content-Length").empty()) {
       env_set["CONTENT_LENGTH"] = c->getRequest().getHeaderValue("Content-Length");
+    } else {
+      env_set["CONTENT_LENGTH"] = SSTR(c->getBodyBuf().size());
     }
     if (c->getRequest().getMethod() == "GET") {
       // TODO: getEntityBody 삭제 필요, 구조체로 변경
@@ -102,12 +115,12 @@ char **CgiHandler::setEnviron(Connection *c) {
     }
     env_set["REQUEST_METHOD"] = c->getRequest().getMethod();
     env_set["REDIRECT_STATUS"] = "CGI";
-    env_set["SCRIPT_FILENAME"] = location->getRoot() + c->getRequest().getPath();
+    env_set["SCRIPT_FILENAME"] = c->getRequest().getFilePath();
     env_set["SERVER_PROTOCOL"] = "HTTP/1.1";
     env_set["PATH_INFO"] = c->getRequest().getPath();
     env_set["CONTENT_TYPE"] = c->getRequest().getHeaderValue("Content-Type");
     env_set["GATEWAY_INTERFACE"] = "CGI/1.1";
-    env_set["PATH_TRANSLATED"] = location->getRoot() + c->getRequest().getPath();
+    env_set["PATH_TRANSLATED"] = c->getRequest().getFilePath();
     env_set["REMOTE_ADDR"] = "127.0.0.1";  // TODO: ip주소 받아오는 부분 찾기
     env_set["REQUEST_URI"] = c->getRequest().getUri();
     env_set["HTTP_HOST"] = c->getRequest().getHeaderValue("Host");

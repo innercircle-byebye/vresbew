@@ -14,6 +14,7 @@ typedef struct s_uri {
   std::string host_;
   std::string port_;
   std::string path_;
+  std::string filepath_;
   std::string query_string_;
 } t_uri;
 
@@ -52,6 +53,7 @@ struct Request {
   const std::string &getHost() const;
   const std::string &getPort() const;
   const std::string &getPath() const;
+  const std::string &getFilePath() const;
   const std::string &getQueryString() const;
   const std::string &getUri();
   const std::string &getHttpVersion() const;
@@ -64,6 +66,7 @@ struct Request {
   void setHost(std::string host);
   void setPort(std::string port);
   void setPath(std::string path);
+  void setFilePath(std::string path);
   void setQueryString(std::string query_string);
   void setUri(std::string uri);
   void setHttpVersion(std::string http_version);

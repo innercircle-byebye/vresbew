@@ -61,14 +61,14 @@ class ResponseHandler {
   // Response::response_ setter end
 
   // 애매함
-  void setResponseBodyFromFile(const std::string &uri, LocationConfig *&location);
+  void setResponseBodyFromFile(const std::string &filepath);
   // 애매함 end
 
   /*--------------------------EXECUTING METHODS--------------------------------*/
 
   // blocks for setResponseFields begin
   void processGetAndHeaderMethod(Request &request, LocationConfig *&location);
-  void processPutMethod(Request &request, LocationConfig *&location);
+  void processPutMethod(Request &request);
   void processDeleteMethod(const std::string &uri, LocationConfig *&location);
   void processPostMethod(Request &request, LocationConfig *&location);
   // blocks for setResponseFields end

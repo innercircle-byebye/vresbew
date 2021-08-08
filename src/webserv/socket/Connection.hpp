@@ -15,7 +15,6 @@ enum MessageFromBufferStatus {
   MESSAGE_START_LINE_COMPLETE,
   MESSAGE_HEADER_INCOMPLETE,
   MESSAGE_HEADER_COMPLETE,
-  MESSAGE_HEADER_PARSED,  // ?? 어디서 사용되는지
   MESSAGE_CHUNKED,        // to test chunked
   MESSAGE_CGI_INCOMING,
   MESSAGE_CGI_COMPLETE,
@@ -58,9 +57,8 @@ class Connection {
   pid_t cgi_pid;
   int writepipe[2], readpipe[2];
 
-  bool chunked_message;
-
   int status_code_;
+  bool is_chunked_;
 
   int chunked_checker_;
   size_t chunked_str_size_;

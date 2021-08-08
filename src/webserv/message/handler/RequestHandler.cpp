@@ -134,6 +134,10 @@ int RequestHandler::parseUri(std::string uri_str) {
         break;
       case port:
         if ((pos = uri_str.find_first_of("/? ")) != std::string::npos) {
+          for (size_t i = 1; i < pos; ++i) {
+            if (!isdigit(uri_str[i]))
+              return (PARSE_INVALID_URI);
+          }
           if (pos != 1)
             request_->setPort(uri_str.substr(1, pos - 1));
           uri_str.erase(0, pos);
@@ -218,9 +222,11 @@ void RequestHandler::parseHeaderLines(Connection *c) {
     header_lines.erase(0, pos + 2);
   }
 
-  if (request_->getMethod().compare("GET") && request_->getMethod().compare("HEAD") && 
+  if (request_->getMethod().compare("GET") && request_->getMethod().compare("HEAD") &&
       request_->getHeaderValue("Content-Length").empty() && !request_->getHeaderValue("Transfer-Encoding").compare("chunked"))
     c->setRecvPhase(MESSAGE_CHUNKED);
+  // else
+  //   c->setRecvPhase(MESSAGE_HEADER_COMPLETE);
 }
 
 // 실패 시 c->status_code_에 에러 코드가 발생 하도록
@@ -291,10 +297,10 @@ bool RequestHandler::isHostHeaderExist() {
 }
 
 bool RequestHandler::isUriFileExist(LocationConfig *location) {
-  std::string filepath = location->getRoot() + request_->getPath();
+  (void)location;
   struct stat stat_buffer_;
 
-  if (stat(filepath.c_str(), &stat_buffer_) < 0) {
+  if (stat(request_->getFilePath().c_str(), &stat_buffer_) < 0) {
     return (false);
   }
   return (true);
@@ -325,6 +331,7 @@ void RequestHandler::applyReturnDirectiveStatusCode(Connection *c, LocationConfi
 }
 
 void RequestHandler::handleChunked(Connection *c) {
+  std::cout << c->getRequest().getMethod() << " handle chunked" << std::endl;
   size_t pos;
 
   if (c->chunked_checker_ == STR_SIZE) {
@@ -338,34 +345,66 @@ void RequestHandler::handleChunked(Connection *c) {
     }
   }
   if (c->chunked_checker_ == STR) {
-    if (request_->getMsg().size() >= c->chunked_str_size_ + 2) {
-      if (!request_->getMsg().substr(c->chunked_str_size_, c->chunked_str_size_ + 2).compare("\r\n")) {
-        c->appendBodyBuf((char *) request_->getMsg().c_str(), c->chunked_str_size_);
-        request_->getMsg().erase(0, c->chunked_str_size_ + 2);
-        c->chunked_checker_ = STR_SIZE;
-      }
-      if ((pos = request_->getMsg().substr(c->chunked_str_size_, c->chunked_str_size_ + 2).find("\r\n")) == std::string::npos) {
-        c->getBodyBuf().clear();
-        c->status_code_ = 400;
-        c->setRecvPhase(MESSAGE_BODY_COMPLETE);
-        return ;
-      }
-      else if (request_->getMsg().size() >= c->chunked_str_size_ + 4) {
-        c->getBodyBuf().clear();
-        c->status_code_ = 400;
-        c->setRecvPhase(MESSAGE_BODY_COMPLETE);
-        return ;
-      }
+    if (request_->getMsg().size() >= (c->chunked_str_size_ + 2) && !request_->getMsg().substr(c->chunked_str_size_, 2).compare("\r\n")) {
+      c->appendBodyBuf((char *)request_->getMsg().c_str(), c->chunked_str_size_);
+      request_->getMsg().erase(0, c->chunked_str_size_ + 2);
+      c->chunked_checker_ = STR_SIZE;
+    }
+    if (request_->getMsg().size() >= c->chunked_str_size_ + 4) {
+      c->getBodyBuf().clear();
+      c->status_code_ = 400;
+      c->setRecvPhase(MESSAGE_BODY_COMPLETE);
+      return;
     }
   }
   if (c->chunked_checker_ == END) {
     if ((pos = request_->getMsg().find("\r\n")) == 0) {
+      std::cout << "end" << std::endl;
       request_->getMsg().clear();
-      c->setRecvPhase(MESSAGE_BODY_COMPLETE);
-    }
-    else if (pos != std::string::npos)
-      request_->getMsg().clear();
+      c->setRecvPhase(MESSAGE_HEADER_COMPLETE);
+    } else if (pos != std::string::npos)
+      request_->getMsg().erase(0, pos + 2);
   }
+}
+
+void RequestHandler::setupUriStruct(ServerConfig *server, LocationConfig *location) {
+  std::string filepath;
+  std::cout << "request_uri: [" << request_->getUri() << "]" << std::endl;
+  std::cout << "location_uri: [" << location->getUri() << "]" << std::endl;
+  std::cout << "location_root: [" << location->getRoot() << "]" << std::endl;
+
+  filepath = location->getRoot();
+  if (location->getRoot() != server->getRoot()) {
+    if (!request_->getPath().substr(location->getUri().length()).empty()) {
+      if (*(location->getUri().rbegin()) == '/')
+        filepath.append(request_->getPath().substr(location->getUri().length() - 1));
+      else
+        filepath.append(request_->getPath().substr(location->getUri().length()));
+    } else
+      filepath.append("/");
+  } else {
+    filepath.append(request_->getPath());
+  }
+  // struct stat stat_buffer_;
+
+  // std::vector<std::string>::const_iterator it_index;
+  // std::string temp;
+  // for (it_index = location->getIndex().begin(); it_index != location->getIndex().end(); it_index++) {
+  //   temp = request_->getFilePath() + *it_index;
+  //   std::cout << "temp: [" << temp << "]" << std::endl;
+  //   if (stat(temp.c_str(), &stat_buffer_) < 0) {
+  //     std::cout << "yo" << std::endl;
+
+  //     while (1) {
+  //       ;
+  //     }
+  //     break;
+  //   }
+  //   temp.clear();
+  // }
+
+  request_->setFilePath(filepath);
+  std::cout << "filepath: [" << request_->getFilePath() << "]" << std::endl;
 }
 
 }  // namespace ft

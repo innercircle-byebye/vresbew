@@ -6,7 +6,7 @@
 /*   By: sucho <sucho@student.42seoul.kr>           +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2021/06/25 19:26:26 by sucho             #+#    #+#             */
-/*   Updated: 2021/07/25 22:31:02 by sucho            ###   ########.fr       */
+/*   Updated: 2021/08/08 16:23:09 by sucho            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -122,11 +122,11 @@ int main(int argc, char *argv[]) {
       env_set.insert(env_temp);
     }
     {
-      if (std::string(argv[4]).size() > 0)
-      {
+      if (std::string(argv[4]).size() > 0) {
         env_set["CONTENT_LENGTH"] = std::to_string(std::string(argv[4]).size());
         env_set["QUERY_STRING"] = std::string(argv[4]);
-      }
+      } else
+        env_set["QUERY_STRING"] = std::to_string(10);
       env_set["REQUEST_METHOD"] = std::string(argv[2]);
       env_set["REDIRECT_STATUS"] = "CGI";
       env_set["SCRIPT_FILENAME"] = std::string(argv[3]);
@@ -171,16 +171,27 @@ int main(int argc, char *argv[]) {
       //              -> 2) /Users/$(USER)/.brew/bin/php-cgi
       else if (!strcmp(command[0], "cgi_tester"))
         execve("./cgi_tester", command, environ);
-      exit(1);
+      // exit(1);
     } else {
-      close(pipe_fd[1]);
+      // close(pipe_fd[1]);
       int nbytes;
       int i = 0;
-      while ((nbytes = read(pipe_fd[0], foo, 512))) {
+      // while ((nbytes = read(pipe_fd[0], foo, sizeof(foo)))) {
+      //   write(STDOUT_FILENO, foo, strlen(foo));
+      //   i++;
+      //   memset(foo, 0, 4096);
+      // }
+      write(pipe_fd[0], &"abcdehelloworld", 10);
+      write(pipe_fd[0], &"\0", 1);
+      close(pipe_fd[1]);
+
+      while ((nbytes = read(pipe_fd[0], foo, sizeof(foo)))) {
         write(STDOUT_FILENO, foo, strlen(foo));
         i++;
         memset(foo, 0, 4096);
       }
+      close(pipe_fd[1]);
+      close(pipe_fd[0]);
       wait(NULL);
     }
   } else

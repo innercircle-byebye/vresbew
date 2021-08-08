@@ -28,6 +28,9 @@ void MessageHandler::check_request_header(Connection *c) {
   // 있어야되는지??
   request_handler_.setRequest(&c->getRequest());
 
+  //t_uri uri_struct 전체 셋업하는 부분으로...
+  request_handler_.setupUriStruct(serverconfig_test, locationconfig_test);
+
   if (request_handler_.isHostHeaderExist() == false) {
     c->status_code_ = 400;
     c->setRecvPhase(MESSAGE_BODY_COMPLETE);
@@ -56,7 +59,7 @@ void MessageHandler::check_request_header(Connection *c) {
   if (!c->getRequest().getHeaderValue("Content-Length").empty())
     c->setStringBufferContentLength(stoi(c->getRequest().getHeaderValue("Content-Length")));
   else
-    c->chunked_message = true;
+    c->is_chunked_ = true;
 
   if (c->interrupted == true) {
     c->setRecvPhase(MESSAGE_INTERRUPTED);
@@ -68,7 +71,10 @@ void MessageHandler::check_request_header(Connection *c) {
     c->getBodyBuf().clear();
     c->setStringBufferContentLength(-1);
     c->setRecvPhase(MESSAGE_BODY_COMPLETE);
-  } else if ((c->getStringBufferContentLength() <= (int)c->getBodyBuf().size()))
+  } else if (c->is_chunked_ == true)
+    c->setRecvPhase(MESSAGE_BODY_COMPLETE);
+  else if (c->is_chunked_ == false && c->getStringBufferContentLength() != -1 &&
+           (c->getStringBufferContentLength() <= (int)c->getBodyBuf().size()))
     c->setRecvPhase(MESSAGE_BODY_COMPLETE);
   else
     c->setRecvPhase(MESSAGE_BODY_INCOMING);
@@ -80,6 +86,10 @@ void MessageHandler::check_cgi_process(Connection *c) {
 
   if (!locationconfig_test->getCgiPath().empty() &&
       locationconfig_test->checkCgiExtension(c->getRequest().getPath())) {
+    std::cout << "check body buf" << std::endl;
+    std::cout << c->getBodyBuf() << std::endl;
+    std::cout << "check body buf" << std::endl;
+    std::cout << "yo" << std::endl;
     CgiHandler::init_cgi_child(c);
   }
 }
@@ -89,7 +99,7 @@ void MessageHandler::handle_request_body(Connection *c) {
 
   // TODO: 조건문 수정 CHUNKED_CHUNKED
   // Transfer-Encoding : chunked 아닐 때
-  if (c->chunked_message == false) {
+  if (c->is_chunked_ == false) {
     if ((size_t)c->getStringBufferContentLength() <= strlen(c->buffer_)) {
       c->appendBodyBuf(c->buffer_, c->getStringBufferContentLength());
       c->setStringBufferContentLength(-1);
@@ -98,13 +108,9 @@ void MessageHandler::handle_request_body(Connection *c) {
       c->setStringBufferContentLength(c->getStringBufferContentLength() - strlen(c->buffer_));
       c->setBodyBuf(c->buffer_);
     }
-  } else {
-    ////// 여기
-    std::cout << "====chunked_body_place==========" << std::endl;
-    std::cout << c->buffer_ << std::endl;
-    std::cout << "====chunked_body_place==========" << std::endl;
-    ////// 여기
   }
+  else
+    c->setRecvPhase(MESSAGE_BODY_COMPLETE);
 }
 
 void MessageHandler::execute_server_side(Connection *c) {
@@ -122,7 +128,7 @@ void MessageHandler::execute_server_side(Connection *c) {
   if (c->getRequest().getMethod() == "PUT" &&
       (c->getResponse().getStatusCode() == 201 || (c->getResponse().getStatusCode() == 204))) {
     // create response body
-    executePutMethod(response_handler_.getAccessPath(c->getRequest().getPath()), c->getBodyBuf());
+    executePutMethod(c->getRequest().getFilePath(), c->getBodyBuf());
 
     //TODO: remove;
     c->getBodyBuf().clear();

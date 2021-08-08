@@ -2,9 +2,13 @@
 
 namespace ft {
 
-ResponseHandler::ResponseHandler() {}
+ResponseHandler::ResponseHandler() {
+  memset(&this->stat_buffer_, 0, sizeof(this->stat_buffer_));
+}
 
-ResponseHandler::~ResponseHandler() {}
+ResponseHandler::~ResponseHandler() {
+  memset(&this->stat_buffer_, 0, sizeof(this->stat_buffer_));
+}
 
 void ResponseHandler::setResponse(Response *response, std::string *body_buf) {
   response_ = response;
@@ -23,7 +27,7 @@ void ResponseHandler::executeMethod(Request &request) {
   if (request.getMethod() == "GET" || request.getMethod() == "HEAD")
     processGetAndHeaderMethod(request, location);
   else if (request.getMethod() == "PUT")
-    processPutMethod(request, location);
+    processPutMethod(request);
   else if (request.getMethod() == "POST")
     processPostMethod(request, location);
   else if (request.getMethod() == "DELETE")
@@ -110,15 +114,15 @@ void ResponseHandler::setAutoindexBody(const std::string &uri) {
   ss << "<a href=\"../\">../</a>\r\n";
   if (!(dir_ptr = opendir(url.c_str()))) {
     // Logger::logError();
-    return ;
+    return;
   }
   while ((item = readdir(dir_ptr))) {
     if (strcmp(item->d_name, ".") == 0 || strcmp(item->d_name, "..") == 0)
-      continue ;
+      continue;
     std::string pathname = std::string(item->d_name);
     if (stat((url + pathname).c_str(), &this->stat_buffer_) < 0) {
       // Logger::logError();
-      return ;
+      return;
     }
     if (S_ISDIR(this->stat_buffer_.st_mode))
       pathname += "/";
@@ -142,14 +146,14 @@ void ResponseHandler::setAutoindexBody(const std::string &uri) {
 
 void ResponseHandler::processGetAndHeaderMethod(Request &request, LocationConfig *&location) {
   //need last modified header
-  if (stat(getAccessPath(request.getPath()).c_str(), &this->stat_buffer_) < 0) {
-      // Logger::logError();
-      return ;
-  }
+  // if (stat(getAccessPath(request.getPath()).c_str(), &this->stat_buffer_) < 0) {
+  //   // Logger::logError();
+  //   return;
+  // }
   if (location->getAutoindex() && S_ISDIR(this->stat_buffer_.st_mode)) {
     setStatusLineWithCode(200);
     setAutoindexBody(request.getPath());
-    return ;
+    return;
   }
 
   // TODO: connection의 status_code를 보고 결정하도록...
@@ -160,14 +164,16 @@ void ResponseHandler::processGetAndHeaderMethod(Request &request, LocationConfig
   }
 
   // TODO: REQUEST에서 처리 해야될 수도 있을것같음
-  if (*(request.getPath().rbegin()) == '/') {
+  if (*(request.getFilePath().rbegin()) == '/') {
     findIndexForGetWhenOnlySlash(request, location);
-    if (*(request.getPath().rbegin()) == '/') {
-      setStatusLineWithCode(403);
+    std::cout <<"after: [" << request.getFilePath() << "]" << std::endl;
+    if (*(request.getFilePath().rbegin()) == '/') {
+      setStatusLineWithCode(404);
       return;
     }
   }
-  if (!isFileExist(request.getPath(), location)) {
+  std::cout << "filepath2: [" << request.getFilePath() << std::endl;
+  if (!isFileExist(request.getFilePath()) ){
     setStatusLineWithCode(404);
     return;
   } else {
@@ -175,28 +181,30 @@ void ResponseHandler::processGetAndHeaderMethod(Request &request, LocationConfig
       setStatusLineWithCode(301);
       // TODO: string 을 생성 하지 않도록 수정하는 작업 필요
       // std::string temp_url = "http://" + request.getHeaderValue("Host") + request.getUri();
-      std::string temp_url = "http://" + request.getHeaderValue("Host") + ":" + request.getPort() + request.getPath();
+      std::string temp_url = "http://" + request.getHeaderValue("Host") + request.getPath();
+      if (*(temp_url.rbegin()) != '/')
+        temp_url.append("/");
       this->response_->setHeader("Location", temp_url);
       return;
     }
     setStatusLineWithCode(200);
     // body가 만들져 있지 않는 경우의 조건 추가
     if (body_buf_->empty())
-      setResponseBodyFromFile(request.getPath(), location);
+      setResponseBodyFromFile(request.getFilePath());
   }
 }
 
-void ResponseHandler::processPutMethod(Request &request, LocationConfig *&location) {
+void ResponseHandler::processPutMethod(Request &request) {
   if (*(request.getPath().rbegin()) == '/') {
     setStatusLineWithCode(409);
     return;
   }
-  if (!isFileExist(request.getPath(), location)) {
+  if (!isFileExist(request.getFilePath())) {
     // 경로가 디렉토리 이거나, 경로에 파일을 쓸 수 없을때
-    if (S_ISDIR(this->stat_buffer_.st_mode) || (this->stat_buffer_.st_mode & S_IRWXU)) {
-      setStatusLineWithCode(500);
-      return;
-    }
+    // if (S_ISDIR(this->stat_buffer_.st_mode) || (this->stat_buffer_.st_mode & S_IRWXU)) {
+    //   setStatusLineWithCode(500);
+    //   return;
+    // }
     setStatusLineWithCode(201);
   } else {
     setStatusLineWithCode(204);
@@ -297,7 +305,8 @@ bool ResponseHandler::isFileExist(const std::string &path) {
   //           << path << std::endl;
   // std::cout << "path: " << path << std::endl;
   if (stat(path.c_str(), &this->stat_buffer_) < 0) {
-    // std::cout << "this aint work" << std::endl;
+    std::cout << "this aint work" << std::endl;
+    std::cout << "why :[" << path << "]" <<std::endl;
     return (false);
   }
   return (true);
@@ -320,8 +329,8 @@ bool ResponseHandler::isPathAccessable(std::string &uri, LocationConfig *&locati
 }
 
 // 함수가 불리는 시점에서는 이미 파일은 존재함
-void ResponseHandler::setResponseBodyFromFile(const std::string &uri, LocationConfig *&location) {
-  std::ifstream file(getAccessPath(uri, location).c_str());
+void ResponseHandler::setResponseBodyFromFile(const std::string &filepath) {
+  std::ifstream file(filepath.c_str());
 
   file.seekg(0, std::ios::end);
   body_buf_->reserve(file.tellg());
@@ -376,9 +385,10 @@ void ResponseHandler::findIndexForGetWhenOnlySlash(Request &request, LocationCon
   std::vector<std::string>::const_iterator it_index;
   std::string temp;
   for (it_index = location->getIndex().begin(); it_index != location->getIndex().end(); it_index++) {
-    temp = location->getRoot() + request.getPath() + *it_index;
+    temp = request.getFilePath() + *it_index;
+    std::cout <<"temp: [" << temp << "]" << std::endl;
     if (isFileExist(temp)) {
-      request.setPath(request.getPath() + *it_index);
+      request.setFilePath(request.getFilePath() + *it_index);
       break;
     }
     temp.clear();

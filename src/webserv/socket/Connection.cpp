@@ -14,6 +14,7 @@ Connection::Connection()
   string_buffer_content_length_ = -1;
   chunked_checker_ = STR_SIZE;
   chunked_str_size_ = 0;
+  is_chunked_ = false;
 }
 
 Connection::~Connection() {}
@@ -61,6 +62,7 @@ void Connection::clear() {
   interrupted = false;
   chunked_checker_ = STR_SIZE;
   chunked_str_size_ = 0;
+  is_chunked_ = false;
 }
 
 /* SETTER */

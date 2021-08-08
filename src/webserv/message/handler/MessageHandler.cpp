@@ -58,6 +58,8 @@ void MessageHandler::check_request_header(Connection *c) {
 
   if (!c->getRequest().getHeaderValue("Content-Length").empty())
     c->setStringBufferContentLength(stoi(c->getRequest().getHeaderValue("Content-Length")));
+  else
+    c->is_chunked_ = true;
 
   if (c->interrupted == true) {
     c->setRecvPhase(MESSAGE_INTERRUPTED);
@@ -69,8 +71,10 @@ void MessageHandler::check_request_header(Connection *c) {
     c->getBodyBuf().clear();
     c->setStringBufferContentLength(-1);
     c->setRecvPhase(MESSAGE_BODY_COMPLETE);
-  } else if (0 <= c->getStringBufferContentLength() &&
-             (c->getStringBufferContentLength() <= (int)c->getBodyBuf().size()))
+  } else if (c->is_chunked_ == true)
+    c->setRecvPhase(MESSAGE_BODY_COMPLETE);
+  else if (c->is_chunked_ == false &&
+           (c->getStringBufferContentLength() <= (int)c->getBodyBuf().size()))
     c->setRecvPhase(MESSAGE_BODY_COMPLETE);
   else
     c->setRecvPhase(MESSAGE_BODY_INCOMING);

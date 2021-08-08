@@ -43,7 +43,7 @@ void CgiHandler::init_cgi_child(Connection *c) {
   std::cout << "check body buf" << std::endl;
   std::cout << c->getBodyBuf() << std::endl;
   std::cout << "check body buf" << std::endl;
-  if (c->getBodyBuf().empty()) { //자식 프로세스로 보낼 c->body_buf_ 가 비어있는 경우 파이프 닫음
+  if (c->getBodyBuf().size() == 0) { //자식 프로세스로 보낼 c->body_buf_ 가 비어있는 경우 파이프 닫음
     close(c->writepipe[1]);
 
   } else {

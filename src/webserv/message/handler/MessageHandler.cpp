@@ -118,7 +118,7 @@ void MessageHandler::execute_server_side(Connection *c) {
   if (c->getRequest().getMethod() == "PUT" &&
       (c->getResponse().getStatusCode() == 201 || (c->getResponse().getStatusCode() == 204))) {
     // create response body
-    executePutMethod(response_handler_.getAccessPath(c->getRequest().getPath()), c->getBodyBuf());
+    executePutMethod(c->getRequest().getFilePath(), c->getBodyBuf());
 
     //TODO: remove;
     c->getBodyBuf().clear();

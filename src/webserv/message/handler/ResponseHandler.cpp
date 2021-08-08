@@ -27,7 +27,7 @@ void ResponseHandler::executeMethod(Request &request) {
   if (request.getMethod() == "GET" || request.getMethod() == "HEAD")
     processGetAndHeaderMethod(request, location);
   else if (request.getMethod() == "PUT")
-    processPutMethod(request, location);
+    processPutMethod(request);
   else if (request.getMethod() == "POST")
     processPostMethod(request, location);
   else if (request.getMethod() == "DELETE")
@@ -191,17 +191,17 @@ void ResponseHandler::processGetAndHeaderMethod(Request &request, LocationConfig
   }
 }
 
-void ResponseHandler::processPutMethod(Request &request, LocationConfig *&location) {
+void ResponseHandler::processPutMethod(Request &request) {
   if (*(request.getPath().rbegin()) == '/') {
     setStatusLineWithCode(409);
     return;
   }
-  if (!isFileExist(request.getPath(), location)) {
+  if (!isFileExist(request.getFilePath())) {
     // 경로가 디렉토리 이거나, 경로에 파일을 쓸 수 없을때
-    if (S_ISDIR(this->stat_buffer_.st_mode) || (this->stat_buffer_.st_mode & S_IRWXU)) {
-      setStatusLineWithCode(500);
-      return;
-    }
+    // if (S_ISDIR(this->stat_buffer_.st_mode) || (this->stat_buffer_.st_mode & S_IRWXU)) {
+    //   setStatusLineWithCode(500);
+    //   return;
+    // }
     setStatusLineWithCode(201);
   } else {
     setStatusLineWithCode(204);
@@ -302,7 +302,7 @@ bool ResponseHandler::isFileExist(const std::string &path) {
   //           << path << std::endl;
   // std::cout << "path: " << path << std::endl;
   if (stat(path.c_str(), &this->stat_buffer_) < 0) {
-    // std::cout << "this aint work" << std::endl;
+    std::cout << "this aint work" << std::endl;
     return (false);
   }
   return (true);

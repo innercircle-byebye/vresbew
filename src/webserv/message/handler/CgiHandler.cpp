@@ -43,12 +43,16 @@ void CgiHandler::init_cgi_child(Connection *c) {
   std::cout << "check body buf" << std::endl;
   std::cout << c->getBodyBuf() << std::endl;
   std::cout << "check body buf" << std::endl;
-  // if (!c->getBodyBuf().empty()) {
-  write(c->writepipe[1], c->getBodyBuf().c_str(), (size_t)c->getBodyBuf().size());
-  //숫자 확인
-  c->setStringBufferContentLength(-1);
-  c->getBodyBuf().clear();  // 뒤에서 또 쓰일걸 대비해 혹시몰라 초기화.. #2
-  // }
+  if (c->getBodyBuf().empty()) { //자식 프로세스로 보낼 c->body_buf_ 가 비어있는 경우 파이프 닫음
+    close(c->writepipe[1]);
+
+  } else {
+    // TODO: 수정 필요
+    write(c->writepipe[1], c->getBodyBuf().c_str(), (size_t)c->getBodyBuf().size());
+    //숫자 확인
+    c->setStringBufferContentLength(-1);
+    c->getBodyBuf().clear();  // 뒤에서 또 쓰일걸 대비해 혹시몰라 초기화.. #2
+  }
 
   c->setRecvPhase(MESSAGE_CGI_COMPLETE);
 }
@@ -59,6 +63,7 @@ void CgiHandler::handle_cgi_header(Connection *c) {
   std::cout << "am i even working" << std::endl;
   size_t nbytes;
   nbytes = read(c->readpipe[0], c->buffer_, BUF_SIZE);
+  std::cout << "c->buffer" << c->buffer_ << std::endl;
   c->appendBodyBuf(c->buffer_);
   memset(c->buffer_, 0, nbytes);
 
@@ -98,6 +103,8 @@ char **CgiHandler::setEnviron(Connection *c) {
   {
     if (!c->getRequest().getHeaderValue("Content-Length").empty()) {
       env_set["CONTENT_LENGTH"] = c->getRequest().getHeaderValue("Content-Length");
+    } else {
+      env_set["CONTENT_LENGTH"] = SSTR(c->getBodyBuf().size());
     }
     if (c->getRequest().getMethod() == "GET") {
       // TODO: getEntityBody 삭제 필요, 구조체로 변경

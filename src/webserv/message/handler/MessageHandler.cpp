@@ -82,6 +82,10 @@ void MessageHandler::check_cgi_process(Connection *c) {
 
   if (!locationconfig_test->getCgiPath().empty() &&
       locationconfig_test->checkCgiExtension(c->getRequest().getPath())) {
+    std::cout << "check body buf" << std::endl;
+    std::cout << c->getBodyBuf() << std::endl;
+    std::cout << "check body buf" << std::endl;
+    std::cout << "yo" << std::endl;
     CgiHandler::init_cgi_child(c);
   }
 }

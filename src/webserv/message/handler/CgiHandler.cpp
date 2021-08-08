@@ -40,15 +40,18 @@ void CgiHandler::init_cgi_child(Connection *c) {
   // TODO: 실패 예외처리
   close(c->readpipe[1]);
 
-  std::cout << "check body buf" << std::endl;
-  std::cout << c->getBodyBuf() << std::endl;
-  std::cout << "check body buf" << std::endl;
-  if (c->getBodyBuf().size() == 0) { //자식 프로세스로 보낼 c->body_buf_ 가 비어있는 경우 파이프 닫음
+  // std::cout << "check body buf" << std::endl;
+  // std::cout << c->getBodyBuf() << std::endl;
+  // std::cout << "check body buf" << std::endl;
+  if (c->getBodyBuf().size() == 0) {  //자식 프로세스로 보낼 c->body_buf_ 가 비어있는 경우 파이프 닫음
     close(c->writepipe[1]);
-
   } else {
-    // TODO: 수정 필요
-    write(c->writepipe[1], c->getBodyBuf().c_str(), (size_t)c->getBodyBuf().size());
+    // // TODO: 수정 필요
+    // size_t size = c->getBodyBuf().size();
+    // for (size_t i = 0; i < size; i += 10000) {
+    //   std::cout << c->getBodyBuf().substr(i, 10000 + i) << std::endl;
+      write(c->writepipe[1], c->getBodyBuf().c_str(), 10000);
+    // }
     //숫자 확인
     c->setStringBufferContentLength(-1);
     c->getBodyBuf().clear();  // 뒤에서 또 쓰일걸 대비해 혹시몰라 초기화.. #2

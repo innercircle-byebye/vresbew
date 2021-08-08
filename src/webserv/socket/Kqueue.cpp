@@ -47,7 +47,7 @@ void Kqueue::kqueueProcessEvents(SocketManager *sm) {
   }
   for (int i = 0; i < events; ++i) {
     Connection *c = (Connection *)event_list_[i].udata;
-    
+
     if (event_list_[i].flags & EV_ERROR) {
       Logger::logError(LOG_ALERT, "%d kevent() error on %d filter:%d", events, (int)event_list_[i].ident, (int)event_list_[i].filter);
       continue;

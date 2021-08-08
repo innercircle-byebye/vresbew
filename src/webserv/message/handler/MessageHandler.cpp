@@ -73,7 +73,7 @@ void MessageHandler::check_request_header(Connection *c) {
     c->setRecvPhase(MESSAGE_BODY_COMPLETE);
   } else if (c->is_chunked_ == true)
     c->setRecvPhase(MESSAGE_BODY_COMPLETE);
-  else if (c->is_chunked_ == false &&
+  else if (c->is_chunked_ == false && c->getStringBufferContentLength() != -1 &&
            (c->getStringBufferContentLength() <= (int)c->getBodyBuf().size()))
     c->setRecvPhase(MESSAGE_BODY_COMPLETE);
   else
@@ -99,7 +99,7 @@ void MessageHandler::handle_request_body(Connection *c) {
 
   // TODO: 조건문 수정 CHUNKED_CHUNKED
   // Transfer-Encoding : chunked 아닐 때
-  if (!c->getRequest().getHeaderValue("Content-Length").empty()) {
+  if (c->is_chunked_ == false) {
     if ((size_t)c->getStringBufferContentLength() <= strlen(c->buffer_)) {
       c->appendBodyBuf(c->buffer_, c->getStringBufferContentLength());
       c->setStringBufferContentLength(-1);
@@ -109,6 +109,8 @@ void MessageHandler::handle_request_body(Connection *c) {
       c->setBodyBuf(c->buffer_);
     }
   }
+  else
+    c->setRecvPhase(MESSAGE_BODY_COMPLETE);
 }
 
 void MessageHandler::execute_server_side(Connection *c) {

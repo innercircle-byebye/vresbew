@@ -47,11 +47,11 @@ void CgiHandler::init_cgi_child(Connection *c) {
     close(c->writepipe[1]);
   } else {
     // // TODO: 수정 필요
-    // size_t size = c->getBodyBuf().size();
-    // for (size_t i = 0; i < size; i += 10000) {
-    //   std::cout << c->getBodyBuf().substr(i, 10000 + i) << std::endl;
-      write(c->writepipe[1], c->getBodyBuf().c_str(), 10000);
-    // }
+    size_t size = c->getBodyBuf().size();
+    for (size_t i = 0; i < size; i += 10) {
+      // std::cout << c->getBodyBuf().substr(i, 10 + i) << std::endl;
+      write(c->writepipe[1], c->getBodyBuf().substr(i, 10 + i).c_str(), 10);
+    }
     //숫자 확인
     c->setStringBufferContentLength(-1);
     c->getBodyBuf().clear();  // 뒤에서 또 쓰일걸 대비해 혹시몰라 초기화.. #2

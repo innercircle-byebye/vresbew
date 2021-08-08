@@ -29,7 +29,7 @@ void MessageHandler::check_request_header(Connection *c) {
   request_handler_.setRequest(&c->getRequest());
 
   //t_uri uri_struct 전체 셋업하는 부분으로...
-  request_handler_.setupUriStruct(locationconfig_test);
+  request_handler_.setupUriStruct(serverconfig_test, locationconfig_test);
 
   if (request_handler_.isHostHeaderExist() == false) {
     c->status_code_ = 400;
@@ -69,7 +69,8 @@ void MessageHandler::check_request_header(Connection *c) {
     c->getBodyBuf().clear();
     c->setStringBufferContentLength(-1);
     c->setRecvPhase(MESSAGE_BODY_COMPLETE);
-  } else if ((c->getStringBufferContentLength() <= (int)c->getBodyBuf().size()))
+  } else if (0 <= c->getStringBufferContentLength() &&
+             (c->getStringBufferContentLength() <= (int)c->getBodyBuf().size()))
     c->setRecvPhase(MESSAGE_BODY_COMPLETE);
   else
     c->setRecvPhase(MESSAGE_BODY_INCOMING);
@@ -90,13 +91,15 @@ void MessageHandler::handle_request_body(Connection *c) {
 
   // TODO: 조건문 수정 CHUNKED_CHUNKED
   // Transfer-Encoding : chunked 아닐 때
-  if ((size_t)c->getStringBufferContentLength() <= strlen(c->buffer_)) {
-    c->appendBodyBuf(c->buffer_, c->getStringBufferContentLength());
-    c->setStringBufferContentLength(-1);
-    c->setRecvPhase(MESSAGE_BODY_COMPLETE);
-  } else {
-    c->setStringBufferContentLength(c->getStringBufferContentLength() - strlen(c->buffer_));
-    c->setBodyBuf(c->buffer_);
+  if (!c->getRequest().getHeaderValue("Content-Length").empty()) {
+    if ((size_t)c->getStringBufferContentLength() <= strlen(c->buffer_)) {
+      c->appendBodyBuf(c->buffer_, c->getStringBufferContentLength());
+      c->setStringBufferContentLength(-1);
+      c->setRecvPhase(MESSAGE_BODY_COMPLETE);
+    } else {
+      c->setStringBufferContentLength(c->getStringBufferContentLength() - strlen(c->buffer_));
+      c->setBodyBuf(c->buffer_);
+    }
   }
 }
 

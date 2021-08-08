@@ -146,10 +146,10 @@ void ResponseHandler::setAutoindexBody(const std::string &uri) {
 
 void ResponseHandler::processGetAndHeaderMethod(Request &request, LocationConfig *&location) {
   //need last modified header
-  if (stat(getAccessPath(request.getPath()).c_str(), &this->stat_buffer_) < 0) {
-    // Logger::logError();
-    return;
-  }
+  // if (stat(getAccessPath(request.getPath()).c_str(), &this->stat_buffer_) < 0) {
+  //   // Logger::logError();
+  //   return;
+  // }
   if (location->getAutoindex() && S_ISDIR(this->stat_buffer_.st_mode)) {
     setStatusLineWithCode(200);
     setAutoindexBody(request.getPath());

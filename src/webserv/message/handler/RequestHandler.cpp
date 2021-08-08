@@ -366,22 +366,24 @@ void RequestHandler::handleChunked(Connection *c) {
   }
 }
 
-void RequestHandler::setupUriStruct(LocationConfig *location) {
+void RequestHandler::setupUriStruct(ServerConfig *server, LocationConfig *location) {
   std::string filepath;
   std::cout << "request_uri: [" << request_->getUri() << "]" << std::endl;
   std::cout << "location_uri: [" << location->getUri() << "]" << std::endl;
   std::cout << "location_root: [" << location->getRoot() << "]" << std::endl;
 
   filepath = location->getRoot();
-
-  if (!request_->getUri().substr(location->getUri().length()).empty()) {
-    if (location->getUri() == "/")
-      filepath.append(request_->getUri().substr(location->getUri().length() - 1));
-    else
-      filepath.append(request_->getUri().substr(location->getUri().length()));
-  } else
-    filepath.append("/");
-
+  if (location->getRoot() != server->getRoot()) {
+    if (!request_->getPath().substr(location->getUri().length()).empty()) {
+      if (*(location->getUri().rbegin()) == '/')
+        filepath.append(request_->getPath().substr(location->getUri().length() - 1));
+      else
+        filepath.append(request_->getPath().substr(location->getUri().length()));
+    } else
+      filepath.append("/");
+  } else {
+      filepath.append(request_->getPath());
+  }
   // struct stat stat_buffer_;
 
   // std::vector<std::string>::const_iterator it_index;

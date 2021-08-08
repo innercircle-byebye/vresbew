@@ -51,9 +51,10 @@ void CgiHandler::init_cgi_child(Connection *c) {
     std::cout << "================body_buf_size=============" << std::endl;
     std::cout << c->getBodyBuf().size() << std::endl;
     std::cout << "================body_buf_size=============" << std::endl;
-    for (size_t i = 0; i <= size; i += BUF_SIZE) {
+    for (size_t i = 0; i < size; i += BUF_SIZE) {
       // std::cout << "i: [" << i << "]" << std::endl;
-      write(c->writepipe[1], c->getBodyBuf().substr(i, BUF_SIZE + i).c_str(), BUF_SIZE);
+      size_t j = std::min(size, BUF_SIZE+ i);
+      write(c->writepipe[1], c->getBodyBuf().substr(i, j).c_str(), j - i);
       // c->getBodyBuf().erase(i, BUF_SIZE + i);
       if (i == 0) {
         read(c->readpipe[0], c->buffer_, BUF_SIZE);
@@ -198,10 +199,10 @@ void CgiHandler::send_chunked_cgi_response_to_client_and_close(Connection *c) {
   size_t size = c->temp.size();
   std::cout << "temp_size 2: [" << c->temp.size() << "]" << std::endl;
 
-  for (size_t i = 0; i <= size; i += 100000) {
+  for (size_t i = 0; i < size; i += 100000) {
     // std::cout << "i: [" << i << "]" << std::endl;
-
-    send(c->getFd(), c->temp.substr(i, 100000 + i).c_str(), 100000, 0);
+    size_t j = std::min(size, i + 100000);
+    send(c->getFd(), c->temp.substr(i, j).c_str(), j - i, 0);
   }
   // while ((nbytes = read(c->readpipe[0], c->buffer_, BUF_SIZE))) {
   //   send(c->getFd(), c->buffer_, nbytes, 0);

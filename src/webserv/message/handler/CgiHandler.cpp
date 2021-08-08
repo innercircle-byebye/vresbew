@@ -207,7 +207,7 @@ void CgiHandler::send_chunked_cgi_response_to_client_and_close(Connection *c) {
   close(c->readpipe[1]);
   close(c->writepipe[0]);
   close(c->writepipe[1]);
-  // send(c->getFd(), &"0", 1, 0);
+  // send(c->getFd(), &"\0", 1, 0);
   waitpid(c->cgi_pid, NULL, 0);
 }
 

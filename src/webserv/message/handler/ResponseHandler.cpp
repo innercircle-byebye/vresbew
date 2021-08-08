@@ -187,7 +187,7 @@ void ResponseHandler::processGetAndHeaderMethod(Request &request, LocationConfig
     setStatusLineWithCode(200);
     // body가 만들져 있지 않는 경우의 조건 추가
     if (body_buf_->empty())
-      setResponseBodyFromFile(request.getPath(), location);
+      setResponseBodyFromFile(request.getFilePath());
   }
 }
 
@@ -325,8 +325,8 @@ bool ResponseHandler::isPathAccessable(std::string &uri, LocationConfig *&locati
 }
 
 // 함수가 불리는 시점에서는 이미 파일은 존재함
-void ResponseHandler::setResponseBodyFromFile(const std::string &uri, LocationConfig *&location) {
-  std::ifstream file(getAccessPath(uri, location).c_str());
+void ResponseHandler::setResponseBodyFromFile(const std::string &filepath) {
+  std::ifstream file(filepath.c_str());
 
   file.seekg(0, std::ios::end);
   body_buf_->reserve(file.tellg());

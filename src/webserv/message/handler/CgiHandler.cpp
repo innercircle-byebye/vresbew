@@ -70,13 +70,14 @@ void CgiHandler::init_cgi_child(Connection *c) {
     c->setStringBufferContentLength(-1);
     c->getBodyBuf().clear();  // 뒤에서 또 쓰일걸 대비해 혹시몰라 초기화.. #2
   }
-  int i =0;
-  while (i <= (int)c->temp.size())
-  {
-    if (c->temp[i] != 'B')
-      std::cout << "here: " << i <<std::endl;
-      i++;
-  }
+  std::cout << "here:here:" << std::endl;
+  // int i =0;
+  // while (i <= (int)c->temp.size())
+  // {
+  //   if (c->temp[i] != 'B')
+  //     std::cout << "here: " << i <<std::endl;
+  //     i++;
+  // }
   c->setRecvPhase(MESSAGE_CGI_COMPLETE);
 }
 
@@ -208,7 +209,7 @@ void CgiHandler::send_chunked_cgi_response_to_client_and_close(Connection *c) {
   //   send(c->getFd(), c->buffer_, nbytes, 0);
   //   memset(c->buffer_, 0, nbytes);
   // }
-  std::cout << "byebye" << std::endl;
+  std::cout << "byebye ================================================================== " << std::endl;
   std::cout << *(c->temp.rbegin()) << std::endl;
 
   close(c->readpipe[0]);

@@ -361,8 +361,9 @@ void RequestHandler::handleChunked(Connection *c) {
     if ((pos = request_->getMsg().find("\r\n")) == 0) {
       std::cout << "end" << std::endl;
       request_->getMsg().clear();
-      c->setRecvPhase(MESSAGE_HEADER_COMPLETE);
-    } else if (pos != std::string::npos)
+      c->setRecvPhase(MESSAGE_BODY_COMPLETE);
+    }
+    else if (pos != std::string::npos)
       request_->getMsg().erase(0, pos + 2);
   }
 }

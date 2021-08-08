@@ -48,9 +48,13 @@ void CgiHandler::init_cgi_child(Connection *c) {
   } else {
     // // TODO: 수정 필요
     size_t size = c->getBodyBuf().size();
-    for (size_t i = 0; i < size; i += 10) {
-      // std::cout << c->getBodyBuf().substr(i, 10 + i) << std::endl;
-      write(c->writepipe[1], c->getBodyBuf().substr(i, 10 + i).c_str(), 10);
+    for (size_t i = 0; i < size; i += BUF_SIZE) {
+      std::cout << "i: [" << i << "]" << std::endl;
+      write(c->writepipe[1], c->getBodyBuf().substr(i, BUF_SIZE + i).c_str(), BUF_SIZE);
+      size_t nbytes;
+      nbytes = read(c->readpipe[0], c->buffer_, BUF_SIZE);
+      memset(c->buffer_, 0, BUF_SIZE);
+      // std::cout << c->buffer_ << std::endl;
     }
     //숫자 확인
     c->setStringBufferContentLength(-1);
@@ -66,7 +70,7 @@ void CgiHandler::handle_cgi_header(Connection *c) {
   std::cout << "am i even working" << std::endl;
   size_t nbytes;
   nbytes = read(c->readpipe[0], c->buffer_, BUF_SIZE);
-  std::cout << "c->buffer" << c->buffer_ << std::endl;
+  // std::cout << "c->buffer" << c->buffer_ << std::endl;
   c->appendBodyBuf(c->buffer_);
   memset(c->buffer_, 0, nbytes);
 

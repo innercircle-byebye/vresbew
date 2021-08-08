@@ -51,14 +51,14 @@ void CgiHandler::init_cgi_child(Connection *c) {
     std::cout << "================body_buf_size=============" << std::endl;
     std::cout << c->getBodyBuf().size() << std::endl;
     std::cout << "================body_buf_size=============" << std::endl;
-
-    for (size_t i = 0; i <= size; i += BUF_SIZE) {
+    for (size_t i = 0; i <= size; i += 30) {
       // std::cout << "i: [" << i << "]" << std::endl;
       write(c->writepipe[1], c->getBodyBuf().substr(i, BUF_SIZE + i).c_str(), BUF_SIZE);
       // c->getBodyBuf().erase(i, BUF_SIZE + i);
       if (i == 0) {
         read(c->readpipe[0], c->buffer_, BUF_SIZE);
         c->temp.append(c->buffer_);
+        memset(c->buffer_, 0, BUF_SIZE);
       }
       read(c->readpipe[0], c->buffer_, BUF_SIZE);
       c->temp.append(c->buffer_);

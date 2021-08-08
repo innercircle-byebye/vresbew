@@ -48,11 +48,20 @@ void CgiHandler::init_cgi_child(Connection *c) {
   } else {
     // // TODO: 수정 필요
     size_t size = c->getBodyBuf().size();
-    for (size_t i = 0; i < size; i += BUF_SIZE) {
-      std::cout << "i: [" << i << "]" << std::endl;
+    std::cout << "================body_buf_size=============" << std::endl;
+    std::cout << c->getBodyBuf().size() << std::endl;
+    std::cout << "================body_buf_size=============" << std::endl;
+
+    for (size_t i = 0; i <= size; i += BUF_SIZE) {
+      // std::cout << "i: [" << i << "]" << std::endl;
       write(c->writepipe[1], c->getBodyBuf().substr(i, BUF_SIZE + i).c_str(), BUF_SIZE);
-      size_t nbytes;
-      nbytes = read(c->readpipe[0], c->buffer_, BUF_SIZE);
+      // c->getBodyBuf().erase(i, BUF_SIZE + i);
+      if (i == 0) {
+        read(c->readpipe[0], c->buffer_, BUF_SIZE);
+        c->temp.append(c->buffer_);
+      }
+      read(c->readpipe[0], c->buffer_, BUF_SIZE);
+      c->temp.append(c->buffer_);
       memset(c->buffer_, 0, BUF_SIZE);
       // std::cout << c->buffer_ << std::endl;
     }
@@ -68,17 +77,17 @@ void CgiHandler::handle_cgi_header(Connection *c) {
   MessageHandler::response_handler_.setResponse(&c->getResponse(), &c->getBodyBuf());
 
   std::cout << "am i even working" << std::endl;
-  size_t nbytes;
-  nbytes = read(c->readpipe[0], c->buffer_, BUF_SIZE);
+  std::cout << "temp_size 1: [" << c->temp.size() << "]" << std::endl;
+
+  // nbytes = read(c->readpipe[0], c->buffer_, BUF_SIZE);
   // std::cout << "c->buffer" << c->buffer_ << std::endl;
-  c->appendBodyBuf(c->buffer_);
-  memset(c->buffer_, 0, nbytes);
+  // c->appendBodyBuf(c->buffer_);
 
   std::string cgi_output_response_header;
   {
-    size_t pos = c->getBodyBuf().find("\r\n\r\n");
-    cgi_output_response_header = c->getBodyBuf().substr(0, pos);
-    c->getBodyBuf().erase(0, pos + 4);
+    size_t pos = c->temp.find("\r\n\r\n");
+    cgi_output_response_header = c->temp.substr(0, pos);
+    c->temp.erase(0, pos + 4);
     while ((pos = cgi_output_response_header.find("\r\n")) != std::string::npos) {
       std::string one_header_line = cgi_output_response_header.substr(0, pos);
       std::vector<std::string> key_and_value = MessageHandler::request_handler_.splitByDelimiter(one_header_line, SPACE);
@@ -169,20 +178,37 @@ char **CgiHandler::setCommand(std::string command, std::string path) {
 }
 
 void CgiHandler::send_chunked_cgi_response_to_client_and_close(Connection *c) {
-  size_t nbytes;
+  c->getResponse().setHeader("Content-Length", SSTR(c->temp.size()));
   MessageHandler::response_handler_.makeResponseHeader();
+  std::cout << "hihi" << std::endl;
+  std::cout << "================header=============" << std::endl;
+  std::cout << c->getResponse().getHeaderMsg().c_str() << std::endl;
+  std::cout << "================header=============" << std::endl;
+
   send(c->getFd(), c->getResponse().getHeaderMsg().c_str(), c->getResponse().getHeaderMsg().size(), 0);
-  send(c->getFd(), c->getBodyBuf().c_str(), (size_t)c->getBodyBuf().size(), 0);
-  while ((nbytes = read(c->readpipe[0], c->buffer_, BUF_SIZE))) {
-    send(c->getFd(), c->buffer_, nbytes, 0);
-    memset(c->buffer_, 0, nbytes);
+  // send(c->getFd(), c->getBodyBuf().c_str(), (size_t)c->getBodyBuf().size(), 0);
+
+  size_t size = c->temp.size();
+  std::cout << "temp_size 2: [" << c->temp.size() << "]" << std::endl;
+
+  for (size_t i = 0; i <= size; i += 100000) {
+    std::cout << "i: [" << i << "]" << std::endl;
+
+    send(c->getFd(), c->temp.substr(i, 100000 + i).c_str(), 100000, 0);
   }
+  // while ((nbytes = read(c->readpipe[0], c->buffer_, BUF_SIZE))) {
+  //   send(c->getFd(), c->buffer_, nbytes, 0);
+  //   memset(c->buffer_, 0, nbytes);
+  // }
+  std::cout << "byebye" << std::endl;
+  std::cout << *(c->temp.rbegin()) << std::endl;
+
   close(c->readpipe[0]);
   close(c->readpipe[1]);
   close(c->writepipe[0]);
   close(c->writepipe[1]);
   // send(c->getFd(), &"0", 1, 0);
-  wait(NULL);
+  waitpid(c->cgi_pid, NULL, 0);
 }
 
 void CgiHandler::receive_cgi_body(Connection *c) {

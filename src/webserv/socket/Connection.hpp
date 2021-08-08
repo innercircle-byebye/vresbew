@@ -57,6 +57,7 @@ class Connection {
   pid_t cgi_pid;
   int writepipe[2], readpipe[2];
 
+  std::string temp;
   int status_code_;
   bool is_chunked_;
 

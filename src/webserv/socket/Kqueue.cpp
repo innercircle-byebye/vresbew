@@ -95,7 +95,7 @@ void Kqueue::kqueueProcessEvents(SocketManager *sm) {
           sm->closeConnection(c);
           c->clear();
         } else {
-          if (c->status_code_ < 0) // c->status_code_ 기본값 (-1) 일때 == 에러코드가 결정 되지 않았을 때 == 정상 request message 일 때
+          if (c->status_code_ < 0)  // c->status_code_ 기본값 (-1) 일때 == 에러코드가 결정 되지 않았을 때 == 정상 request message 일 때
             MessageHandler::check_cgi_process(c);
           if (c->getRecvPhase() == MESSAGE_CGI_COMPLETE) {
             CgiHandler::handle_cgi_header(c);
@@ -105,7 +105,7 @@ void Kqueue::kqueueProcessEvents(SocketManager *sm) {
               // sm->closeConnection(c);때문에 여기에 놔둠
               // if (!c->getResponse().getHeaderValue("Connection").compare("close") ||
               //     !c->getRequest().getHttpVersion().compare("HTTP/1.0")) {
-                sm->closeConnection(c);
+              sm->closeConnection(c);
               // }
               c->clear();
               continue;

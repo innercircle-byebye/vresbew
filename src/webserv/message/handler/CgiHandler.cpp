@@ -51,7 +51,7 @@ void CgiHandler::init_cgi_child(Connection *c) {
     std::cout << "================body_buf_size=============" << std::endl;
     std::cout << c->getBodyBuf().size() << std::endl;
     std::cout << "================body_buf_size=============" << std::endl;
-    for (size_t i = 0; i <= size; i += 30) {
+    for (size_t i = 0; i <= size; i += BUF_SIZE) {
       // std::cout << "i: [" << i << "]" << std::endl;
       write(c->writepipe[1], c->getBodyBuf().substr(i, BUF_SIZE + i).c_str(), BUF_SIZE);
       // c->getBodyBuf().erase(i, BUF_SIZE + i);
@@ -69,7 +69,13 @@ void CgiHandler::init_cgi_child(Connection *c) {
     c->setStringBufferContentLength(-1);
     c->getBodyBuf().clear();  // 뒤에서 또 쓰일걸 대비해 혹시몰라 초기화.. #2
   }
-
+  int i =0;
+  while (i <= (int)c->temp.size())
+  {
+    if (c->temp[i] != 'B')
+      std::cout << "here: " << i <<std::endl;
+      i++;
+  }
   c->setRecvPhase(MESSAGE_CGI_COMPLETE);
 }
 
@@ -179,6 +185,7 @@ char **CgiHandler::setCommand(std::string command, std::string path) {
 
 void CgiHandler::send_chunked_cgi_response_to_client_and_close(Connection *c) {
   c->getResponse().setHeader("Content-Length", SSTR(c->temp.size()));
+  // c->getResponse().setHeader("Transfer-Encoding", "chunked");
   MessageHandler::response_handler_.makeResponseHeader();
   std::cout << "hihi" << std::endl;
   std::cout << "================header=============" << std::endl;
@@ -192,7 +199,7 @@ void CgiHandler::send_chunked_cgi_response_to_client_and_close(Connection *c) {
   std::cout << "temp_size 2: [" << c->temp.size() << "]" << std::endl;
 
   for (size_t i = 0; i <= size; i += 100000) {
-    std::cout << "i: [" << i << "]" << std::endl;
+    // std::cout << "i: [" << i << "]" << std::endl;
 
     send(c->getFd(), c->temp.substr(i, 100000 + i).c_str(), 100000, 0);
   }

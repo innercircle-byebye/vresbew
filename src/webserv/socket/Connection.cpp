@@ -63,6 +63,7 @@ void Connection::clear() {
   chunked_checker_ = STR_SIZE;
   chunked_str_size_ = 0;
   is_chunked_ = false;
+  temp.clear();
 }
 
 /* SETTER */

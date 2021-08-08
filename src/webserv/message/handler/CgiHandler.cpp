@@ -40,6 +40,9 @@ void CgiHandler::init_cgi_child(Connection *c) {
   // TODO: 실패 예외처리
   close(c->readpipe[1]);
 
+  std::cout << "check body buf" << std::endl;
+  std::cout << c->getBodyBuf() << std::endl;
+  std::cout << "check body buf" << std::endl;
   // if (!c->getBodyBuf().empty()) {
   write(c->writepipe[1], c->getBodyBuf().c_str(), (size_t)c->getBodyBuf().size());
   //숫자 확인

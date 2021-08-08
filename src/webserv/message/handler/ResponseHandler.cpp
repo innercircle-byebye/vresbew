@@ -166,12 +166,13 @@ void ResponseHandler::processGetAndHeaderMethod(Request &request, LocationConfig
   // TODO: REQUEST에서 처리 해야될 수도 있을것같음
   if (*(request.getFilePath().rbegin()) == '/') {
     findIndexForGetWhenOnlySlash(request, location);
+    std::cout <<"after: [" << request.getFilePath() << "]" << std::endl;
     if (*(request.getFilePath().rbegin()) == '/') {
-      setStatusLineWithCode(403);
+      setStatusLineWithCode(404);
       return;
     }
   }
-  std::cout << "filepath: [" << request.getFilePath() << std::endl;
+  std::cout << "filepath2: [" << request.getFilePath() << std::endl;
   if (!isFileExist(request.getFilePath()) ){
     setStatusLineWithCode(404);
     return;
@@ -180,7 +181,9 @@ void ResponseHandler::processGetAndHeaderMethod(Request &request, LocationConfig
       setStatusLineWithCode(301);
       // TODO: string 을 생성 하지 않도록 수정하는 작업 필요
       // std::string temp_url = "http://" + request.getHeaderValue("Host") + request.getUri();
-      std::string temp_url = "http://" + request.getHeaderValue("Host")  + request.getPath() ;
+      std::string temp_url = "http://" + request.getHeaderValue("Host") + request.getPath();
+      if (*(temp_url.rbegin()) != '/')
+        temp_url.append("/");
       this->response_->setHeader("Location", temp_url);
       return;
     }
@@ -303,6 +306,7 @@ bool ResponseHandler::isFileExist(const std::string &path) {
   // std::cout << "path: " << path << std::endl;
   if (stat(path.c_str(), &this->stat_buffer_) < 0) {
     std::cout << "this aint work" << std::endl;
+    std::cout << "why :[" << path << "]" <<std::endl;
     return (false);
   }
   return (true);
@@ -382,6 +386,7 @@ void ResponseHandler::findIndexForGetWhenOnlySlash(Request &request, LocationCon
   std::string temp;
   for (it_index = location->getIndex().begin(); it_index != location->getIndex().end(); it_index++) {
     temp = request.getFilePath() + *it_index;
+    std::cout <<"temp: [" << temp << "]" << std::endl;
     if (isFileExist(temp)) {
       request.setFilePath(request.getFilePath() + *it_index);
       break;

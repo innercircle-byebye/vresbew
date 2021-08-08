@@ -331,7 +331,6 @@ void RequestHandler::applyReturnDirectiveStatusCode(Connection *c, LocationConfi
 }
 
 void RequestHandler::handleChunked(Connection *c) {
-  std::cout << c->getRequest().getMethod() << " handle chunked" << std::endl;
   size_t pos;
 
   if (c->chunked_checker_ == STR_SIZE) {
@@ -345,8 +344,8 @@ void RequestHandler::handleChunked(Connection *c) {
     }
   }
   if (c->chunked_checker_ == STR) {
-    if (request_->getMsg().size() >= (c->chunked_str_size_ + 2) && !request_->getMsg().substr(c->chunked_str_size_, 2).compare("\r\n")) {
-      c->appendBodyBuf((char *)request_->getMsg().c_str(), c->chunked_str_size_);
+    if (request_->getMsg().size() >= (c->chunked_str_size_ + 2) && !request_->getMsg().substr(c->chunked_str_size_, 2).compare("\r\n")){
+      c->appendBodyBuf((char *) request_->getMsg().c_str(), c->chunked_str_size_);
       request_->getMsg().erase(0, c->chunked_str_size_ + 2);
       c->chunked_checker_ = STR_SIZE;
     }
@@ -354,15 +353,15 @@ void RequestHandler::handleChunked(Connection *c) {
       c->getBodyBuf().clear();
       c->status_code_ = 400;
       c->setRecvPhase(MESSAGE_BODY_COMPLETE);
-      return;
+      return ;
     }
   }
   if (c->chunked_checker_ == END) {
     if ((pos = request_->getMsg().find("\r\n")) == 0) {
-      std::cout << "end" << std::endl;
       request_->getMsg().clear();
-      c->setRecvPhase(MESSAGE_HEADER_COMPLETE);
-    } else if (pos != std::string::npos)
+      c->setRecvPhase(MESSAGE_BODY_COMPLETE);
+    }
+    else if (pos != std::string::npos)
       request_->getMsg().erase(0, pos + 2);
   }
 }

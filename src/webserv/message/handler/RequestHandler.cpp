@@ -134,6 +134,10 @@ int RequestHandler::parseUri(std::string uri_str) {
         break;
       case port:
         if ((pos = uri_str.find_first_of("/? ")) != std::string::npos) {
+          for (size_t i = 1; i < pos; ++i) {
+            if (!isdigit(uri_str[i]))
+              return (PARSE_INVALID_URI);
+          }
           if (pos != 1)
             request_->setPort(uri_str.substr(1, pos - 1));
           uri_str.erase(0, pos);
@@ -325,6 +329,7 @@ void RequestHandler::applyReturnDirectiveStatusCode(Connection *c, LocationConfi
 }
 
 void RequestHandler::handleChunked(Connection *c) {
+  std::cout << c->getRequest().getMethod() << " handle chunked" << std::endl;
   size_t pos;
 
   if (c->chunked_checker_ == STR_SIZE) {
@@ -338,31 +343,25 @@ void RequestHandler::handleChunked(Connection *c) {
     }
   }
   if (c->chunked_checker_ == STR) {
-    if (request_->getMsg().size() >= c->chunked_str_size_ + 2) {
-      if (!request_->getMsg().substr(c->chunked_str_size_, c->chunked_str_size_ + 2).compare("\r\n")) {
-        c->appendBodyBuf((char *)request_->getMsg().c_str(), c->chunked_str_size_);
-        request_->getMsg().erase(0, c->chunked_str_size_ + 2);
-        c->chunked_checker_ = STR_SIZE;
-      }
-      if ((pos = request_->getMsg().substr(c->chunked_str_size_, c->chunked_str_size_ + 2).find("\r\n")) == std::string::npos) {
-        c->getBodyBuf().clear();
-        c->status_code_ = 400;
-        c->setRecvPhase(MESSAGE_BODY_COMPLETE);
-        return;
-      } else if (request_->getMsg().size() >= c->chunked_str_size_ + 4) {
-        c->getBodyBuf().clear();
-        c->status_code_ = 400;
-        c->setRecvPhase(MESSAGE_BODY_COMPLETE);
-        return;
-      }
+    if (request_->getMsg().size() >= (c->chunked_str_size_ + 2) && !request_->getMsg().substr(c->chunked_str_size_, 2).compare("\r\n")) {
+      c->appendBodyBuf((char *)request_->getMsg().c_str(), c->chunked_str_size_);
+      request_->getMsg().erase(0, c->chunked_str_size_ + 2);
+      c->chunked_checker_ = STR_SIZE;
+    }
+    if (request_->getMsg().size() >= c->chunked_str_size_ + 4) {
+      c->getBodyBuf().clear();
+      c->status_code_ = 400;
+      c->setRecvPhase(MESSAGE_BODY_COMPLETE);
+      return;
     }
   }
   if (c->chunked_checker_ == END) {
     if ((pos = request_->getMsg().find("\r\n")) == 0) {
+      std::cout << "end" << std::endl;
       request_->getMsg().clear();
       c->setRecvPhase(MESSAGE_BODY_COMPLETE);
     } else if (pos != std::string::npos)
-      request_->getMsg().clear();
+      request_->getMsg().erase(0, pos + 2);
   }
 }
 
@@ -382,7 +381,7 @@ void RequestHandler::setupUriStruct(ServerConfig *server, LocationConfig *locati
     } else
       filepath.append("/");
   } else {
-      filepath.append(request_->getPath());
+    filepath.append(request_->getPath());
   }
   // struct stat stat_buffer_;
 

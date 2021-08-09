@@ -59,7 +59,6 @@ void Kqueue::kqueueProcessEvents(SocketManager *sm) {
         Logger::logError(LOG_ALERT, "%d kevent() reported about an closed connection %d", events, (int)event_list_[i].ident);
         sm->closeConnection(c);
       } else {
-        //std::cout << "accept chunked_chcker: " << c->chunked_checker_ << std::endl;
         ssize_t recv_len = recv(c->getFd(), c->buffer_, BUF_SIZE, 0);
         if (c->getRecvPhase() == MESSAGE_INTERRUPTED) {
           if (strchr(c->buffer_, ctrl_c[0])) {
@@ -75,12 +74,9 @@ void Kqueue::kqueueProcessEvents(SocketManager *sm) {
             c->getRecvPhase() == MESSAGE_START_LINE_COMPLETE ||
             c->getRecvPhase() == MESSAGE_HEADER_INCOMPLETE ||
             c->getRecvPhase() == MESSAGE_CHUNKED) {
-          std::cout << "status_code1: " << c->status_code_ << std::endl;
           MessageHandler::handle_request_header(c);
         }
         if (c->getRecvPhase() == MESSAGE_HEADER_COMPLETE) {
-          std::cout << "status_code2: " << c->status_code_ << std::endl;
-
           MessageHandler::check_request_header(c);
         } else if (c->getRecvPhase() == MESSAGE_BODY_INCOMING)
           MessageHandler::handle_request_body(c);
@@ -94,8 +90,7 @@ void Kqueue::kqueueProcessEvents(SocketManager *sm) {
             MessageHandler::execute_server_side(c);  // 서버가 실제 동작을 진행하는 부분
             MessageHandler::set_response_message(c);
           }
-          std::cout << "status code: " << c->getResponse().getStatusCode() << std::endl;
-          // kqueueSetEvent(c, EVFILT_READ, EV_DELETE);
+          kqueueSetEvent(c, EVFILT_READ, EV_DELETE);
           kqueueSetEvent(c, EVFILT_WRITE, EV_ADD);
         }
         memset(c->buffer_, 0, recv_len);
@@ -111,34 +106,31 @@ void Kqueue::kqueueProcessEvents(SocketManager *sm) {
         } else if (c->getRecvPhase() == MESSAGE_CGI_COMPLETE) {
           if (c->send_len < c->getResponse().getHeaderMsg().size()) {
             ssize_t real_send_len;
-            // std::cout << "i: [" << i << "]" << std::endl;
             size_t j = std::min(c->getResponse().getHeaderMsg().size(), c->send_len + BUF_SIZE);
             real_send_len = send(c->getFd(), &(c->getResponse().getHeaderMsg()[c->send_len]), j - c->send_len, 0);
-            std::cout << "real_send_len: [" << real_send_len << "]" << std::endl;
-            // std::cout << "c->send_len:\t" << c->send_len << std::endl;
-            // std::cout << "j:\t" << j << std::endl;
-            // std::cout << "j - c->send_len:\t" << j - c->send_len << std::endl;
+            // std::cout << "real_send_len: [" << real_send_len << "]" << std::endl;
             c->send_len += real_send_len;
-            // kqueueSetEvent(c, EVFILT_WRITE, EV_DELETE);
-            // kqueueSetEvent(c, EVFILT_WRITE, EV_ADD);
-
             if (c->send_len >= c->getResponse().getHeaderMsg().size()) {
               if (!c->getResponse().getHeaderValue("Connection").compare("close") ||
                   !c->getRequest().getHttpVersion().compare("HTTP/1.0")) {
                 sm->closeConnection(c);
               }
+              else {
+                kqueueSetEvent(c, EVFILT_WRITE, EV_DELETE);
+                kqueueSetEvent(c, EVFILT_READ, EV_ADD);
+              }
               c->clear();
-              // kqueueSetEvent(c, EVFILT_WRITE, EV_DELETE);
-              // kqueueSetEvent(c, EVFILT_READ, EV_ADD);
             }
           } else {
             if (!c->getResponse().getHeaderValue("Connection").compare("close") ||
                 !c->getRequest().getHttpVersion().compare("HTTP/1.0")) {
               sm->closeConnection(c);
             }
+            else {
+              kqueueSetEvent(c, EVFILT_WRITE, EV_DELETE);
+              kqueueSetEvent(c, EVFILT_READ, EV_ADD);
+            }
             c->clear();
-            kqueueSetEvent(c, EVFILT_WRITE, EV_DELETE);
-            kqueueSetEvent(c, EVFILT_READ, EV_ADD);
           }
         } else if (c->getRecvPhase() == MESSAGE_BODY_COMPLETE) {
           MessageHandler::send_response_to_client(c);
@@ -147,9 +139,11 @@ void Kqueue::kqueueProcessEvents(SocketManager *sm) {
               !c->getRequest().getHttpVersion().compare("HTTP/1.0")) {
             sm->closeConnection(c);
           }
+          else {
+            kqueueSetEvent(c, EVFILT_WRITE, EV_DELETE);
+            kqueueSetEvent(c, EVFILT_READ, EV_ADD);
+          }
           c->clear();
-          kqueueSetEvent(c, EVFILT_WRITE, EV_DELETE);
-          kqueueSetEvent(c, EVFILT_READ, EV_ADD);
         }
       }
       memset(c->buffer_, 0, BUF_SIZE);

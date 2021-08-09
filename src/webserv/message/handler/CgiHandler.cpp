@@ -45,6 +45,9 @@ void CgiHandler::init_cgi_child(Connection *c) {
   // std::cout << "check body buf" << std::endl;
   if (c->getBodyBuf().size() == 0) {  //자식 프로세스로 보낼 c->body_buf_ 가 비어있는 경우 파이프 닫음
     close(c->writepipe[1]);
+    read(c->readpipe[0], c->buffer_, BUF_SIZE);
+    c->temp.append(c->buffer_);
+    memset(c->buffer_, 0, BUF_SIZE);
   } else {
     // // TODO: 수정 필요
     size_t size = c->getBodyBuf().size();
@@ -69,6 +72,7 @@ void CgiHandler::init_cgi_child(Connection *c) {
     //숫자 확인
     c->setStringBufferContentLength(-1);
     c->getBodyBuf().clear();  // 뒤에서 또 쓰일걸 대비해 혹시몰라 초기화.. #2
+    close(c->writepipe[1]);
   }
   // int i =0;
   // while (i <= (int)c->temp.size())
@@ -240,7 +244,11 @@ void CgiHandler::setup_cgi_message(Connection *c) {
   // c->getResponse().setHeader("Transfer-Encoding", "chunked");
   MessageHandler::response_handler_.setDefaultHeader(c, c->getRequest());
   MessageHandler::response_handler_.makeResponseHeader();
-  c->getResponse().getHeaderMsg().append(c->temp);
+  if (!c->temp.empty())
+    c->getResponse().getHeaderMsg().append(c->temp);
+  std::cout << "================header=============" << std::endl;
+  std::cout << c->getResponse().getHeaderMsg().c_str() << std::endl;
+  std::cout << "================header=============" << std::endl;
   c->temp.clear();
 
   c->send_len = 0;

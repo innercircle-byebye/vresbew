@@ -68,9 +68,14 @@ void Kqueue::kqueueProcessEvents(SocketManager *sm) {
           }
         }
         // TODO: remove; for debug
-        std::cout << "=========c->buffer_=========" << std::endl;
-        std::cout << c->buffer_ << std::endl;
-        std::cout << "=========c->buffer_=========" << std::endl;
+        // std::cout << "=========c->buffer_=========" << std::endl;
+        // for (ssize_t i = 0; i < recv_len; ++i) {
+        //   if (c->buffer_[i] != 'e')
+        //     std::cout << c->buffer_[i];
+        // }
+        // std::cout << std::endl;
+        // //std::cout << c->buffer_ << std::endl;
+        // std::cout << "=========c->buffer_=========" << std::endl;
         if (c->getRecvPhase() == MESSAGE_START_LINE_INCOMPLETE ||
             c->getRecvPhase() == MESSAGE_START_LINE_COMPLETE ||
             c->getRecvPhase() == MESSAGE_HEADER_INCOMPLETE ||
@@ -82,6 +87,7 @@ void Kqueue::kqueueProcessEvents(SocketManager *sm) {
         else if (c->getRecvPhase() == MESSAGE_BODY_INCOMING)
           MessageHandler::handle_request_body(c);
         if (c->getRecvPhase() == MESSAGE_BODY_COMPLETE || c->getRecvPhase() == MESSAGE_CGI_COMPLETE) {
+          memset(c->buffer_, 0, recv_len);
           kqueueSetEvent(c, EVFILT_WRITE, EV_ADD | EV_ONESHOT);
         }
         memset(c->buffer_, 0, recv_len);

@@ -59,6 +59,7 @@ void SocketManager::closeListeningSockets() {
 
 // free_connections에 있는 connection 하나 return
 Connection *SocketManager::getConnection(socket_t s) {
+  std::cout << "get Connection " << s << std::endl;
   Connection *c;
 
   c = free_connections_;

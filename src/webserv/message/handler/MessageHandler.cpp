@@ -136,6 +136,7 @@ void MessageHandler::execute_server_side(Connection *c) {
 }
 
 void MessageHandler::set_response_message(Connection *c) {
+  response_handler_.setResponse(&c->getResponse(), &c->getBodyBuf());
   // MUST BE EXECUTED ONLY WHEN BODY IS NOT PROVIDED
   // TODO: fix this garbage conditional statement...
   if (!(c->getResponse().getStatusCode() == 200 ||

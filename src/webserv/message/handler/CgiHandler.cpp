@@ -256,6 +256,7 @@ void CgiHandler::setup_cgi_message(Connection *c) {
   if (!c->temp.empty())
     c->getResponse().getHeaderMsg().append(c->temp);
   std::cout << "temp_size :" << c->temp.size() << std::endl;
+  std::cout << "size      :" << c->getResponse().getHeaderMsg().size() << std::endl;
   std::cout << "================header=============" << std::endl;
   std::cout << c->getResponse().getHeaderMsg().substr(0, 300) << std::endl;
   std::cout << "================header=============" << std::endl;

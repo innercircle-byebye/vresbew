@@ -65,6 +65,7 @@ class Connection {
   size_t chunked_str_size_;
 
   size_t send_len;
+  size_t real_send_len;
 
   // std::string temp_chunked;     //TODO: remove
   // std::string cgi_output_temp;  //TODO: remove

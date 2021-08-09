@@ -89,25 +89,14 @@ void Kqueue::kqueueProcessEvents(SocketManager *sm) {
             MessageHandler::check_cgi_process(c);
           if (c->getRecvPhase() == MESSAGE_CGI_COMPLETE) {
             CgiHandler::handle_cgi_header(c);
-            // if (c->getRequest().getMethod() == "POST" &&
-            //     c->getRequest().getHeaderValue("Content-Length").empty()) {
-            //   CgiHandler::send_chunked_cgi_response_to_client_and_close(c);
-            //   // sm->closeConnection(c);때문에 여기에 놔둠
-            //   // if (!c->getResponse().getHeaderValue("Connection").compare("close") ||
-            //   //     !c->getRequest().getHttpVersion().compare("HTTP/1.0")) {
-            //   sm->closeConnection(c);
-            //   // }
-            //   c->clear();
-            //   continue;
-            // } else
             CgiHandler::setup_cgi_message(c);
           } else {
             MessageHandler::execute_server_side(c);  // 서버가 실제 동작을 진행하는 부분
             MessageHandler::set_response_message(c);
           }
           std::cout << "status code: " << c->getResponse().getStatusCode() << std::endl;
-          kqueueSetEvent(c, EVFILT_READ, EV_DELETE);
-          kqueueSetEvent(c, EVFILT_WRITE, EV_ADD);
+          // kqueueSetEvent(c, EVFILT_READ, EV_DELETE);
+          kqueueSetEvent(c, EVFILT_WRITE, EV_ADD );
         }
         memset(c->buffer_, 0, recv_len);
       }
@@ -121,20 +110,26 @@ void Kqueue::kqueueProcessEvents(SocketManager *sm) {
           c->clear();
         } else if (c->getRecvPhase() == MESSAGE_CGI_COMPLETE) {
           if (c->send_len < c->getResponse().getHeaderMsg().size()) {
+            ssize_t real_send_len;
             // std::cout << "i: [" << i << "]" << std::endl;
             size_t j = std::min(c->getResponse().getHeaderMsg().size(), c->send_len + BUF_SIZE);
-            send(c->getFd(), c->getResponse().getHeaderMsg().substr(c->send_len, j).c_str(), j - c->send_len, 0);
-            c->send_len += BUF_SIZE;
+            real_send_len = send(c->getFd(), &(c->getResponse().getHeaderMsg()[c->send_len]), j - c->send_len, 0);
+            std::cout << "real_send_len: [" << real_send_len << "]" << std::endl;
+            // std::cout << "c->send_len:\t" << c->send_len << std::endl;
+            // std::cout << "j:\t" << j << std::endl;
+            // std::cout << "j - c->send_len:\t" << j - c->send_len << std::endl;
+            c->send_len += real_send_len;
+            // kqueueSetEvent(c, EVFILT_WRITE, EV_DELETE);
+            // kqueueSetEvent(c, EVFILT_WRITE, EV_ADD);
+
             if (c->send_len >= c->getResponse().getHeaderMsg().size()) {
               if (!c->getResponse().getHeaderValue("Connection").compare("close") ||
                   !c->getRequest().getHttpVersion().compare("HTTP/1.0")) {
                 sm->closeConnection(c);
               }
               c->clear();
-              std::cout << "am i even working #2" << std::endl;
-
-              kqueueSetEvent(c, EVFILT_WRITE, EV_DELETE);
-              kqueueSetEvent(c, EVFILT_READ, EV_ADD);
+              // kqueueSetEvent(c, EVFILT_WRITE, EV_DELETE);
+              // kqueueSetEvent(c, EVFILT_READ, EV_ADD);
             }
           } else {
             if (!c->getResponse().getHeaderValue("Connection").compare("close") ||
@@ -153,8 +148,8 @@ void Kqueue::kqueueProcessEvents(SocketManager *sm) {
             sm->closeConnection(c);
           }
           c->clear();
-          kqueueSetEvent(c, EVFILT_WRITE, EV_DELETE);
-          kqueueSetEvent(c, EVFILT_READ, EV_ADD);
+          // kqueueSetEvent(c, EVFILT_WRITE, EV_DELETE);
+          // kqueueSetEvent(c, EVFILT_READ, EV_ADD);
         }
       }
       memset(c->buffer_, 0, BUF_SIZE);

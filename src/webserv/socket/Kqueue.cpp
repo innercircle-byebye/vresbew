@@ -81,7 +81,28 @@ void Kqueue::kqueueProcessEvents(SocketManager *sm) {
           MessageHandler::check_request_header(c);
         else if (c->getRecvPhase() == MESSAGE_BODY_INCOMING)
           MessageHandler::handle_request_body(c);
-        if (c->getRecvPhase() == MESSAGE_BODY_COMPLETE || c->getRecvPhase() == MESSAGE_CGI_COMPLETE) {
+        if (c->getRecvPhase() == MESSAGE_BODY_COMPLETE) {
+          if (c->status_code_ < 0)  // c->status_code_ 기본값 (-1) 일때 == 에러코드가 결정 되지 않았을 때 == 정상 request message 일 때
+            MessageHandler::check_cgi_process(c);
+          if (c->getRecvPhase() == MESSAGE_CGI_COMPLETE) {
+            CgiHandler::handle_cgi_header(c);
+            // if (c->getRequest().getMethod() == "POST" &&
+            //     c->getRequest().getHeaderValue("Content-Length").empty()) {
+            //   CgiHandler::send_chunked_cgi_response_to_client_and_close(c);
+            //   // sm->closeConnection(c);때문에 여기에 놔둠
+            //   // if (!c->getResponse().getHeaderValue("Connection").compare("close") ||
+            //   //     !c->getRequest().getHttpVersion().compare("HTTP/1.0")) {
+            //   sm->closeConnection(c);
+            //   // }
+            //   c->clear();
+            //   continue;
+            // } else
+            CgiHandler::setup_cgi_message(c);
+          } else {
+            MessageHandler::execute_server_side(c);  // 서버가 실제 동작을 진행하는 부분
+            MessageHandler::set_response_message(c);
+          }
+          std::cout << "status code: " << c->getResponse().getStatusCode() << std::endl;
           kqueueSetEvent(c, EVFILT_WRITE, EV_ADD | EV_ONESHOT);
         }
         memset(c->buffer_, 0, recv_len);
@@ -94,33 +115,30 @@ void Kqueue::kqueueProcessEvents(SocketManager *sm) {
         if (c->interrupted == true) {
           sm->closeConnection(c);
           c->clear();
-        } else {
-          if (c->status_code_ < 0)  // c->status_code_ 기본값 (-1) 일때 == 에러코드가 결정 되지 않았을 때 == 정상 request message 일 때
-            MessageHandler::check_cgi_process(c);
-          if (c->getRecvPhase() == MESSAGE_CGI_COMPLETE) {
-            CgiHandler::handle_cgi_header(c);
-            if (c->getRequest().getMethod() == "POST" &&
-                c->getRequest().getHeaderValue("Content-Length").empty()) {
-              CgiHandler::send_chunked_cgi_response_to_client_and_close(c);
-              // sm->closeConnection(c);때문에 여기에 놔둠
-              // if (!c->getResponse().getHeaderValue("Connection").compare("close") ||
-              //     !c->getRequest().getHttpVersion().compare("HTTP/1.0")) {
+        } else if (c->getRecvPhase() == MESSAGE_CGI_COMPLETE) {
+          if (c->send_len < c->getResponse().getHeaderMsg().size()) {
+            // std::cout << "i: [" << i << "]" << std::endl;
+            size_t j = std::min(c->getResponse().getHeaderMsg().size(), c->send_len + BUF_SIZE);
+            send(c->getFd(), c->temp.substr(i, j).c_str(), j - i, 0);
+            c->send_len += BUF_SIZE;
+            kqueueSetEvent(c, EVFILT_WRITE, EV_ADD);
+          } else {
+            if (!c->getResponse().getHeaderValue("Connection").compare("close") ||
+                !c->getRequest().getHttpVersion().compare("HTTP/1.0")) {
               sm->closeConnection(c);
-              // }
-              c->clear();
-              continue;
-            } else
-              CgiHandler::receive_cgi_body(c);
+            }
+            c->clear();
+            // kqueueSetEvent(c, EVFILT_READ, EV_ADD);
           }
-          MessageHandler::execute_server_side(c);  // 서버가 실제 동작을 진행하는 부분
-          MessageHandler::set_response_message(c);
+        } else {
           MessageHandler::send_response_to_client(c);
-          std::cout << "status code: " << c->getResponse().getStatusCode() << std::endl;
+          std::cout << "here" << std::endl;
           if (!c->getResponse().getHeaderValue("Connection").compare("close") ||
               !c->getRequest().getHttpVersion().compare("HTTP/1.0")) {
             sm->closeConnection(c);
           }
           c->clear();
+          // kqueueSetEvent(c, EVFILT_READ, EV_ADD);
         }
       }
     }

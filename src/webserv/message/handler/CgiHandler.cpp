@@ -53,7 +53,7 @@ void CgiHandler::init_cgi_child(Connection *c) {
     std::cout << "================body_buf_size=============" << std::endl;
     for (size_t i = 0; i < size; i += BUF_SIZE) {
       // std::cout << "i: [" << i << "]" << std::endl;
-      size_t j = std::min(size, BUF_SIZE+ i);
+      size_t j = std::min(size, BUF_SIZE + i);
       write(c->writepipe[1], c->getBodyBuf().substr(i, j).c_str(), j - i);
       // c->getBodyBuf().erase(i, BUF_SIZE + i);
       if (i == 0) {
@@ -70,7 +70,6 @@ void CgiHandler::init_cgi_child(Connection *c) {
     c->setStringBufferContentLength(-1);
     c->getBodyBuf().clear();  // 뒤에서 또 쓰일걸 대비해 혹시몰라 초기화.. #2
   }
-  std::cout << "here:here:" << std::endl;
   // int i =0;
   // while (i <= (int)c->temp.size())
   // {
@@ -233,5 +232,22 @@ void CgiHandler::receive_cgi_body(Connection *c) {
     close(c->writepipe[1]);
     wait(NULL);
   }
+}
+
+void CgiHandler::setup_cgi_message(Connection *c) {
+  if (!c->getRequest().getHeaderValue("Content-Length").empty())
+    c->getResponse().setHeader("Content-Length", SSTR(c->temp.size()));
+  // c->getResponse().setHeader("Transfer-Encoding", "chunked");
+  MessageHandler::response_handler_.setDefaultHeader(c, c->getRequest());
+  MessageHandler::response_handler_.makeResponseHeader();
+  c->getResponse().getHeaderMsg().append(c->temp);
+  c->temp.clear();
+
+  c->send_len = 0;
+  close(c->readpipe[0]);
+  close(c->readpipe[1]);
+  close(c->writepipe[0]);
+  close(c->writepipe[1]);
+  wait(NULL);
 }
 }  // namespace ft

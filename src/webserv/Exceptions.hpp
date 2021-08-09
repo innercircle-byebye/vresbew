@@ -60,7 +60,7 @@ class ConnNotEnoughException : public std::exception {
 
 class CloseSocketException : public std::exception {
   virtual const char *what() const throw() {
-    return ("connection not enough error.");
+    return ("close socket error.");
   }
 };
 

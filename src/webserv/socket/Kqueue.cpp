@@ -96,7 +96,7 @@ void Kqueue::kqueueProcessEvents(SocketManager *sm) {
           }
           std::cout << "status code: " << c->getResponse().getStatusCode() << std::endl;
           // kqueueSetEvent(c, EVFILT_READ, EV_DELETE);
-          kqueueSetEvent(c, EVFILT_WRITE, EV_ADD );
+          kqueueSetEvent(c, EVFILT_WRITE, EV_ADD);
         }
         memset(c->buffer_, 0, recv_len);
       }
@@ -148,8 +148,8 @@ void Kqueue::kqueueProcessEvents(SocketManager *sm) {
             sm->closeConnection(c);
           }
           c->clear();
-          // kqueueSetEvent(c, EVFILT_WRITE, EV_DELETE);
-          // kqueueSetEvent(c, EVFILT_READ, EV_ADD);
+          kqueueSetEvent(c, EVFILT_WRITE, EV_DELETE);
+          kqueueSetEvent(c, EVFILT_READ, EV_ADD);
         }
       }
       memset(c->buffer_, 0, BUF_SIZE);

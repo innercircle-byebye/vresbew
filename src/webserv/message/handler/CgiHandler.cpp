@@ -133,6 +133,8 @@ char **CgiHandler::setEnviron(Connection *c) {
     } else {
       env_set["CONTENT_LENGTH"] = SSTR(c->getBodyBuf().size());
     }
+    if (!c->getRequest().getHeaderValue("X-Secret-Header-For-Test").empty())
+      env_set["HTTP_X_SECRET_HEADER_FOR_TEST"] = c->getRequest().getHeaderValue("X-Secret-Header-For-Test");
     if (c->getRequest().getMethod() == "GET") {
       // TODO: getEntityBody 삭제 필요, 구조체로 변경
       env_set["QUERY_STRING"] = c->getRequest().getQueryString();

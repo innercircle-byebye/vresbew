@@ -97,7 +97,7 @@ void CgiHandler::handle_cgi_header(Connection *c) {
   std::string cgi_output_response_header;
   {
     size_t pos = c->temp.find("\r\n\r\n");
-    cgi_output_response_header = c->temp.substr(0, pos);
+    cgi_output_response_header = c->temp.substr(0, pos + 2);
     c->temp.erase(0, pos + 4);
     while ((pos = cgi_output_response_header.find("\r\n")) != std::string::npos) {
       std::string one_header_line = cgi_output_response_header.substr(0, pos);
@@ -193,9 +193,9 @@ void CgiHandler::send_chunked_cgi_response_to_client_and_close(Connection *c) {
   // c->getResponse().setHeader("Transfer-Encoding", "chunked");
   MessageHandler::response_handler_.makeResponseHeader();
   std::cout << "hihi" << std::endl;
-  std::cout << "================header=============" << std::endl;
-  std::cout << c->getResponse().getHeaderMsg().c_str() << std::endl;
-  std::cout << "================header=============" << std::endl;
+  // std::cout << "================header=============" << std::endl;
+  // std::cout << c->getResponse().getHeaderMsg().c_str() << std::endl;
+  // std::cout << "================header=============" << std::endl;
 
   send(c->getFd(), c->getResponse().getHeaderMsg().c_str(), c->getResponse().getHeaderMsg().size(), 0);
   // send(c->getFd(), c->getBodyBuf().c_str(), (size_t)c->getBodyBuf().size(), 0);
@@ -239,16 +239,20 @@ void CgiHandler::receive_cgi_body(Connection *c) {
 }
 
 void CgiHandler::setup_cgi_message(Connection *c) {
-  if (!c->getRequest().getHeaderValue("Content-Length").empty())
+  if (c->getRequest().getHeaderValue("Content-Length").empty())
     c->getResponse().setHeader("Content-Length", SSTR(c->temp.size()));
   // c->getResponse().setHeader("Transfer-Encoding", "chunked");
   MessageHandler::response_handler_.setDefaultHeader(c, c->getRequest());
+  c->getResponse().setHeader("Content-Length", SSTR(c->temp.size()));
   MessageHandler::response_handler_.makeResponseHeader();
-  if (!c->temp.empty())
-    c->getResponse().getHeaderMsg().append(c->temp);
+
+  std::cout << "temp_size :" << c->temp.size() << std::endl;
   std::cout << "================header=============" << std::endl;
   std::cout << c->getResponse().getHeaderMsg().c_str() << std::endl;
   std::cout << "================header=============" << std::endl;
+  if (!c->temp.empty())
+    c->getResponse().getHeaderMsg().append(c->temp);
+
   c->temp.clear();
 
   c->send_len = 0;

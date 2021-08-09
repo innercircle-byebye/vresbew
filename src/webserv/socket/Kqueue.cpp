@@ -120,7 +120,6 @@ void Kqueue::kqueueProcessEvents(SocketManager *sm) {
           sm->closeConnection(c);
           c->clear();
         } else if (c->getRecvPhase() == MESSAGE_CGI_COMPLETE) {
-          std::cout << "am i even working #2" << std::endl;
           if (c->send_len < c->getResponse().getHeaderMsg().size()) {
             // std::cout << "i: [" << i << "]" << std::endl;
             size_t j = std::min(c->getResponse().getHeaderMsg().size(), c->send_len + BUF_SIZE);
@@ -132,6 +131,8 @@ void Kqueue::kqueueProcessEvents(SocketManager *sm) {
                 sm->closeConnection(c);
               }
               c->clear();
+              std::cout << "am i even working #2" << std::endl;
+
               kqueueSetEvent(c, EVFILT_WRITE, EV_DELETE);
               kqueueSetEvent(c, EVFILT_READ, EV_ADD);
             }

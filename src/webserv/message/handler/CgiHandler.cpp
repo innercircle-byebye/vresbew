@@ -244,16 +244,23 @@ void CgiHandler::setup_cgi_message(Connection *c) {
   // c->getResponse().setHeader("Transfer-Encoding", "chunked");
   MessageHandler::response_handler_.setDefaultHeader(c, c->getRequest());
   c->getResponse().setHeader("Content-Length", SSTR(c->temp.size()));
+  c->getResponse().setHeader("Content-Type", "text/html; charset=utf-8");
+  // c->getResponse().setHeader("Connection", "close");
+
   MessageHandler::response_handler_.makeResponseHeader();
 
-  std::cout << "temp_size :" << c->temp.size() << std::endl;
-  std::cout << "================header=============" << std::endl;
-  std::cout << c->getResponse().getHeaderMsg().c_str() << std::endl;
-  std::cout << "================header=============" << std::endl;
+  // std::cout << "temp_size :" << c->temp.size() << std::endl;
+  // std::cout << "================header=============" << std::endl;
+  // std::cout << c->getResponse().getHeaderMsg().c_str() << std::endl;
+  // std::cout << "================header=============" << std::endl;
   if (!c->temp.empty())
     c->getResponse().getHeaderMsg().append(c->temp);
+  std::cout << "temp_size :" << c->temp.size() << std::endl;
+  std::cout << "================header=============" << std::endl;
+  std::cout << c->getResponse().getHeaderMsg().substr(0, 300) << std::endl;
+  std::cout << "================header=============" << std::endl;
 
-  c->temp.clear();
+  // c->temp.clear();
 
   c->send_len = 0;
   close(c->readpipe[0]);

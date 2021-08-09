@@ -335,9 +335,16 @@ void RequestHandler::handleChunked(Connection *c) {
 
   if (c->chunked_checker_ == STR_SIZE) {
     if ((pos = request_->getMsg().find("\r\n")) != std::string::npos) {
-      c->chunked_str_size_ = (size_t)strtoul(request_->getMsg().substr(0, pos).c_str(), NULL, 16);
+      if ((c->chunked_str_size_ = (size_t)strtoul(request_->getMsg().substr(0, pos).c_str(), NULL, 16)) == 0 && 
+        request_->getMsg().substr(0, pos).compare("0"))
+      {
+        c->getBodyBuf().clear();
+        c->status_code_ = 400;
+        c->setRecvPhase(MESSAGE_BODY_COMPLETE);
+        return ;
+      }
       request_->getMsg().erase(0, pos + 2);
-      if (c->chunked_str_size_ == 0)
+      if (c->chunked_str_size_ == 0 || *(request_->getMsg().begin()) == '0')
         c->chunked_checker_ = END;
       else
         c->chunked_checker_ = STR;

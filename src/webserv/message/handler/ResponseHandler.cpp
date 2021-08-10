@@ -53,6 +53,8 @@ void ResponseHandler::setDefaultHeader(Connection *c, Request &request) {
   }
   if (response_->getStatusCode() == 201)
     createLocationHeaderFor201(c, request);
+  if (response_->getStatusCode() == 301)
+    createLocationHeaderFor301(request);
 }
 /*-----------------------MAKING RESPONSE MESSAGE-----------------------------*/
 
@@ -178,16 +180,16 @@ void ResponseHandler::processGetAndHeaderMethod(Request &request, LocationConfig
     setStatusLineWithCode(404);
     return;
   } else {
-    if (S_ISDIR(this->stat_buffer_.st_mode)) {
-      setStatusLineWithCode(301);
-      // TODO: string 을 생성 하지 않도록 수정하는 작업 필요
-      // std::string temp_url = "http://" + request.getHeaderValue("Host") + request.getUri();
-      std::string temp_url = "http://" + request.getHeaderValue("Host") + request.getPath();
-      if (*(temp_url.rbegin()) != '/')
-        temp_url.append("/");
-      this->response_->setHeader("Location", temp_url);
-      return;
-    }
+    // if (S_ISDIR(this->stat_buffer_.st_mode)) {
+    //   setStatusLineWithCode(301);
+    //   // TODO: string 을 생성 하지 않도록 수정하는 작업 필요
+    //   // std::string temp_url = "http://" + request.getHeaderValue("Host") + request.getUri();
+    //   std::string temp_url = "http://" + request.getHeaderValue("Host") + request.getPath();
+    //   if (*(temp_url.rbegin()) != '/')
+    //     temp_url.append("/");
+    //   this->response_->setHeader("Location", temp_url);
+    //   return;
+    // }
     setStatusLineWithCode(200);
     // body가 만들져 있지 않는 경우의 조건 추가
     if (body_buf_->empty())
@@ -226,7 +228,7 @@ void ResponseHandler::processPostMethod(Request &request, LocationConfig *&locat
     }
   }
   if (!location->checkCgiExtension(request.getFilePath())) {
-    std::cout <<"getFilePath: [" <<request.getFilePath() << "]" <<std::endl;
+    std::cout << "getFilePath: [" << request.getFilePath() << "]" << std::endl;
     setStatusLineWithCode(405);
     return;
   }
@@ -439,6 +441,16 @@ void ResponseHandler::createLocationHeaderFor201(Connection *c, Request &request
 
   full_uri = request.getSchema() + request.getHost() + ":" + request.getPort() + request.getPath();
   response_->setHeader("Location", full_uri);
+}
+
+void ResponseHandler::createLocationHeaderFor301(Request &request) {
+  // TODO: 리팩토링..
+  // TODO: string 을 생성 하지 않도록 수정하는 작업 필요
+  // std::string temp_url = "http://" + request.getHeaderValue("Host") + request.getUri();
+  std::string temp_url = "http://" + request.getHeaderValue("Host") + request.getPath();
+  if (*(temp_url.rbegin()) != '/')
+    temp_url.append("/");
+  this->response_->setHeader("Location", temp_url);
 }
 
 /*--------------------------EXECUTING METHODS END--------------------------------*/

@@ -86,7 +86,7 @@ class ResponseHandler {
   // executing methods helper end
 
   void createLocationHeaderFor201(Connection *c, Request &request);
-
+  void createLocationHeaderFor301(Request &request);
   /*--------------------------EXECUTING METHODS END--------------------------------*/
 };
 }  // namespace ft

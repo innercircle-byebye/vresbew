@@ -42,10 +42,25 @@ void MessageHandler::check_request_header(Connection *c) {
     c->setRecvPhase(MESSAGE_BODY_COMPLETE);
     return;
   }
+  if (*(c->getRequest().getFilePath().rbegin()) == '/') {
+    request_handler_.findIndexForGetWhenOnlySlash(locationconfig_test);
+    std::cout << "after: [" << c->getRequest().getFilePath() << "]" << std::endl;
+    if (*(c->getRequest().getFilePath().rbegin()) == '/') {
+      c->status_code_ = 404;
+      c->setRecvPhase(MESSAGE_BODY_COMPLETE);
+      return;
+    }
+  }
 
   if (request_handler_.isUriFileExist(locationconfig_test) == false &&
       c->getRequest().getMethod() != "PUT") {
     c->status_code_ = 404;
+    c->setRecvPhase(MESSAGE_BODY_COMPLETE);
+    return;
+  }
+
+  if (request_handler_.isUriDirectory(locationconfig_test) == true) {
+    c->status_code_ = 301;
     c->setRecvPhase(MESSAGE_BODY_COMPLETE);
     return;
   }
@@ -69,6 +84,7 @@ void MessageHandler::check_request_header(Connection *c) {
 
   // TODO: 조건문 정리 CHUNKED_CHUNKED
   if (c->getRequest().getMethod() == "GET") {
+    c->is_chunked_ = false;
     c->getBodyBuf().clear();
     c->setStringBufferContentLength(-1);
     c->setRecvPhase(MESSAGE_BODY_COMPLETE);
@@ -87,10 +103,6 @@ void MessageHandler::check_cgi_process(Connection *c) {
 
   if (!locationconfig_test->getCgiPath().empty() &&
       locationconfig_test->checkCgiExtension(c->getRequest().getPath())) {
-    // std::cout << "check body buf" << std::endl;
-    // std::cout << c->getBodyBuf() << std::endl;
-    // std::cout << "check body buf" << std::endl;
-    // std::cout << "yo" << std::endl;
     CgiHandler::init_cgi_child(c);
   }
 }
@@ -109,8 +121,7 @@ void MessageHandler::handle_request_body(Connection *c) {
       c->setStringBufferContentLength(c->getStringBufferContentLength() - strlen(c->buffer_));
       c->setBodyBuf(c->buffer_);
     }
-  }
-  else
+  } else
     c->setRecvPhase(MESSAGE_BODY_COMPLETE);
 }
 

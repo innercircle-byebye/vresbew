@@ -329,6 +329,16 @@ bool RequestHandler::isUriFileExist(LocationConfig *location) {
   return (true);
 }
 
+bool RequestHandler::isUriDirectory(LocationConfig *location) {
+  (void)location;
+  struct stat stat_buffer_;
+
+  stat(request_->getFilePath().c_str(), &stat_buffer_);
+  if (S_ISDIR(stat_buffer_.st_mode))
+    return (true);
+  return (false);
+}
+
 bool RequestHandler::isAllowedMethod(LocationConfig *location) {
   return (location->checkAcceptedMethod(request_->getMethod()));
 }
@@ -417,26 +427,33 @@ void RequestHandler::setupUriStruct(ServerConfig *server, LocationConfig *locati
   } else {
     filepath.append(request_->getPath());
   }
-  // struct stat stat_buffer_;
-
-  // std::vector<std::string>::const_iterator it_index;
-  // std::string temp;
-  // for (it_index = location->getIndex().begin(); it_index != location->getIndex().end(); it_index++) {
-  //   temp = request_->getFilePath() + *it_index;
-  //   std::cout << "temp: [" << temp << "]" << std::endl;
-  //   if (stat(temp.c_str(), &stat_buffer_) < 0) {
-  //     std::cout << "yo" << std::endl;
-
-  //     while (1) {
-  //       ;
-  //     }
-  //     break;
-  //   }
-  //   temp.clear();
-  // }
 
   request_->setFilePath(filepath);
   std::cout << "filepath: [" << request_->getFilePath() << "]" << std::endl;
+}
+
+void RequestHandler::findIndexForGetWhenOnlySlash(LocationConfig *&location) {
+  std::vector<std::string>::const_iterator it_index;
+  std::string temp;
+  for (it_index = location->getIndex().begin(); it_index != location->getIndex().end(); it_index++) {
+    temp = request_->getFilePath() + *it_index;
+    std::cout << "temp: [" << temp << "]" << std::endl;
+    if (isFileExist(temp)) {
+      request_->setFilePath(request_->getFilePath() + *it_index);
+      break;
+    }
+    temp.clear();
+  }
+}
+
+bool RequestHandler::isFileExist(const std::string &path) {
+  struct stat stat_buffer_;
+
+  if (stat(path.c_str(), &stat_buffer_) < 0) {
+    std::cout << "this aint work" << std::endl;
+    return (false);
+  }
+  return (true);
 }
 
 }  // namespace ft

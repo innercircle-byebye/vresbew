@@ -42,8 +42,12 @@ class RequestHandler {
   void setupUriStruct(ServerConfig *server, LocationConfig *location);
   bool isHostHeaderExist();
   bool isUriFileExist(LocationConfig *location);
+  bool isUriDirectory(LocationConfig *location);
   bool isAllowedMethod(LocationConfig *location);
   void applyReturnDirectiveStatusCode(Connection *c, LocationConfig *location);
+
+
+  void findIndexForGetWhenOnlySlash(LocationConfig *&location);
 
  private:
   void checkMsgForStartLine(Connection *c);
@@ -62,6 +66,8 @@ class RequestHandler {
   void checkCgiRequest(Connection *c);
 
   void handleChunked(Connection *c);
+
+  bool isFileExist(const std::string &path);
 };
 }  // namespace ft
 #endif

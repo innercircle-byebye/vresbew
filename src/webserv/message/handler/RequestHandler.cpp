@@ -232,9 +232,6 @@ void RequestHandler::parseHeaderLines(Connection *c) {
     }
     header_lines.erase(0, pos + 2);
   }
-  if (c->getRequest().getMethod().compare("GET") && c->getRequest().getMethod().compare("HEAD") &&
-      c->getRequest().getHeaderValue("Content-Length").empty() && !c->getRequest().getHeaderValue("Transfer-Encoding").compare("chunked"))
-    c->setRecvPhase(MESSAGE_CHUNKED);
 }
 
 // 실패 시 c->status_code_에 에러 코드가 발생 하도록

@@ -102,11 +102,9 @@ void  Connection::process_read_event(Kqueue *kq, SocketManager *sm) {
     // std::cout << this->buffer_ << std::endl;
     // std::cout << "==================================" << std::endl;
 
-    if (recv_phase_ == MESSAGE_INTERRUPTED) {
-      if (strchr(this->buffer_, ctrl_c[0])) {
-        this->interrupted = true;
-        this->recv_phase_ = MESSAGE_BODY_COMPLETE;
-      }
+    if (strchr(this->buffer_, ctrl_c[0])) {
+      sm->closeConnection(this);
+      return ;
     }
     if (this->recv_phase_ == MESSAGE_START_LINE_INCOMPLETE ||
         this->recv_phase_ == MESSAGE_START_LINE_COMPLETE ||
@@ -138,9 +136,7 @@ void  Connection::process_read_event(Kqueue *kq, SocketManager *sm) {
 }
 
 void Connection::process_write_event(Kqueue *kq, SocketManager *sm) {
-  if (this->interrupted == true) {
-    sm->closeConnection(this);
-  } else if (this->recv_phase_ == MESSAGE_CGI_COMPLETE) {
+  if (this->recv_phase_ == MESSAGE_CGI_COMPLETE) {
     if (this->send_len < this->response_.getHeaderMsg().size()) {
       size_t j = std::min(this->response_.getHeaderMsg().size(), this->send_len + BUF_SIZE);
       ssize_t real_send_len = send(this->fd_, &(this->response_.getHeaderMsg()[this->send_len]), j - this->send_len, 0);  // -1인 경우 처리?  

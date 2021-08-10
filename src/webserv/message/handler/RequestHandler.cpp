@@ -352,6 +352,14 @@ void RequestHandler::handleChunked(Connection *c) {
   if (c->chunked_checker_ == STR_SIZE) {
     // std::cout << "str_size" << std::endl;
     if ((pos = request_->getMsg().find("\r\n")) != std::string::npos) {
+      // std::cout << "max body size: " << c->client_max_body_size << ", " << c->getBodyBuf().length() << std::endl;
+      if (c->client_max_body_size < c->getBodyBuf().length()) {
+        c->getBodyBuf().clear();
+        c->status_code_ = 413;
+        c->setRecvPhase(MESSAGE_BODY_COMPLETE);
+        c->is_chunked_ = false;
+        return;
+      }
       // std::cout << "str_size string: " << request_->getMsg().substr(0, pos) << std::endl;
       c->chunked_str_size_ = (size_t)strtoul(request_->getMsg().substr(0, pos).c_str(), NULL, 16);
       if (c->chunked_str_size_ == 0) {

@@ -9,12 +9,15 @@
 #include <string>
 
 #include "webserv/config/HttpConfig.hpp"
-#include "webserv/message/handler/CgiHandler.hpp"
-#include "webserv/message/handler/RequestHandler.hpp"
-#include "webserv/message/handler/ResponseHandler.hpp"
 #include "webserv/socket/Connection.hpp"
+#include "webserv/message/handler/ResponseHandler.hpp"
+#include "webserv/message/handler/RequestHandler.hpp"
+#include "webserv/message/handler/CgiHandler.hpp"
 
 namespace ft {
+
+class RequestHandler;
+class ResponseHandler;
 
 class MessageHandler {
  private:

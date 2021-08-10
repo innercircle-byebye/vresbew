@@ -333,13 +333,14 @@ void RequestHandler::applyReturnDirectiveStatusCode(Connection *c, LocationConfi
 
 void RequestHandler::handleChunked(Connection *c) {
   size_t pos;
+  char  *ptr;
 
   std::cout << "c->chunked_checker_: " << c->chunked_checker_ << std::endl;
   if (c->chunked_checker_ == STR_SIZE) {
     std::cout << "str_size" << std::endl;
     if ((pos = request_->getMsg().find("\r\n")) != std::string::npos) {
-      if ((c->chunked_str_size_ = (size_t)strtoul(request_->getMsg().substr(0, pos).c_str(), NULL, 16)) == 0 && 
-        request_->getMsg().substr(0, pos).compare("0"))
+      c->chunked_str_size_ = (size_t)strtoul(request_->getMsg().substr(0, pos).c_str(), &ptr, 16);
+      if (ptr == request_->getMsg().c_str())
       {
         c->getBodyBuf().clear();
         c->status_code_ = 400;

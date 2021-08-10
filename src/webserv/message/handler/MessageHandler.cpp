@@ -38,7 +38,7 @@ void MessageHandler::check_request_header(Connection *c) {
     c->setStringBufferContentLength(stoi(c->getRequest().getHeaderValue("Content-Length")));
     if (!c->getRequest().getMsg().empty())
       c->setBodyBuf(c->getRequest().getMsg());
-  } else
+  } else if (c->getRequest().getMethod().compare("HEAD") && c->getRequest().getMethod().compare("GET"))
     c->is_chunked_ = true;
 
   if (request_handler_.isHostHeaderExist() == false) {
@@ -70,6 +70,7 @@ void MessageHandler::check_request_header(Connection *c) {
   }
 
   if (request_handler_.isUriDirectory(locationconfig_test) == true) {
+    std::cout << "????????????" << std::endl;
     c->status_code_ = 301;
     c->setRecvPhase(MESSAGE_BODY_COMPLETE);
     return;
@@ -78,6 +79,7 @@ void MessageHandler::check_request_header(Connection *c) {
   if (request_handler_.isAllowedMethod(locationconfig_test) == false) {
     c->status_code_ = 405;
     c->setRecvPhase(MESSAGE_BODY_COMPLETE);
+    return ;
   }
 
   if (c->interrupted == true) {
@@ -87,6 +89,7 @@ void MessageHandler::check_request_header(Connection *c) {
 
   if (c->getRequest().getMethod().compare("GET") && c->getRequest().getMethod().compare("HEAD") &&
       c->getRequest().getHeaderValue("Content-Length").empty() && !c->getRequest().getHeaderValue("Transfer-Encoding").compare("chunked")) {
+    // c->setRecvPhase(MESSAGE_CHUNKED);
     c->setRecvPhase(MESSAGE_CHUNKED);
     c->is_chunked_ = true;
   } else if (c->getRequest().getMethod() == "GET") {
@@ -107,6 +110,8 @@ void MessageHandler::check_cgi_process(Connection *c) {
   ServerConfig *serverconfig_test = c->getHttpConfig()->getServerConfig(c->getSockaddrToConnect().sin_port, c->getSockaddrToConnect().sin_addr.s_addr, c->getRequest().getHeaderValue("Host"));
   LocationConfig *locationconfig_test = serverconfig_test->getLocationConfig(c->getRequest().getPath());
 
+  std::cout << "\ncheck_cgi_process\n";
+  std::cout << c->getRequest().getPath() << ", " << locationconfig_test->getCgiPath() << " " << locationconfig_test->checkCgiExtension(c->getRequest().getPath()) << std::endl;
   if (!locationconfig_test->getCgiPath().empty() &&
       locationconfig_test->checkCgiExtension(c->getRequest().getPath())) {
     CgiHandler::init_cgi_child(c);
@@ -116,10 +121,10 @@ void MessageHandler::check_cgi_process(Connection *c) {
 void MessageHandler::handle_chunked_body(Connection *c) {
   request_handler_.setRequest(&c->getRequest());
 
-  c->getRequest().getMsg().append(c->buffer_);
   request_handler_.handleChunked(c);
-  std::cout << "c_chunked_checker: " << c->chunked_checker_ << std::endl;
+  // std::cout << "c_chunked_checker: " << c->chunked_checker_ << std::endl;
 }
+
 void MessageHandler::handle_request_body(Connection *c) {
   check_interrupt_received(c);
 

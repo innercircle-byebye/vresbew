@@ -59,13 +59,13 @@ void Connection::clear() {
   request_.clear();
   response_.clear();
   body_buf_.clear();
-  recv_phase_ = MESSAGE_START_LINE_INCOMPLETE;
+  // recv_phase_ = MESSAGE_START_LINE_INCOMPLETE;
   string_buffer_content_length_ = -1;
-  status_code_ = -1;
+  // status_code_ = -1;
   interrupted = false;
-  chunked_checker_ = STR_SIZE;
+  // chunked_checker_ = STR_SIZE;
   chunked_str_size_ = 0;
-  is_chunked_ = false;
+  // is_chunked_ = false;
   temp.clear();
   send_len = 0;
   // real_send_len = 0;
@@ -85,38 +85,30 @@ void  Connection::process_read_event(Kqueue *kq, SocketManager *sm) {
     kq->kqueueSetEvent(conn, EVFILT_READ, EV_ADD);
   } else {
     ssize_t recv_len = recv(this->fd_, this->buffer_, BUF_SIZE, 0);
+
     if (recv_phase_ == MESSAGE_INTERRUPTED) {
       if (strchr(this->buffer_, ctrl_c[0])) {
         this->interrupted = true;
         this->recv_phase_ = MESSAGE_BODY_COMPLETE;
       }
     }
-    if (this->recv_phase_ == MESSAGE_CHUNKED_REMAINDER) {
-      std::cout << "ssup==========================" << std::endl;
-      this->body_buf_.append(this->buffer_);
-      if (this->body_buf_.find("0\r\n\r\n") != std::string::npos) {
-        this->clear();
-        return ;
-      }
-    }
     if (this->recv_phase_ == MESSAGE_START_LINE_INCOMPLETE ||
         this->recv_phase_ == MESSAGE_START_LINE_COMPLETE ||
-        this->recv_phase_ == MESSAGE_HEADER_INCOMPLETE) {
+        this->recv_phase_ == MESSAGE_HEADER_INCOMPLETE ||
+        this->recv_phase_ == MESSAGE_CHUNKED) {
       MessageHandler::handle_request_header(this);
     }
     if (this->recv_phase_ == MESSAGE_HEADER_COMPLETE) {
       MessageHandler::check_request_header(this);
     }
     if (this->recv_phase_ == MESSAGE_CHUNKED)
-    {
-      std::cout << "do I even get here" << std::endl;
       MessageHandler::handle_chunked_body(this);
-    }
     else if (this->recv_phase_ == MESSAGE_BODY_INCOMING)
       MessageHandler::handle_request_body(this);
     if (this->recv_phase_ == MESSAGE_BODY_COMPLETE) {
       if (this->status_code_ < 0)
         MessageHandler::check_cgi_process(this);
+      std::cout << "method: " << request_.getMethod() << std::endl;
       if (this->recv_phase_ == MESSAGE_CGI_COMPLETE) {
         CgiHandler::handle_cgi_header(this);
         CgiHandler::setup_cgi_message(this);
@@ -132,9 +124,14 @@ void  Connection::process_read_event(Kqueue *kq, SocketManager *sm) {
 }
 
 void Connection::process_write_event(Kqueue *kq, SocketManager *sm) {
+  std::cout << "write status_code " << this->status_code_ << std::endl;
   if (this->interrupted == true) {
     sm->closeConnection(this);
     this->clear();
+    this->recv_phase_ = MESSAGE_START_LINE_INCOMPLETE;
+    this->status_code_ = -1;
+    this->chunked_checker_ = STR_SIZE;
+    this->is_chunked_ = false;
   } else if (this->recv_phase_ == MESSAGE_CGI_COMPLETE) {
     if (this->send_len < this->response_.getHeaderMsg().size()) {
       ssize_t real_send_len;
@@ -162,19 +159,30 @@ void Connection::process_write_event(Kqueue *kq, SocketManager *sm) {
       }
       this->clear();
     }
-  } else if (this->getRecvPhase() == MESSAGE_BODY_COMPLETE) {
+    this->recv_phase_ = MESSAGE_START_LINE_INCOMPLETE;
+    this->status_code_ = -1;
+    this->chunked_checker_ = STR_SIZE;
+    this->is_chunked_ = false;
+  } else if (this->recv_phase_ == MESSAGE_BODY_COMPLETE) {
     MessageHandler::send_response_to_client(this);
+    std::cout << "atMethod: " << request_.getMethod() << ", is_chunked: " << is_chunked_ << " " << this->status_code_ << std::endl;
     std::cout << "Complete" << std::endl;
-    if (!this->getResponse().getHeaderValue("Connection").compare("close") ||
-        !this->getRequest().getHttpVersion().compare("HTTP/1.0")) {
+    if (!this->response_.getHeaderValue("Connection").compare("close") ||
+        !this->request_.getHttpVersion().compare("HTTP/1.0")) {
       sm->closeConnection(this);
     } else {
+      if (is_chunked_)
+        this->recv_phase_ = MESSAGE_CHUNKED;
+      else
+      {
+        this->recv_phase_ = MESSAGE_START_LINE_INCOMPLETE;
+        this->status_code_ = -1;
+      }
       kq->kqueueSetEvent(this, EVFILT_WRITE, EV_DELETE);
       kq->kqueueSetEvent(this, EVFILT_READ, EV_ADD);
     }
     this->clear();
-  }
-  // this->clear();
+  } 
   memset(this->buffer_, 0, BUF_SIZE);
 }
 

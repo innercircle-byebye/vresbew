@@ -15,19 +15,19 @@ void RequestHandler::appendMsg(const char *buffer) {
 
 void RequestHandler::processByRecvPhase(Connection *c) {
   if (c->getRecvPhase() == MESSAGE_START_LINE_INCOMPLETE) {
-    std::cout << "start_line_incomplete" << std::endl;
+    // std::cout << "start_line_incomplete" << std::endl;
     checkMsgForStartLine(c);
   }
   if (c->getRecvPhase() == MESSAGE_START_LINE_COMPLETE) {
-    std::cout << "start line complete" << std::endl;
+    // std::cout << "start line complete" << std::endl;
     parseStartLine(c);
   }
   if (c->getRecvPhase() == MESSAGE_HEADER_INCOMPLETE) {
-    std::cout << "message header incomplete" << std::endl;
+    // std::cout << "message header incomplete" << std::endl;
     checkMsgForHeader(c);
   }
   if (c->getRecvPhase() == MESSAGE_HEADER_COMPLETE) {
-    std::cout << "message header complete" << std::endl;
+    // std::cout << "message header complete" << std::endl;
     parseHeaderLines(c);
   }
 }
@@ -348,28 +348,28 @@ void RequestHandler::applyReturnDirectiveStatusCode(Connection *c, LocationConfi
 
 void RequestHandler::handleChunked(Connection *c) {
   size_t pos;
-  // setRequest(&c->getRequest());
-  if (c->chunked_checker_ == STR_SIZE) {
-    // std::cout << "111111111111111111111111111111" << std::endl;
-    // // std::cout << request_->getMsg() << std::endl;
-    // std::cout << "111111111111111111111111111111" << std::endl;
 
+  if (c->chunked_checker_ == STR_SIZE) {
+    std::cout << "str_size" << std::endl;
     if ((pos = request_->getMsg().find("\r\n")) != std::string::npos) {
+      std::cout << "str_size string: " << request_->getMsg().substr(0, pos) << std::endl;
       if ((c->chunked_str_size_ = (size_t)strtoul(request_->getMsg().substr(0, pos).c_str(), NULL, 16)) == 0 &&
           request_->getMsg().substr(0, pos).compare("0")) {
         c->getBodyBuf().clear();
         c->status_code_ = 400;
         c->setRecvPhase(MESSAGE_BODY_COMPLETE);
+        c->is_chunked_ = false;
         return;
       }
       request_->getMsg().erase(0, pos + 2);
-      if (c->chunked_str_size_ == 0 || *(request_->getMsg().begin()) == '0')
+      if (c->chunked_str_size_ == 0)
         c->chunked_checker_ = END;
       else
         c->chunked_checker_ = STR;
     }
   }
   if (c->chunked_checker_ == STR) {
+    std::cout << "str" << std::endl;
     if (request_->getMsg().size() >= (c->chunked_str_size_ + 2) && !request_->getMsg().substr(c->chunked_str_size_, 2).compare("\r\n")) {
       c->appendBodyBuf((char *)request_->getMsg().c_str(), c->chunked_str_size_);
       request_->getMsg().erase(0, c->chunked_str_size_ + 2);
@@ -384,9 +384,17 @@ void RequestHandler::handleChunked(Connection *c) {
   }
   if (c->chunked_checker_ == END) {
     if ((pos = request_->getMsg().find("\r\n")) == 0) {
-      std::cout << "world world world hello hello hello" << std::endl;
+      std::cout << "chunked end" << std::endl;
       request_->getMsg().clear();
-      c->setRecvPhase(MESSAGE_BODY_COMPLETE);
+      if (c->status_code_ > 0) {
+        c->setRecvPhase(MESSAGE_START_LINE_INCOMPLETE);
+        c->status_code_ = -1;
+      }
+      else
+        c->setRecvPhase(MESSAGE_BODY_COMPLETE);
+      c->is_chunked_ = false;
+      std::cout << "((((((((((((((((c chunked false)))))))))))))))" << std::endl;
+      c->chunked_checker_ = STR_SIZE;
     } else if (pos != std::string::npos)
       request_->getMsg().erase(0, pos + 2);
   }

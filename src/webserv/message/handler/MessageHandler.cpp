@@ -74,7 +74,7 @@ void MessageHandler::check_request_header(Connection *c) {
     std::cout << "here?" << std::endl;
     c->status_code_ = 405;
     c->setRecvPhase(MESSAGE_BODY_COMPLETE);
-    return;
+    // return;
   }
 
   if (!c->getRequest().getHeaderValue("Content-Length").empty()) {

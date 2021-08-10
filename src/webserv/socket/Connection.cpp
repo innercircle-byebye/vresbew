@@ -91,6 +91,14 @@ void  Connection::process_read_event(Kqueue *kq, SocketManager *sm) {
         this->recv_phase_ = MESSAGE_BODY_COMPLETE;
       }
     }
+    if (this->recv_phase_ == MESSAGE_CHUNKED_REMAINDER) {
+      std::cout << "ssup==========================" << std::endl;
+      this->body_buf_.append(this->buffer_);
+      if (this->body_buf_.find("0\r\n\r\n") != std::string::npos) {
+        this->clear();
+        return ;
+      }
+    }
     if (this->recv_phase_ == MESSAGE_START_LINE_INCOMPLETE ||
         this->recv_phase_ == MESSAGE_START_LINE_COMPLETE ||
         this->recv_phase_ == MESSAGE_HEADER_INCOMPLETE) {

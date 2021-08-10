@@ -34,6 +34,13 @@ void MessageHandler::check_request_header(Connection *c) {
   //client_max_body_size 셋업
   c->client_max_body_size = locationconfig_test->getClientMaxBodySize();
 
+  if (!c->getRequest().getHeaderValue("Content-Length").empty()) {
+    c->setStringBufferContentLength(stoi(c->getRequest().getHeaderValue("Content-Length")));
+    if (!c->getRequest().getMsg().empty())
+      c->setBodyBuf(c->getRequest().getMsg());
+  } else
+    c->is_chunked_ = true;
+
   if (request_handler_.isHostHeaderExist() == false) {
     c->status_code_ = 400;
     c->setRecvPhase(MESSAGE_BODY_COMPLETE);
@@ -69,20 +76,9 @@ void MessageHandler::check_request_header(Connection *c) {
   }
 
   if (request_handler_.isAllowedMethod(locationconfig_test) == false) {
-    std::cout << "getFilePath: 999[" << c->getRequest().getFilePath() << "]" << std::endl;
-
-    std::cout << "here?" << std::endl;
     c->status_code_ = 405;
     c->setRecvPhase(MESSAGE_BODY_COMPLETE);
-    return;
   }
-
-  if (!c->getRequest().getHeaderValue("Content-Length").empty()) {
-    c->setStringBufferContentLength(stoi(c->getRequest().getHeaderValue("Content-Length")));
-    if (!c->getRequest().getMsg().empty())
-      c->setBodyBuf(c->getRequest().getMsg());
-  } else
-    c->is_chunked_ = true;
 
   if (c->interrupted == true) {
     c->setRecvPhase(MESSAGE_INTERRUPTED);
@@ -122,8 +118,6 @@ void MessageHandler::handle_chunked_body(Connection *c) {
 
   c->getRequest().getMsg().append(c->buffer_);
   request_handler_.handleChunked(c);
-  // if (c->chunked_checker_ == 0)
-  //   c->setRecvPhase(MESSAGE_BODY_COMPLETE);
   std::cout << "c_chunked_checker: " << c->chunked_checker_ << std::endl;
 }
 void MessageHandler::handle_request_body(Connection *c) {

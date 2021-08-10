@@ -9,8 +9,8 @@
 #include <string>
 
 #include "webserv/config/HttpConfig.hpp"
-#include "webserv/message/Request.hpp"
 #include "webserv/socket/Connection.hpp"
+#include "webserv/message/Request.hpp"
 
 namespace ft {
 

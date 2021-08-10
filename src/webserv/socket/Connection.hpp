@@ -1,35 +1,17 @@
 #ifndef CONNECTION_HPP
 #define CONNECTION_HPP
 
+#include "webserv/webserv.hpp"
 #include "webserv/logger/Logger.hpp"
-#include "webserv/message/Request.hpp"
-#include "webserv/message/Response.hpp"
 #include "webserv/socket/Kqueue.hpp"
 #include "webserv/socket/Listening.hpp"
 #include "webserv/socket/SocketManager.hpp"
+#include "webserv/message/Request.hpp"
+#include "webserv/message/Response.hpp"
 #include "webserv/message/handler/MessageHandler.hpp"
-#include "webserv/webserv.hpp"
+#include "webserv/message/handler/CgiHandler.hpp"
 
 namespace ft {
-
-enum MessageFromBufferStatus {
-  MESSAGE_START_LINE_INCOMPLETE = 0,
-  MESSAGE_START_LINE_COMPLETE,
-  MESSAGE_HEADER_INCOMPLETE,
-  MESSAGE_HEADER_COMPLETE,
-  MESSAGE_CHUNKED,        // to test chunked
-  MESSAGE_CGI_INCOMING,
-  MESSAGE_CGI_COMPLETE,
-  MESSAGE_BODY_INCOMING,
-  MESSAGE_BODY_COMPLETE,
-  MESSAGE_INTERRUPTED
-};
-
-enum ChunkedMessageStatus {
-  STR_SIZE = 0,
-  STR,
-  END
-};
 
 class Connection {
  private:

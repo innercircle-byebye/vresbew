@@ -30,9 +30,6 @@ void RequestHandler::processByRecvPhase(Connection *c) {
     std::cout << "message header complete" << std::endl;
     parseHeaderLines(c);
   }
-  if (c->getRecvPhase() == MESSAGE_CHUNKED) {
-    std::cout << "message chunked" << std::endl;
-    handleChunked(c);
   }
 }
 

@@ -14,10 +14,10 @@
 
 #include "webserv/config/HttpConfig.hpp"
 #include "webserv/logger/Time.hpp"
+#include "webserv/socket/Connection.hpp"
 #include "webserv/message/Request.hpp"
 #include "webserv/message/Response.hpp"
 #include "webserv/message/StatusMessage.hpp"
-#include "webserv/socket/Connection.hpp"
 #include "webserv/message/MimeType.hpp"
 
 namespace ft {

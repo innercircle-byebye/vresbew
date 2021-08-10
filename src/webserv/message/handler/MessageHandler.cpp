@@ -74,9 +74,11 @@ void MessageHandler::check_request_header(Connection *c) {
     return;
   }
 
-  if (!c->getRequest().getHeaderValue("Content-Length").empty())
+  if (!c->getRequest().getHeaderValue("Content-Length").empty()) {
     c->setStringBufferContentLength(stoi(c->getRequest().getHeaderValue("Content-Length")));
-  else
+    if (!c->getRequest().getMsg().empty())
+      c->setBodyBuf(c->getRequest().getMsg());
+  } else
     c->is_chunked_ = true;
 
   if (c->interrupted == true) {
@@ -117,8 +119,9 @@ void MessageHandler::handle_chunked_body(Connection *c) {
 
   c->getRequest().getMsg().append(c->buffer_);
   request_handler_.handleChunked(c);
-  std::cout << "c_chunked_checker: "<< c->chunked_checker_ <<std::endl;
-
+  // if (c->chunked_checker_ == 0)
+  //   c->setRecvPhase(MESSAGE_BODY_COMPLETE);
+  std::cout << "c_chunked_checker: " << c->chunked_checker_ << std::endl;
 }
 void MessageHandler::handle_request_body(Connection *c) {
   check_interrupt_received(c);
@@ -145,6 +148,7 @@ void MessageHandler::execute_server_side(Connection *c) {
   response_handler_.setServerConfig(c->getHttpConfig(), c->getSockaddrToConnect(), c->getRequest().getHeaderValue("Host"));
 
   std::cout << "getFilePath: 1 [" << c->getRequest().getFilePath() << "]" << std::endl;
+  std::cout << "c->status_code: 1[" << c->status_code_ << "]" << std::endl;
 
   // status_code 기본값: -1
   if (c->status_code_ > 0) {

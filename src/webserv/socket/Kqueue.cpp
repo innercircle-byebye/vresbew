@@ -78,7 +78,7 @@ void Kqueue::kqueueProcessEvents(SocketManager *sm) {
         if (c->getRecvPhase() == MESSAGE_HEADER_COMPLETE) {
           MessageHandler::check_request_header(c);
         }
-        else if (c->getRecvPhase() == MESSAGE_CHUNKED)
+        if (c->getRecvPhase() == MESSAGE_CHUNKED)
         {
           std::cout << "do I even get here" << std::endl;
           MessageHandler::handle_chunked_body(c);
@@ -153,6 +153,7 @@ void Kqueue::kqueueProcessEvents(SocketManager *sm) {
           c->clear();
         }
       }
+      // c->clear();
       memset(c->buffer_, 0, BUF_SIZE);
     }
   }

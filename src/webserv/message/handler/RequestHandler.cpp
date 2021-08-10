@@ -24,7 +24,6 @@ void RequestHandler::processByRecvPhase(Connection *c) {
   }
   if (c->getRecvPhase() == MESSAGE_HEADER_INCOMPLETE) {
     std::cout << "c" << std::endl;
-
     checkMsgForHeader(c);
   }
   if (c->getRecvPhase() == MESSAGE_HEADER_COMPLETE) {
@@ -56,7 +55,7 @@ void RequestHandler::checkMsgForHeader(Connection *c) {
     c->setRecvPhase(MESSAGE_HEADER_COMPLETE);
   // else if (request_->getMsg().find(temp_rn_ctrlc) != request_->getMsg().npos)
   //   c->setRecvPhase(MESSAGE_INTERRUPTED);
-  // else if (c->buffer_ == '"\r\n")
+  // else if (strcmp(c->buffer_, "\r\n") ==0)
   //   c->setRecvPhase(MESSAGE_HEADER_COMPLETE);
 }
 
@@ -228,10 +227,6 @@ void RequestHandler::parseHeaderLines(Connection *c) {
   std::cout << header_lines << std::endl;
   std::cout << "========let's check headers====" << std::endl;
   request_->getMsg().erase(0, pos + 4);
-  if (!request_->getMsg().empty()) {
-    c->setBodyBuf(request_->getMsg());
-    // request_->getMsg().clear();
-  }
 
   while ((pos = header_lines.find("\r\n")) != std::string::npos) {
     std::string one_header_line = header_lines.substr(0, pos);
@@ -241,8 +236,6 @@ void RequestHandler::parseHeaderLines(Connection *c) {
     }
     header_lines.erase(0, pos + 2);
   }
-
-  c->setRecvPhase(MESSAGE_HEADER_COMPLETE);
 }
 
 // 실패 시 c->status_code_에 에러 코드가 발생 하도록

@@ -84,6 +84,7 @@ void Kqueue::kqueueProcessEvents(SocketManager *sm) {
           if (c->status_code_ < 0)  // c->status_code_ 기본값 (-1) 일때 == 에러코드가 결정 되지 않았을 때 == 정상 request message 일 때
             MessageHandler::check_cgi_process(c);
           if (c->getRecvPhase() == MESSAGE_CGI_COMPLETE) {
+            std::cout << "filepath 2: ["<< c->getRequest().getFilePath() << "]" <<std::endl;
             CgiHandler::handle_cgi_header(c);
             CgiHandler::setup_cgi_message(c);
           } else {
@@ -114,8 +115,7 @@ void Kqueue::kqueueProcessEvents(SocketManager *sm) {
               if (!c->getResponse().getHeaderValue("Connection").compare("close") ||
                   !c->getRequest().getHttpVersion().compare("HTTP/1.0")) {
                 sm->closeConnection(c);
-              }
-              else {
+              } else {
                 kqueueSetEvent(c, EVFILT_WRITE, EV_DELETE);
                 kqueueSetEvent(c, EVFILT_READ, EV_ADD);
               }
@@ -125,8 +125,7 @@ void Kqueue::kqueueProcessEvents(SocketManager *sm) {
             if (!c->getResponse().getHeaderValue("Connection").compare("close") ||
                 !c->getRequest().getHttpVersion().compare("HTTP/1.0")) {
               sm->closeConnection(c);
-            }
-            else {
+            } else {
               kqueueSetEvent(c, EVFILT_WRITE, EV_DELETE);
               kqueueSetEvent(c, EVFILT_READ, EV_ADD);
             }
@@ -138,8 +137,7 @@ void Kqueue::kqueueProcessEvents(SocketManager *sm) {
           if (!c->getResponse().getHeaderValue("Connection").compare("close") ||
               !c->getRequest().getHttpVersion().compare("HTTP/1.0")) {
             sm->closeConnection(c);
-          }
-          else {
+          } else {
             kqueueSetEvent(c, EVFILT_WRITE, EV_DELETE);
             kqueueSetEvent(c, EVFILT_READ, EV_ADD);
           }

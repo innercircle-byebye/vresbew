@@ -65,6 +65,9 @@ void RequestHandler::parseStartLine(Connection *c) {
   // schema://host:port/uri?query
   size_t pos = request_->getMsg().find("\r\n");
   std::string const start_line = request_->getMsg().substr(0, pos);
+  std::cout << "========let's check headers====" << std::endl;
+  std::cout << start_line << std::endl;
+  std::cout << "========let's check headers====" << std::endl;
   request_->getMsg().erase(0, pos + 2);
   std::vector<std::string> start_line_split = RequestHandler::splitByDelimiter(start_line, SPACE);
 
@@ -221,7 +224,9 @@ void RequestHandler::parseHeaderLines(Connection *c) {
   }
   size_t pos = request_->getMsg().find("\r\n\r\n");
   std::string header_lines = request_->getMsg().substr(0, pos + 2);
-
+  std::cout << "========let's check headers====" << std::endl;
+  std::cout << header_lines << std::endl;
+  std::cout << "========let's check headers====" << std::endl;
   request_->getMsg().erase(0, pos + 4);
   if (!request_->getMsg().empty()) {
     c->setBodyBuf(request_->getMsg());
@@ -312,7 +317,6 @@ bool RequestHandler::isHostHeaderExist() {
     return (true);
   }
   return (false);
-
 }
 
 bool RequestHandler::isUriFileExist(LocationConfig *location) {
@@ -373,8 +377,6 @@ void RequestHandler::handleChunked(Connection *c) {
     }
   }
   if (c->chunked_checker_ == STR) {
-    std::cout << "2222222222222222222222222222222" << std::endl;
-
     if (request_->getMsg().size() >= (c->chunked_str_size_ + 2) && !request_->getMsg().substr(c->chunked_str_size_, 2).compare("\r\n")) {
       c->appendBodyBuf((char *)request_->getMsg().c_str(), c->chunked_str_size_);
       request_->getMsg().erase(0, c->chunked_str_size_ + 2);
@@ -388,8 +390,6 @@ void RequestHandler::handleChunked(Connection *c) {
     }
   }
   if (c->chunked_checker_ == END) {
-    std::cout << "3333333333333333333333333333" << std::endl;
-
     if ((pos = request_->getMsg().find("\r\n")) == 0) {
       std::cout << "world world world hello hello hello" << std::endl;
       request_->getMsg().clear();

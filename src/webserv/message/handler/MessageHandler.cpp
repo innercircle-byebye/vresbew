@@ -51,6 +51,7 @@ void MessageHandler::check_request_header(Connection *c) {
   }
 
   if (request_handler_.isAllowedMethod(locationconfig_test) == false) {
+    std::cout << "here?" << std::endl;
     c->status_code_ = 405;
     c->setRecvPhase(MESSAGE_BODY_COMPLETE);
     return;

@@ -35,8 +35,9 @@ void ResponseHandler::executeMethod(Request &request) {
 }
 
 void ResponseHandler::setDefaultHeader(Connection *c, Request &request) {
-  response_->setHeader("Content-Length",
-                       std::to_string(this->body_buf_->size()));
+  if (response_->getHeaderValue("Content-Length").empty())
+    response_->setHeader("Content-Length",
+                         std::to_string(this->body_buf_->size()));
 
   response_->setHeader("Date", Time::getCurrentDate());
 
@@ -166,14 +167,14 @@ void ResponseHandler::processGetAndHeaderMethod(Request &request, LocationConfig
   // TODO: REQUEST에서 처리 해야될 수도 있을것같음
   if (*(request.getFilePath().rbegin()) == '/') {
     findIndexForGetWhenOnlySlash(request, location);
-    std::cout <<"after: [" << request.getFilePath() << "]" << std::endl;
+    std::cout << "after: [" << request.getFilePath() << "]" << std::endl;
     if (*(request.getFilePath().rbegin()) == '/') {
       setStatusLineWithCode(404);
       return;
     }
   }
   std::cout << "filepath2: [" << request.getFilePath() << std::endl;
-  if (!isFileExist(request.getFilePath()) ){
+  if (!isFileExist(request.getFilePath())) {
     setStatusLineWithCode(404);
     return;
   } else {
@@ -216,8 +217,16 @@ void ResponseHandler::processPostMethod(Request &request, LocationConfig *&locat
     setStatusLineWithCode(this->response_->getStatusCode());
     return;
   }
-  if (!location->checkCgiExtension(request.getPath()) ||
-      location->getCgiPath().empty()) {
+  if (*(request.getFilePath().rbegin()) == '/') {
+    findIndexForGetWhenOnlySlash(request, location);
+    std::cout << "after: [" << request.getFilePath() << "]" << std::endl;
+    if (*(request.getFilePath().rbegin()) == '/') {
+      setStatusLineWithCode(404);
+      return;
+    }
+  }
+  if (!location->checkCgiExtension(request.getFilePath())) {
+    std::cout <<"getFilePath: [" <<request.getFilePath() << "]" <<std::endl;
     setStatusLineWithCode(405);
     return;
   }
@@ -306,7 +315,7 @@ bool ResponseHandler::isFileExist(const std::string &path) {
   // std::cout << "path: " << path << std::endl;
   if (stat(path.c_str(), &this->stat_buffer_) < 0) {
     std::cout << "this aint work" << std::endl;
-    std::cout << "why :[" << path << "]" <<std::endl;
+    std::cout << "why :[" << path << "]" << std::endl;
     return (false);
   }
   return (true);
@@ -386,7 +395,7 @@ void ResponseHandler::findIndexForGetWhenOnlySlash(Request &request, LocationCon
   std::string temp;
   for (it_index = location->getIndex().begin(); it_index != location->getIndex().end(); it_index++) {
     temp = request.getFilePath() + *it_index;
-    std::cout <<"temp: [" << temp << "]" << std::endl;
+    std::cout << "temp: [" << temp << "]" << std::endl;
     if (isFileExist(temp)) {
       request.setFilePath(request.getFilePath() + *it_index);
       break;

@@ -30,7 +30,6 @@ void RequestHandler::processByRecvPhase(Connection *c) {
     std::cout << "message header complete" << std::endl;
     parseHeaderLines(c);
   }
-  }
 }
 
 /* CHECK FUNCTIONS */

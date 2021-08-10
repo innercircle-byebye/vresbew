@@ -13,6 +13,25 @@
 
 namespace ft {
 
+enum MessageFromBufferStatus {
+  MESSAGE_START_LINE_INCOMPLETE = 0,
+  MESSAGE_START_LINE_COMPLETE,
+  MESSAGE_HEADER_INCOMPLETE,
+  MESSAGE_HEADER_COMPLETE,
+  MESSAGE_CHUNKED,        // to test chunked
+  MESSAGE_CGI_INCOMING,
+  MESSAGE_CGI_COMPLETE,
+  MESSAGE_BODY_INCOMING,
+  MESSAGE_BODY_COMPLETE,
+  MESSAGE_INTERRUPTED
+};
+
+enum ChunkedMessageStatus {
+  STR_SIZE = 0,
+  STR,
+  END
+};
+
 class Connection {
  private:
   bool listen_;

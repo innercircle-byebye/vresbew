@@ -123,6 +123,7 @@ void MessageHandler::handle_request_body(Connection *c) {
     // 0 CRLF CRLF 가 오면 끝납니다.
     // client max body size 가 넘어도 끝납니다.
     // 현재 문제 이곳에서 찾지를 못하고 있네요.. 이런 문제입니다...
+    // 만약 flow client max body size 면 400 error 를 반환해라
     if (is_chunk_finish(c) || check_flow_client_max_body_size(c)) {
       char *ptr;
 

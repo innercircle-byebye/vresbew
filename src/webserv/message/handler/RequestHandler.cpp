@@ -350,9 +350,9 @@ void RequestHandler::handleChunked(Connection *c) {
   size_t pos;
 
   if (c->chunked_checker_ == STR_SIZE) {
-    std::cout << "str_size" << std::endl;
+    // std::cout << "str_size" << std::endl;
     if ((pos = request_->getMsg().find("\r\n")) != std::string::npos) {
-      std::cout << "str_size string: " << request_->getMsg().substr(0, pos) << std::endl;
+      // std::cout << "str_size string: " << request_->getMsg().substr(0, pos) << std::endl;
       if ((c->chunked_str_size_ = (size_t)strtoul(request_->getMsg().substr(0, pos).c_str(), NULL, 16)) == 0 &&
           request_->getMsg().substr(0, pos).compare("0")) {
         c->getBodyBuf().clear();
@@ -369,7 +369,7 @@ void RequestHandler::handleChunked(Connection *c) {
     }
   }
   if (c->chunked_checker_ == STR) {
-    std::cout << "str" << std::endl;
+    // std::cout << "str" << std::endl;
     if (request_->getMsg().size() >= (c->chunked_str_size_ + 2) && !request_->getMsg().substr(c->chunked_str_size_, 2).compare("\r\n")) {
       c->appendBodyBuf((char *)request_->getMsg().c_str(), c->chunked_str_size_);
       request_->getMsg().erase(0, c->chunked_str_size_ + 2);
@@ -393,7 +393,6 @@ void RequestHandler::handleChunked(Connection *c) {
       else
         c->setRecvPhase(MESSAGE_BODY_COMPLETE);
       c->is_chunked_ = false;
-      std::cout << "((((((((((((((((c chunked false)))))))))))))))" << std::endl;
       c->chunked_checker_ = STR_SIZE;
     } else if (pos != std::string::npos)
       request_->getMsg().erase(0, pos + 2);

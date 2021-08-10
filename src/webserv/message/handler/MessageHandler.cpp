@@ -70,7 +70,6 @@ void MessageHandler::check_request_header(Connection *c) {
   }
 
   if (request_handler_.isUriDirectory(locationconfig_test) == true) {
-    std::cout << "????????????" << std::endl;
     c->status_code_ = 301;
     c->setRecvPhase(MESSAGE_BODY_COMPLETE);
     return;
@@ -110,8 +109,6 @@ void MessageHandler::check_cgi_process(Connection *c) {
   ServerConfig *serverconfig_test = c->getHttpConfig()->getServerConfig(c->getSockaddrToConnect().sin_port, c->getSockaddrToConnect().sin_addr.s_addr, c->getRequest().getHeaderValue("Host"));
   LocationConfig *locationconfig_test = serverconfig_test->getLocationConfig(c->getRequest().getPath());
 
-  std::cout << "\ncheck_cgi_process\n";
-  std::cout << c->getRequest().getPath() << ", " << locationconfig_test->getCgiPath() << " " << locationconfig_test->checkCgiExtension(c->getRequest().getPath()) << std::endl;
   if (!locationconfig_test->getCgiPath().empty() &&
       locationconfig_test->checkCgiExtension(c->getRequest().getPath())) {
     CgiHandler::init_cgi_child(c);

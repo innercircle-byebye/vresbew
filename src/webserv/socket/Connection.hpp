@@ -82,6 +82,7 @@ class Connection {
   Connection *eventAccept(SocketManager *sv);
 
   void clear();
+  void clearAtChunked();
 
   void  process_read_event(Kqueue *kq, SocketManager *sm);
   void  process_write_event(Kqueue *kq, SocketManager *sm);

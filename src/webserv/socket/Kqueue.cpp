@@ -86,14 +86,9 @@ void Kqueue::kqueueProcessEvents(SocketManager *sm) {
         else if (c->getRecvPhase() == MESSAGE_BODY_INCOMING)
           MessageHandler::handle_request_body(c);
         if (c->getRecvPhase() == MESSAGE_BODY_COMPLETE) {
-          std::cout << "filepath 3: [" << c->getRequest().getFilePath() << "]" << std::endl;
           if (c->status_code_ < 0)  // c->status_code_ 기본값 (-1) 일때 == 에러코드가 결정 되지 않았을 때 == 정상 request message 일 때
-          {
             MessageHandler::check_cgi_process(c);
-            std::cout << "filepath 3: [" << c->getRequest().getFilePath() << "]" << std::endl;
-          }
           if (c->getRecvPhase() == MESSAGE_CGI_COMPLETE) {
-            std::cout << "filepath 2: [" << c->getRequest().getFilePath() << "]" << std::endl;
             CgiHandler::handle_cgi_header(c);
             CgiHandler::setup_cgi_message(c);
           } else {

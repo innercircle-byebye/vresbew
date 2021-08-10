@@ -39,6 +39,7 @@ void CgiHandler::init_cgi_child(Connection *c) {
   close(c->writepipe[0]);
   // TODO: 실패 예외처리
   close(c->readpipe[1]);
+  memset(c->buffer_, 0, BUF_SIZE);
 
   // std::cout << "check body buf" << std::endl;
   // std::cout << c->getBodyBuf() << std::endl;
@@ -47,7 +48,6 @@ void CgiHandler::init_cgi_child(Connection *c) {
     close(c->writepipe[1]);
     read(c->readpipe[0], c->buffer_, BUF_SIZE);
     c->temp.append(c->buffer_);
-    memset(c->buffer_, 0, BUF_SIZE);
   } else {
     // // TODO: 수정 필요
     size_t size = c->getBodyBuf().size();
@@ -190,41 +190,6 @@ char **CgiHandler::setCommand(std::string command, std::string path) {
   return (return_value);
 }
 
-void CgiHandler::send_chunked_cgi_response_to_client_and_close(Connection *c) {
-  c->getResponse().setHeader("Content-Length", SSTR(c->temp.size()));
-  // c->getResponse().setHeader("Transfer-Encoding", "chunked");
-  MessageHandler::response_handler_.makeResponseHeader();
-  std::cout << "hihi" << std::endl;
-  // std::cout << "================header=============" << std::endl;
-  // std::cout << c->getResponse().getHeaderMsg().c_str() << std::endl;
-  // std::cout << "================header=============" << std::endl;
-
-  send(c->getFd(), c->getResponse().getHeaderMsg().c_str(), c->getResponse().getHeaderMsg().size(), 0);
-  // send(c->getFd(), c->getBodyBuf().c_str(), (size_t)c->getBodyBuf().size(), 0);
-
-  size_t size = c->temp.size();
-  std::cout << "temp_size 2: [" << c->temp.size() << "]" << std::endl;
-
-  for (size_t i = 0; i < size; i += 100000) {
-    // std::cout << "i: [" << i << "]" << std::endl;
-    size_t j = std::min(size, i + 100000);
-    send(c->getFd(), c->temp.substr(i, j).c_str(), j - i, 0);
-  }
-  // while ((nbytes = read(c->readpipe[0], c->buffer_, BUF_SIZE))) {
-  //   send(c->getFd(), c->buffer_, nbytes, 0);
-  //   memset(c->buffer_, 0, nbytes);
-  // }
-  std::cout << "byebye ================================================================== " << std::endl;
-  std::cout << *(c->temp.rbegin()) << std::endl;
-
-  close(c->readpipe[0]);
-  close(c->readpipe[1]);
-  close(c->writepipe[0]);
-  close(c->writepipe[1]);
-  // send(c->getFd(), &"\0", 1, 0);
-  waitpid(c->cgi_pid, NULL, 0);
-}
-
 void CgiHandler::receive_cgi_body(Connection *c) {
   size_t nbytes;
   if (c->getRecvPhase() == MESSAGE_CGI_COMPLETE) {
@@ -241,6 +206,11 @@ void CgiHandler::receive_cgi_body(Connection *c) {
 }
 
 void CgiHandler::setup_cgi_message(Connection *c) {
+  std::cout << "status_code: [" << c->status_code_ << "]" << std::endl;
+  if (c->status_code_ < 0 && !c->getResponse().getHeaderValue("X-Powered-By").compare("PHP/8.0.7")) {
+    c->status_code_ = 200;
+    MessageHandler::response_handler_.setStatusLineWithCode(200);
+  }
   if (c->getRequest().getHeaderValue("Content-Length").empty())
     c->getResponse().setHeader("Content-Length", SSTR(c->temp.size()));
   // c->getResponse().setHeader("Transfer-Encoding", "chunked");
@@ -250,7 +220,9 @@ void CgiHandler::setup_cgi_message(Connection *c) {
   // c->getResponse().setHeader("Connection", "close");
 
   MessageHandler::response_handler_.makeResponseHeader();
-
+  std::cout << "================temp=============" << std::endl;
+  std::cout << c->temp << std::endl;
+  std::cout << "================temp=============" << std::endl;
   // std::cout << "temp_size :" << c->temp.size() << std::endl;
   // std::cout << "================header=============" << std::endl;
   // std::cout << c->getResponse().getHeaderMsg().c_str() << std::endl;
@@ -259,9 +231,6 @@ void CgiHandler::setup_cgi_message(Connection *c) {
     c->getResponse().getHeaderMsg().append(c->temp);
   std::cout << "temp_size :" << c->temp.size() << std::endl;
   std::cout << "size      :" << c->getResponse().getHeaderMsg().size() << std::endl;
-  std::cout << "================header=============" << std::endl;
-  std::cout << c->getResponse().getHeaderMsg().substr(0, 300) << std::endl;
-  std::cout << "================header=============" << std::endl;
 
   // c->temp.clear();
 

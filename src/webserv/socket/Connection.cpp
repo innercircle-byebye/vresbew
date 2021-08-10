@@ -16,6 +16,7 @@ Connection::Connection()
   chunked_str_size_ = 0;
   is_chunked_ = false;
   send_len = 0;
+  client_max_body_size = -1;
   // real_send_len = 0;
 }
 
@@ -68,6 +69,7 @@ void Connection::clear() {
   temp.clear();
   send_len = 0;
   // real_send_len = 0;
+  client_max_body_size = -1;
 }
 
 /* SETTER */

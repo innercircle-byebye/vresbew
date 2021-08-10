@@ -31,6 +31,9 @@ void MessageHandler::check_request_header(Connection *c) {
   //t_uri uri_struct 전체 셋업하는 부분으로...
   request_handler_.setupUriStruct(serverconfig_test, locationconfig_test);
 
+  //client_max_body_size 셋업
+  c->client_max_body_size = locationconfig_test->getClientMaxBodySize();
+
   if (request_handler_.isHostHeaderExist() == false) {
     c->status_code_ = 400;
     c->setRecvPhase(MESSAGE_BODY_COMPLETE);

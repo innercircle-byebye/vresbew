@@ -64,6 +64,8 @@ class Connection {
   int chunked_checker_;
   size_t chunked_str_size_;
 
+  int client_max_body_size;
+
   size_t send_len;
   size_t real_send_len;
 

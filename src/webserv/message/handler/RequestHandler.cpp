@@ -350,87 +350,92 @@ void RequestHandler::applyReturnDirectiveStatusCode(Connection *c, LocationConfi
 void RequestHandler::handleChunked(Connection *c) {
   size_t pos;
 
-  if (c->chunked_checker_ == STR_SIZE) {
-    // std::cout << "str_size" << std::endl;
-    if ((pos = request_->getMsg().find("\r\n")) != std::string::npos) {
-      // std::cout << "max body size: " << c->client_max_body_size << ", " << c->getBodyBuf().length() << std::endl;
-      if (c->client_max_body_size < c->getBodyBuf().length()) {
-        c->getBodyBuf().clear();
-        c->status_code_ = 413;
-        c->setRecvPhase(MESSAGE_BODY_COMPLETE);
-        c->is_chunked_ = false;
-        return;
-      }
-      // std::cout << "str_size string: " << request_->getMsg().substr(0, pos) << std::endl;
-      c->chunked_str_size_ = (size_t)strtoul(request_->getMsg().substr(0, pos).c_str(), NULL, 16);
-      std::cout << "it must be zero!! >> ";
-      if (c->size_before == 16960)
-        std::cout << c->chunked_str_size_ << std::endl;
-      c->size_before = c->chunked_str_size_;
-      if (c->chunked_str_size_ == 0) {
-        for (size_t i = 0; i < pos; ++i) {
-          if (request_->getMsg()[i] != '0') {
-            c->getBodyBuf().clear();
-            c->status_code_ = 400;
-            c->setRecvPhase(MESSAGE_BODY_COMPLETE);
-            c->is_chunked_ = false;
-            return;
+  while ((pos = request_->getMsg().find("\r\n")) != std::string::npos) {
+    if (c->chunked_checker_ == STR_SIZE) {
+      if ((pos = request_->getMsg().find("\r\n")) != std::string::npos) {
+        // std::cout << "max body size: " << c->client_max_body_size << ", " << c->getBodyBuf().length() << std::endl;
+        if (c->client_max_body_size < c->getBodyBuf().length()) {
+          c->getBodyBuf().clear();
+          c->status_code_ = 413;
+          c->setRecvPhase(MESSAGE_BODY_COMPLETE);
+          c->is_chunked_ = false;
+          return;
+        }
+        // std::cout << "str_size string: " << request_->getMsg().substr(0, pos) << std::endl;
+        c->chunked_str_size_ = (size_t)strtoul(request_->getMsg().substr(0, pos).c_str(), NULL, 16);
+        if (c->size_before == 16960) {
+          std::cout << "it must be zero!! >> ";
+          std::cout << c->chunked_str_size_ << std::endl;
+        }
+        c->size_before = c->chunked_str_size_;
+        if (c->chunked_str_size_ == 0) {
+          for (size_t i = 0; i < pos; ++i) {
+            if (request_->getMsg()[i] != '0') {
+              c->getBodyBuf().clear();
+              c->status_code_ = 400;
+              c->setRecvPhase(MESSAGE_BODY_COMPLETE);
+              c->is_chunked_ = false;
+              return;
+            }
           }
         }
-      }
-      // std::cout << "fd: " << c->getFd() << ", chunked_size : " << c->chunked_str_size_;
-      request_->getMsg().erase(0, pos + 2);
-      if (c->chunked_str_size_ == 0)
-        c->chunked_checker_ = END;
-      else
-        c->chunked_checker_ = STR;
-      // std::cout << ", chunked_checker_ : " << c->chunked_checker_ << std::endl;
-    }
-  }
-  if (c->chunked_checker_ == STR) {
-    // std::cout << "str" << std::endl;
-    if (request_->getMsg().size() >= (c->chunked_str_size_ + 2) && !request_->getMsg().substr(c->chunked_str_size_, 2).compare("\r\n")) {
-      c->appendBodyBuf((char *)request_->getMsg().c_str(), c->chunked_str_size_);
-      if (c->getBodyBuf().size() == 1000000)
-        std::cout << "all in=============================>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> " << c->chunked_str_size_ << std::endl;
-      request_->getMsg().erase(0, c->chunked_str_size_ + 2);
-      c->chunked_checker_ = STR_SIZE;
-      if (request_->getMethod() == "PUT") {
-        // std::cout << "=============request msg=============" << std::endl;
-        // // for (size_t i = 0; i < c->getBodyBuf().size(); ++i){
-        //   std::cout << c->getBodyBuf()[0] << std::endl;
-        // // }
-        // // std::cout << std::endl;
-        // // std::cout << c->getBodyBuf() << std::endl;
-        // std::cout << "=====================================" << std::endl;
-      }
-    }
-    if (request_->getMsg().size() >= c->chunked_str_size_ + 4) {
-      c->getBodyBuf().clear();
-      c->status_code_ = 400;
-      c->setRecvPhase(MESSAGE_BODY_COMPLETE);
-      return;
-    }
-  }
-  if (c->chunked_checker_ == END) {
-    pos = request_->getMsg().find("\r\n");
-    if (pos != std::string::npos)
-      std::cout << "pos: " << pos << std::endl;
-    if (pos == 0) {
-      request_->getMsg().clear();
-      if (c->status_code_ > 0) {
-        c->setRecvPhase(MESSAGE_START_LINE_INCOMPLETE);
-        c->status_code_ = -1;
-        std::cout << "chunked end with error" << std::endl;
+        // std::cout << "fd: " << c->getFd() << ", chunked_size : " << c->chunked_str_size_;
+        request_->getMsg().erase(0, pos + 2);
+        if (c->chunked_str_size_ == 0)
+          c->chunked_checker_ = END;
+        else
+          c->chunked_checker_ = STR;
+        // std::cout << ", chunked_checker_ : " << c->chunked_checker_ << std::endl;
       }
       else {
-        c->setRecvPhase(MESSAGE_BODY_COMPLETE);
-        std::cout << "chunked end" << std::endl;
+        std::cout << "11111111111111" << std::endl;
       }
-      c->is_chunked_ = false;
-      c->chunked_checker_ = STR_SIZE;
-    } else if (pos != std::string::npos)
-      request_->getMsg().erase(0, pos + 2);
+    }
+    if (c->chunked_checker_ == STR) {
+      // std::cout << "str" << std::endl;
+      if (request_->getMsg().size() >= (c->chunked_str_size_ + 2) && !request_->getMsg().substr(c->chunked_str_size_, 2).compare("\r\n")) {
+        c->appendBodyBuf((char *)request_->getMsg().c_str(), c->chunked_str_size_);
+        if (c->getBodyBuf().size() == 1000000)
+          std::cout << "all in=============================>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> " << c->chunked_str_size_ << std::endl;
+        request_->getMsg().erase(0, c->chunked_str_size_ + 2);
+        c->chunked_checker_ = STR_SIZE;
+        if (request_->getMethod() == "PUT") {
+          // std::cout << "=============request msg=============" << std::endl;
+          // // for (size_t i = 0; i < c->getBodyBuf().size(); ++i){
+          //   std::cout << c->getBodyBuf()[0] << std::endl;
+          // // }
+          // // std::cout << std::endl;
+          // // std::cout << c->getBodyBuf() << std::endl;
+          // std::cout << "=====================================" << std::endl;
+        }
+      }
+      if (request_->getMsg().size() >= c->chunked_str_size_ + 4) {
+        c->getBodyBuf().clear();
+        c->status_code_ = 400;
+        c->setRecvPhase(MESSAGE_BODY_COMPLETE);
+        return;
+      }
+    }
+    if (c->chunked_checker_ == END) {
+      pos = request_->getMsg().find("\r\n");
+      if (pos != std::string::npos)
+        std::cout << "pos: " << pos << std::endl;
+      if (pos == 0) {
+        request_->getMsg().clear();
+        if (c->status_code_ > 0) {
+          c->setRecvPhase(MESSAGE_START_LINE_INCOMPLETE);
+          c->status_code_ = -1;
+          std::cout << "chunked end with error" << std::endl;
+        }
+        else {
+          c->setRecvPhase(MESSAGE_BODY_COMPLETE);
+          std::cout << "chunked end" << std::endl;
+        }
+        c->is_chunked_ = false;
+        c->chunked_checker_ = STR_SIZE;
+      } else if (pos != std::string::npos)
+        request_->getMsg().erase(0, pos + 2);
+    }
   }
 }
 

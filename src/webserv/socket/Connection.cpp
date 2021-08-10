@@ -114,9 +114,8 @@ void  Connection::process_read_event(Kqueue *kq, SocketManager *sm) {
         this->recv_phase_ == MESSAGE_CHUNKED) {
       MessageHandler::handle_request_header(this);
     }
-    if (this->recv_phase_ == MESSAGE_HEADER_COMPLETE) {
+    if (this->recv_phase_ == MESSAGE_HEADER_COMPLETE)
       MessageHandler::check_request_header(this);
-    }
     if (this->recv_phase_ == MESSAGE_CHUNKED)
       MessageHandler::handle_chunked_body(this);
     else if (this->recv_phase_ == MESSAGE_BODY_INCOMING)
@@ -141,33 +140,20 @@ void  Connection::process_read_event(Kqueue *kq, SocketManager *sm) {
 void Connection::process_write_event(Kqueue *kq, SocketManager *sm) {
   if (this->interrupted == true) {
     sm->closeConnection(this);
-    this->clear();
   } else if (this->recv_phase_ == MESSAGE_CGI_COMPLETE) {
     if (this->send_len < this->response_.getHeaderMsg().size()) {
-      ssize_t real_send_len;
       size_t j = std::min(this->response_.getHeaderMsg().size(), this->send_len + BUF_SIZE);
-      real_send_len = send(this->fd_, &(this->response_.getHeaderMsg()[this->send_len]), j - this->send_len, 0);
-      // std::cout << "real_send_len: [" << real_send_len << "]" << std::endl;
+      ssize_t real_send_len = send(this->fd_, &(this->response_.getHeaderMsg()[this->send_len]), j - this->send_len, 0);  // -1인 경우 처리?  
       this->send_len += real_send_len;
-      if (this->send_len >= this->response_.getHeaderMsg().size()) {
-        if (!this->response_.getHeaderValue("Connection").compare("close") ||
-            !this->request_.getHttpVersion().compare("HTTP/1.0")) {
-          sm->closeConnection(this);
-          return ;
-        } else {
-          kq->kqueueSetEvent(this, EVFILT_WRITE, EV_DELETE);
-          kq->kqueueSetEvent(this, EVFILT_READ, EV_ADD);
-        }
-        this->clear();
-      }
-    } else {
-      if (!this->response_.getHeaderValue("Connection").compare("close") ||
-          !this->request_.getHttpVersion().compare("HTTP/1.0")) {
-        sm->closeConnection(this);
-      } else {
-        kq->kqueueSetEvent(this, EVFILT_WRITE, EV_DELETE);
-        kq->kqueueSetEvent(this, EVFILT_READ, EV_ADD);
-      }
+    }
+    if (!this->response_.getHeaderValue("Connection").compare("close") ||
+        !this->request_.getHttpVersion().compare("HTTP/1.0")) {
+      sm->closeConnection(this);
+      return ;
+    }
+    if (this->send_len >= this->response_.getHeaderMsg().size()) {
+      kq->kqueueSetEvent(this, EVFILT_WRITE, EV_DELETE);
+      kq->kqueueSetEvent(this, EVFILT_READ, EV_ADD);
       this->clear();
     }
   } else if (this->recv_phase_ == MESSAGE_BODY_COMPLETE) {
@@ -175,19 +161,18 @@ void Connection::process_write_event(Kqueue *kq, SocketManager *sm) {
     if (!this->response_.getHeaderValue("Connection").compare("close") ||
         !this->request_.getHttpVersion().compare("HTTP/1.0")) {
       sm->closeConnection(this);
-      this->clear();
-    } else {
-      if (is_chunked_)
-        this->recv_phase_ = MESSAGE_CHUNKED;
-      else
-      {
-        this->recv_phase_ = MESSAGE_START_LINE_INCOMPLETE;
-        this->status_code_ = -1;
-      }
-      kq->kqueueSetEvent(this, EVFILT_WRITE, EV_DELETE);
-      kq->kqueueSetEvent(this, EVFILT_READ, EV_ADD);
-      this->clearAtChunked();
+      return ;
     }
+    if (is_chunked_)
+      this->recv_phase_ = MESSAGE_CHUNKED;
+    else
+    {
+      this->recv_phase_ = MESSAGE_START_LINE_INCOMPLETE;
+      this->status_code_ = -1;
+    }
+    kq->kqueueSetEvent(this, EVFILT_WRITE, EV_DELETE);
+    kq->kqueueSetEvent(this, EVFILT_READ, EV_ADD);
+    this->clearAtChunked();
   } 
   memset(this->buffer_, 0, BUF_SIZE);
 }

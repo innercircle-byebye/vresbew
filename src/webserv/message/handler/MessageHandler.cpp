@@ -122,8 +122,10 @@ void MessageHandler::handle_chunked_body(Connection *c) {
 
   c->getRequest().getMsg().append(c->buffer_);
   request_handler_.handleChunked(c);
-  // if (c->chunked_checker_ == 0)
-  //   c->setRecvPhase(MESSAGE_BODY_COMPLETE);
+  if (c->getRecvPhase() == MESSAGE_CHUNKED_REMAINDER && c->chunked_checker_ == 0)
+  {
+    c->clear();
+  }
   std::cout << "c_chunked_checker: " << c->chunked_checker_ << std::endl;
 }
 void MessageHandler::handle_request_body(Connection *c) {

@@ -66,11 +66,17 @@ void Kqueue::kqueueProcessEvents(SocketManager *sm) {
             c->setRecvPhase(MESSAGE_BODY_COMPLETE);
           }
         }
-        // TODO: remove; for debug
-        // std::cout << "=========c->buffer_=========" << std::endl;
-        // std::cout << c->buffer_ << std::endl;
-        // std::cout << "=========c->buffer_=========" << std::endl;
-        if (c->getRecvPhase() == MESSAGE_START_LINE_INCOMPLETE ||
+        if (c->getRecvPhase() == MESSAGE_CHUNKED_REMAINDER)
+        {
+          std::cout << "ssup==========================" << std::endl;
+          c->appendBodyBuf(c->buffer_);
+          if (c->getBodyBuf().find("0\r\n\r\n") != std::string::npos)
+          {
+            c->clear();
+            continue;
+          }
+        }
+        else if (c->getRecvPhase() == MESSAGE_START_LINE_INCOMPLETE ||
             c->getRecvPhase() == MESSAGE_START_LINE_COMPLETE ||
             c->getRecvPhase() == MESSAGE_HEADER_INCOMPLETE) {
           MessageHandler::handle_request_header(c);
@@ -78,12 +84,10 @@ void Kqueue::kqueueProcessEvents(SocketManager *sm) {
         if (c->getRecvPhase() == MESSAGE_HEADER_COMPLETE) {
           MessageHandler::check_request_header(c);
         }
-        if (c->getRecvPhase() == MESSAGE_CHUNKED)
-        {
+        if (c->getRecvPhase() == MESSAGE_CHUNKED) {
           std::cout << "do I even get here" << std::endl;
           MessageHandler::handle_chunked_body(c);
-        }
-        else if (c->getRecvPhase() == MESSAGE_BODY_INCOMING)
+        } else if (c->getRecvPhase() == MESSAGE_BODY_INCOMING)
           MessageHandler::handle_request_body(c);
         if (c->getRecvPhase() == MESSAGE_BODY_COMPLETE) {
           if (c->status_code_ < 0)  // c->status_code_ 기본값 (-1) 일때 == 에러코드가 결정 되지 않았을 때 == 정상 request message 일 때
@@ -135,6 +139,7 @@ void Kqueue::kqueueProcessEvents(SocketManager *sm) {
             }
             c->clear();
           }
+          std::cout << "stage aaaaaaaaaa" << std::endl;
         } else if (c->getRecvPhase() == MESSAGE_BODY_COMPLETE) {
           MessageHandler::send_response_to_client(c);
           std::cout << "Complete" << std::endl;
@@ -145,7 +150,14 @@ void Kqueue::kqueueProcessEvents(SocketManager *sm) {
             kqueueSetEvent(c, EVFILT_WRITE, EV_DELETE);
             kqueueSetEvent(c, EVFILT_READ, EV_ADD);
           }
-          c->clear();
+          if (c->is_chunked_ == true && c->status_code_ == 405)
+          {
+            c->clear();
+            c->setRecvPhase(MESSAGE_CHUNKED_REMAINDER);
+          }
+          else
+            c->clear();
+          std::cout << "stage bbbbbb" << std::endl;
         }
       }
       // c->clear();

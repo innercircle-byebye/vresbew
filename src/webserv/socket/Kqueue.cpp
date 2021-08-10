@@ -66,19 +66,16 @@ void Kqueue::kqueueProcessEvents(SocketManager *sm) {
             c->setRecvPhase(MESSAGE_BODY_COMPLETE);
           }
         }
-        if (c->getRecvPhase() == MESSAGE_CHUNKED_REMAINDER)
-        {
+        if (c->getRecvPhase() == MESSAGE_CHUNKED_REMAINDER) {
           std::cout << "ssup==========================" << std::endl;
           c->appendBodyBuf(c->buffer_);
-          if (c->getBodyBuf().find("0\r\n\r\n") != std::string::npos)
-          {
+          if (c->getBodyBuf().find("0\r\n\r\n") != std::string::npos) {
             c->clear();
             continue;
           }
-        }
-        else if (c->getRecvPhase() == MESSAGE_START_LINE_INCOMPLETE ||
-            c->getRecvPhase() == MESSAGE_START_LINE_COMPLETE ||
-            c->getRecvPhase() == MESSAGE_HEADER_INCOMPLETE) {
+        } else if (c->getRecvPhase() == MESSAGE_START_LINE_INCOMPLETE ||
+                   c->getRecvPhase() == MESSAGE_START_LINE_COMPLETE ||
+                   c->getRecvPhase() == MESSAGE_HEADER_INCOMPLETE) {
           MessageHandler::handle_request_header(c);
         }
         if (c->getRecvPhase() == MESSAGE_HEADER_COMPLETE) {
@@ -150,12 +147,10 @@ void Kqueue::kqueueProcessEvents(SocketManager *sm) {
             kqueueSetEvent(c, EVFILT_WRITE, EV_DELETE);
             kqueueSetEvent(c, EVFILT_READ, EV_ADD);
           }
-          if (c->is_chunked_ == true && c->status_code_ == 405)
-          {
+          if (c->getRequest().getHeaderValue("Transfer-Encoding").compare("chunked") == 0 && c->status_code_ == 405) {
             c->clear();
             c->setRecvPhase(MESSAGE_CHUNKED_REMAINDER);
-          }
-          else
+          } else
             c->clear();
           std::cout << "stage bbbbbb" << std::endl;
         }

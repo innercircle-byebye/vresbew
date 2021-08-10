@@ -15,25 +15,25 @@ void RequestHandler::appendMsg(const char *buffer) {
 
 void RequestHandler::processByRecvPhase(Connection *c) {
   if (c->getRecvPhase() == MESSAGE_START_LINE_INCOMPLETE) {
-    std::cout << "a" << std::endl;
+    std::cout << "start_line_incomplete" << std::endl;
     checkMsgForStartLine(c);
   }
   if (c->getRecvPhase() == MESSAGE_START_LINE_COMPLETE) {
-    std::cout << "b" << std::endl;
+    std::cout << "start line complete" << std::endl;
     parseStartLine(c);
   }
   if (c->getRecvPhase() == MESSAGE_HEADER_INCOMPLETE) {
-    std::cout << "c" << std::endl;
+    std::cout << "message header incomplete" << std::endl;
     checkMsgForHeader(c);
   }
   if (c->getRecvPhase() == MESSAGE_HEADER_COMPLETE) {
-    std::cout << "d" << std::endl;
+    std::cout << "message header complete" << std::endl;
     parseHeaderLines(c);
   }
-  // if (c->getRecvPhase() == MESSAGE_CHUNKED) {
-  //   std::cout << "e" << std::endl;
-  //   handleChunked(c);
-  // }
+  if (c->getRecvPhase() == MESSAGE_CHUNKED) {
+    std::cout << "message chunked" << std::endl;
+    handleChunked(c);
+  }
 }
 
 /* CHECK FUNCTIONS */
@@ -236,6 +236,9 @@ void RequestHandler::parseHeaderLines(Connection *c) {
     }
     header_lines.erase(0, pos + 2);
   }
+  if (c->getRequest().getMethod().compare("GET") && c->getRequest().getMethod().compare("HEAD") &&
+      c->getRequest().getHeaderValue("Content-Length").empty() && !c->getRequest().getHeaderValue("Transfer-Encoding").compare("chunked"))
+    c->setRecvPhase(MESSAGE_CHUNKED);
 }
 
 // 실패 시 c->status_code_에 에러 코드가 발생 하도록

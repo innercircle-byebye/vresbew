@@ -4,8 +4,10 @@
 #include "webserv/logger/Logger.hpp"
 #include "webserv/message/Request.hpp"
 #include "webserv/message/Response.hpp"
+#include "webserv/socket/Kqueue.hpp"
 #include "webserv/socket/Listening.hpp"
 #include "webserv/socket/SocketManager.hpp"
+#include "webserv/message/handler/MessageHandler.hpp"
 #include "webserv/webserv.hpp"
 
 namespace ft {
@@ -78,6 +80,9 @@ class Connection {
   Connection *eventAccept(SocketManager *sv);
 
   void clear();
+
+  void  process_read_event(Kqueue *kq, SocketManager *sm);
+  void  process_write_event(Kqueue *kq, SocketManager *sm);
 
   void setListen(bool listen);
   void setNext(Connection *next);

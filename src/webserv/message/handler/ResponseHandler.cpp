@@ -23,7 +23,7 @@ void ResponseHandler::setServerConfig(HttpConfig *http_config, struct sockaddr_i
 
 void ResponseHandler::executeMethod(Request &request) {
   LocationConfig *location = this->server_config_->getLocationConfig(request.getPath());
-  std::cout << "getPath: " << request.getPath() << std::endl;
+  // std::cout << "getPath: " << request.getPath() << std::endl;
   if (request.getMethod() == "GET" || request.getMethod() == "HEAD")
     processGetAndHeaderMethod(request, location);
   else if (request.getMethod() == "PUT")
@@ -220,7 +220,7 @@ void ResponseHandler::processPostMethod(Request &request, LocationConfig *&locat
     return;
   }
   if (!location->checkCgiExtension(request.getFilePath())) {
-    std::cout << "getFilePath: 2[" << request.getFilePath() << "]" << std::endl;
+    // std::cout << "getFilePath: 2[" << request.getFilePath() << "]" << std::endl;
     setStatusLineWithCode(405);
     return;
   }
@@ -234,7 +234,7 @@ void ResponseHandler::processDeleteMethod(const std::string &uri, LocationConfig
   // if path is directory -> 409 Conflict and do nothing
   // if file is missing -> 404 not found
   // if file is available -> 204 No Content and delete the file
-  std::cout << "start process delete method : " << uri << std::endl;
+  // std::cout << "start process delete method : " << uri << std::endl;
   if (!uri.compare("/")) {  // URI 에 "/" 만 있는 경우
     std::string url = getAccessPath(uri);
     if (stat(url.c_str(), &this->stat_buffer_) < 0) {
@@ -308,15 +308,15 @@ bool ResponseHandler::isFileExist(const std::string &path) {
   //           << path << std::endl;
   // std::cout << "path: " << path << std::endl;
   if (stat(path.c_str(), &this->stat_buffer_) < 0) {
-    std::cout << "this aint work" << std::endl;
-    std::cout << "why :[" << path << "]" << std::endl;
+    // std::cout << "this aint work" << std::endl;
+    // std::cout << "why :[" << path << "]" << std::endl;
     return (false);
   }
   return (true);
 }
 bool ResponseHandler::isFileExist(const std::string &path, LocationConfig *&location) {
   if (stat(getAccessPath(path, location).c_str(), &this->stat_buffer_) < 0) {
-    std::cout << "this doesn't work" << std::endl;
+    // std::cout << "this doesn't work" << std::endl;
     return (false);
   }
   return (true);
@@ -389,7 +389,7 @@ void ResponseHandler::findIndexForGetWhenOnlySlash(Request &request, LocationCon
   std::string temp;
   for (it_index = location->getIndex().begin(); it_index != location->getIndex().end(); it_index++) {
     temp = request.getFilePath() + *it_index;
-    std::cout << "temp: [" << temp << "]" << std::endl;
+    // std::cout << "temp: [" << temp << "]" << std::endl;
     if (isFileExist(temp)) {
       request.setFilePath(request.getFilePath() + *it_index);
       break;
@@ -400,19 +400,19 @@ void ResponseHandler::findIndexForGetWhenOnlySlash(Request &request, LocationCon
 
 int ResponseHandler::remove_file(std::string file_name) {
   if (remove(file_name.c_str()) != 0) {
-    std::cout << "fail remove " << file_name << std::endl;
+    // std::cout << "fail remove " << file_name << std::endl;
     return (-1);
   }
-  std::cout << "sucess remove file " << file_name << std::endl;
+  // std::cout << "sucess remove file " << file_name << std::endl;
   return (0);
 }
 
 int ResponseHandler::remove_directory(std::string directory_name) {
   if (rmdir(directory_name.c_str()) != 0) {
-    std::cout << "fail remove " << directory_name << std::endl;
+    // std::cout << "fail remove " << directory_name << std::endl;
     return (-1);
   }
-  std::cout << "sucess remove file " << directory_name << std::endl;
+  // std::cout << "sucess remove file " << directory_name << std::endl;
   return (0);
 }
 

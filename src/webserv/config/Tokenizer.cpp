@@ -96,7 +96,7 @@ std::vector<std::string> Tokenizer::parse(const std::string &file) {
 
 void Tokenizer::endToken(Token &token, std::vector<std::string> &tokens) {
   if (token.m_type == COMMENT) {
-    std::cout << "Ignoring comment " + token.m_text << std::endl;
+    // std::cout << "Ignoring comment " + token.m_text << std::endl;
   } else if (token.m_type != WHITESPACE) {
     tokens.push_back(token.m_text);
   }

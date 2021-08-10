@@ -50,6 +50,7 @@ void Kqueue::kqueueProcessEvents(SocketManager *sm) {
 
     if (event_list_[i].flags & EV_ERROR) {
       Logger::logError(LOG_ALERT, "%d kevent() error on %d filter:%d", events, (int)event_list_[i].ident, (int)event_list_[i].filter);
+      sm->closeConnection(c);
       continue;
     } else if (event_list_[i].filter == EVFILT_READ) {
       if (event_list_[i].flags & EV_EOF) {

@@ -54,7 +54,7 @@ void MessageHandler::check_request_header(Connection *c) {
   }
   if (*(c->getRequest().getFilePath().rbegin()) == '/') {
     request_handler_.findIndexForGetWhenOnlySlash(locationconfig_test);
-    std::cout << "after: [" << c->getRequest().getFilePath() << "]" << std::endl;
+    // std::cout << "after: [" << c->getRequest().getFilePath() << "]" << std::endl;
     if (*(c->getRequest().getFilePath().rbegin()) == '/') {
       c->status_code_ = 404;
       c->setRecvPhase(MESSAGE_BODY_COMPLETE);
@@ -88,6 +88,7 @@ void MessageHandler::check_request_header(Connection *c) {
 
   if (c->getRequest().getMethod().compare("GET") && c->getRequest().getMethod().compare("HEAD") &&
       c->getRequest().getHeaderValue("Content-Length").empty() && !c->getRequest().getHeaderValue("Transfer-Encoding").compare("chunked")) {
+    std::cout << "chunked in!!!!!!!!!!!!!!!!" << std::endl;
     c->setRecvPhase(MESSAGE_CHUNKED);
     c->is_chunked_ = true;
   } else if (c->getRequest().getMethod() == "GET") {
@@ -146,8 +147,8 @@ void MessageHandler::execute_server_side(Connection *c) {
   response_handler_.setResponse(&c->getResponse(), &c->getBodyBuf());
   response_handler_.setServerConfig(c->getHttpConfig(), c->getSockaddrToConnect(), c->getRequest().getHeaderValue("Host"));
 
-  std::cout << "getFilePath: 1 [" << c->getRequest().getFilePath() << "]" << std::endl;
-  std::cout << "c->status_code: 1[" << c->status_code_ << "]" << std::endl;
+  // std::cout << "getFilePath: 1 [" << c->getRequest().getFilePath() << "]" << std::endl;
+  // std::cout << "c->status_code: 1[" << c->status_code_ << "]" << std::endl;
 
   // status_code 기본값: -1
   if (c->status_code_ > 0) {

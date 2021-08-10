@@ -51,9 +51,9 @@ void CgiHandler::init_cgi_child(Connection *c) {
   } else {
     // // TODO: 수정 필요
     size_t size = c->getBodyBuf().size();
-    std::cout << "================body_buf_size=============" << std::endl;
-    std::cout << c->getBodyBuf().size() << std::endl;
-    std::cout << "================body_buf_size=============" << std::endl;
+    // std::cout << "================body_buf_size=============" << std::endl;
+    // std::cout << c->getBodyBuf().size() << std::endl;
+    // std::cout << "================body_buf_size=============" << std::endl;
     for (size_t i = 0; i < size; i += BUF_SIZE) {
       // std::cout << "i: [" << i << "]" << std::endl;
       size_t j = std::min(size, BUF_SIZE + i);
@@ -87,8 +87,8 @@ void CgiHandler::init_cgi_child(Connection *c) {
 void CgiHandler::handle_cgi_header(Connection *c) {
   MessageHandler::response_handler_.setResponse(&c->getResponse(), &c->getBodyBuf());
 
-  std::cout << "am i even working" << std::endl;
-  std::cout << "temp_size 1: [" << c->temp.size() << "]" << std::endl;
+  // std::cout << "am i even working" << std::endl;
+  // std::cout << "temp_size 1: [" << c->temp.size() << "]" << std::endl;
 
   // nbytes = read(c->readpipe[0], c->buffer_, BUF_SIZE);
   // std::cout << "c->buffer" << c->buffer_ << std::endl;
@@ -114,8 +114,8 @@ void CgiHandler::handle_cgi_header(Connection *c) {
         MessageHandler::response_handler_.setStatusLineWithCode(stoi(value));
         c->status_code_ = stoi(value);
       }
-      std::cout << "key: " << key << std::endl;
-      std::cout << "value: " << value << std::endl;
+      // std::cout << "key: " << key << std::endl;
+      // std::cout << "value: " << value << std::endl;
       if (key.compare("Status") != 0)
         c->getResponse().setHeader(key, value);
       cgi_output_response_header.erase(0, pos + 2);
@@ -206,7 +206,7 @@ void CgiHandler::receive_cgi_body(Connection *c) {
 }
 
 void CgiHandler::setup_cgi_message(Connection *c) {
-  std::cout << "status_code: [" << c->status_code_ << "]" << std::endl;
+  // std::cout << "status_code: [" << c->status_code_ << "]" << std::endl;
   if (c->status_code_ < 0 && !c->getResponse().getHeaderValue("X-Powered-By").compare("PHP/8.0.7")) {
     c->status_code_ = 200;
     MessageHandler::response_handler_.setStatusLineWithCode(200);
@@ -229,8 +229,8 @@ void CgiHandler::setup_cgi_message(Connection *c) {
   // std::cout << "================header=============" << std::endl;
   if (!c->temp.empty())
     c->getResponse().getHeaderMsg().append(c->temp);
-  std::cout << "temp_size :" << c->temp.size() << std::endl;
-  std::cout << "size      :" << c->getResponse().getHeaderMsg().size() << std::endl;
+  // std::cout << "temp_size :" << c->temp.size() << std::endl;
+  // std::cout << "size      :" << c->getResponse().getHeaderMsg().size() << std::endl;
 
   // c->temp.clear();
 

@@ -88,7 +88,8 @@ void Kqueue::kqueueProcessEvents(SocketManager *sm) {
           MessageHandler::handle_request_body(c);
         if (c->getRecvPhase() == MESSAGE_BODY_COMPLETE || c->getRecvPhase() == MESSAGE_CGI_COMPLETE) {
           memset(c->buffer_, 0, recv_len);
-          kqueueSetEvent(c, EVFILT_WRITE, EV_ADD | EV_ONESHOT);
+          kqueueSetEvent(c, EVFILT_READ, EV_DELETE);
+          kqueueSetEvent(c, EVFILT_WRITE, EV_ADD);
         }
         memset(c->buffer_, 0, recv_len);
       }
@@ -113,6 +114,10 @@ void Kqueue::kqueueProcessEvents(SocketManager *sm) {
                   !c->getRequest().getHttpVersion().compare("HTTP/1.0")) {
                 sm->closeConnection(c);
               }
+              else {
+                kqueueSetEvent(c, EVFILT_WRITE, EV_DELETE);
+                kqueueSetEvent(c, EVFILT_READ, EV_ADD);
+              }
               c->clear();
               continue;
             } else
@@ -125,6 +130,10 @@ void Kqueue::kqueueProcessEvents(SocketManager *sm) {
           if (!c->getResponse().getHeaderValue("Connection").compare("close") ||
               !c->getRequest().getHttpVersion().compare("HTTP/1.0")) {
             sm->closeConnection(c);
+          }
+          else {
+            kqueueSetEvent(c, EVFILT_WRITE, EV_DELETE);
+            kqueueSetEvent(c, EVFILT_READ, EV_ADD);
           }
           c->clear();
         }

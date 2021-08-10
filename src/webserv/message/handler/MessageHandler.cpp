@@ -53,7 +53,7 @@ void MessageHandler::check_request_header(Connection *c) {
   }
 
   if (request_handler_.isUriFileExist(locationconfig_test) == false &&
-      c->getRequest().getMethod() != "PUT") {
+      c->getRequest().getMethod() != "PUT" && c->getRequest().getMethod() != "POST") {
     c->status_code_ = 404;
     c->setRecvPhase(MESSAGE_BODY_COMPLETE);
     return;
@@ -66,6 +66,8 @@ void MessageHandler::check_request_header(Connection *c) {
   }
 
   if (request_handler_.isAllowedMethod(locationconfig_test) == false) {
+    std::cout << "getFilePath: 999[" << c->getRequest().getFilePath() << "]" << std::endl;
+
     std::cout << "here?" << std::endl;
     c->status_code_ = 405;
     c->setRecvPhase(MESSAGE_BODY_COMPLETE);
@@ -82,8 +84,11 @@ void MessageHandler::check_request_header(Connection *c) {
     return;
   }
 
-  // TODO: 조건문 정리 CHUNKED_CHUNKED
-  if (c->getRequest().getMethod() == "GET") {
+  if (c->getRequest().getMethod().compare("GET") && c->getRequest().getMethod().compare("HEAD") &&
+      c->getRequest().getHeaderValue("Content-Length").empty() && !c->getRequest().getHeaderValue("Transfer-Encoding").compare("chunked")) {
+    c->setRecvPhase(MESSAGE_CHUNKED);
+    c->is_chunked_ = true;
+  } else if (c->getRequest().getMethod() == "GET") {
     c->is_chunked_ = false;
     c->getBodyBuf().clear();
     c->setStringBufferContentLength(-1);
@@ -107,6 +112,14 @@ void MessageHandler::check_cgi_process(Connection *c) {
   }
 }
 
+void MessageHandler::handle_chunked_body(Connection *c) {
+  request_handler_.setRequest(&c->getRequest());
+
+  c->getRequest().getMsg().append(c->buffer_);
+  request_handler_.handleChunked(c);
+  std::cout << "c_chunked_checker: "<< c->chunked_checker_ <<std::endl;
+
+}
 void MessageHandler::handle_request_body(Connection *c) {
   check_interrupt_received(c);
 
@@ -126,8 +139,12 @@ void MessageHandler::handle_request_body(Connection *c) {
 }
 
 void MessageHandler::execute_server_side(Connection *c) {
+  request_handler_.setRequest(&c->getRequest());
+
   response_handler_.setResponse(&c->getResponse(), &c->getBodyBuf());
   response_handler_.setServerConfig(c->getHttpConfig(), c->getSockaddrToConnect(), c->getRequest().getHeaderValue("Host"));
+
+  std::cout << "getFilePath: 1 [" << c->getRequest().getFilePath() << "]" << std::endl;
 
   // status_code 기본값: -1
   if (c->status_code_ > 0) {

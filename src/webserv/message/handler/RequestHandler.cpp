@@ -31,10 +31,10 @@ void RequestHandler::processByRecvPhase(Connection *c) {
     std::cout << "d" << std::endl;
     parseHeaderLines(c);
   }
-  if (c->getRecvPhase() == MESSAGE_CHUNKED) {
-    std::cout << "e" << std::endl;
-    handleChunked(c);
-  }
+  // if (c->getRecvPhase() == MESSAGE_CHUNKED) {
+  //   std::cout << "e" << std::endl;
+  //   handleChunked(c);
+  // }
 }
 
 /* CHECK FUNCTIONS */
@@ -56,8 +56,8 @@ void RequestHandler::checkMsgForHeader(Connection *c) {
     c->setRecvPhase(MESSAGE_HEADER_COMPLETE);
   // else if (request_->getMsg().find(temp_rn_ctrlc) != request_->getMsg().npos)
   //   c->setRecvPhase(MESSAGE_INTERRUPTED);
-  else if (request_->getMsg() == "\r\n")
-    c->setRecvPhase(MESSAGE_HEADER_COMPLETE);
+  // else if (c->buffer_ == '"\r\n")
+  //   c->setRecvPhase(MESSAGE_HEADER_COMPLETE);
 }
 
 /* PARSE FUNCTIONS */
@@ -230,7 +230,7 @@ void RequestHandler::parseHeaderLines(Connection *c) {
   request_->getMsg().erase(0, pos + 4);
   if (!request_->getMsg().empty()) {
     c->setBodyBuf(request_->getMsg());
-    request_->getMsg().clear();
+    // request_->getMsg().clear();
   }
 
   while ((pos = header_lines.find("\r\n")) != std::string::npos) {
@@ -242,13 +242,7 @@ void RequestHandler::parseHeaderLines(Connection *c) {
     header_lines.erase(0, pos + 2);
   }
 
-  if (request_->getMethod().compare("GET") && request_->getMethod().compare("HEAD") &&
-      request_->getHeaderValue("Content-Length").empty() && !request_->getHeaderValue("Transfer-Encoding").compare("chunked")) {
-    c->setRecvPhase(MESSAGE_CHUNKED);
-    c->is_chunked_ = true;
-  }
-  // else
-  //   c->setRecvPhase(MESSAGE_HEADER_COMPLETE);
+  c->setRecvPhase(MESSAGE_HEADER_COMPLETE);
 }
 
 // 실패 시 c->status_code_에 에러 코드가 발생 하도록
@@ -365,7 +359,7 @@ void RequestHandler::applyReturnDirectiveStatusCode(Connection *c, LocationConfi
 
 void RequestHandler::handleChunked(Connection *c) {
   size_t pos;
-  setRequest(&c->getRequest());
+  // setRequest(&c->getRequest());
   if (c->chunked_checker_ == STR_SIZE) {
     // std::cout << "111111111111111111111111111111" << std::endl;
     // // std::cout << request_->getMsg() << std::endl;

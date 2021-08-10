@@ -23,7 +23,7 @@ void ResponseHandler::setServerConfig(HttpConfig *http_config, struct sockaddr_i
 
 void ResponseHandler::executeMethod(Request &request) {
   LocationConfig *location = this->server_config_->getLocationConfig(request.getPath());
-
+  std::cout << "getPath: " << request.getPath() << std::endl;
   if (request.getMethod() == "GET" || request.getMethod() == "HEAD")
     processGetAndHeaderMethod(request, location);
   else if (request.getMethod() == "PUT")
@@ -159,42 +159,42 @@ void ResponseHandler::processGetAndHeaderMethod(Request &request, LocationConfig
     return;
   }
 
-  // TODO: connection의 status_code를 보고 결정하도록...
-  if (this->response_->getHeaderValue("X-Powered-By") == "PHP/8.0.7" &&
-      this->response_->getHeaderValue("Status").empty()) {
-    setStatusLineWithCode(200);
-    return;
-  }
+  // // TODO: connection의 status_code를 보고 결정하도록...
+  // if (this->response_->getHeaderValue("X-Powered-By") == "PHP/8.0.7" &&
+  //     this->response_->getHeaderValue("Status").empty()) {
+  //   setStatusLineWithCode(200);
+  //   return;
+  // }
 
   // TODO: REQUEST에서 처리 해야될 수도 있을것같음
-  if (*(request.getFilePath().rbegin()) == '/') {
-    findIndexForGetWhenOnlySlash(request, location);
-    std::cout << "after: [" << request.getFilePath() << "]" << std::endl;
-    if (*(request.getFilePath().rbegin()) == '/') {
-      setStatusLineWithCode(404);
-      return;
-    }
-  }
-  std::cout << "filepath2: [" << request.getFilePath() << std::endl;
-  if (!isFileExist(request.getFilePath())) {
-    setStatusLineWithCode(404);
-    return;
-  } else {
-    // if (S_ISDIR(this->stat_buffer_.st_mode)) {
-    //   setStatusLineWithCode(301);
-    //   // TODO: string 을 생성 하지 않도록 수정하는 작업 필요
-    //   // std::string temp_url = "http://" + request.getHeaderValue("Host") + request.getUri();
-    //   std::string temp_url = "http://" + request.getHeaderValue("Host") + request.getPath();
-    //   if (*(temp_url.rbegin()) != '/')
-    //     temp_url.append("/");
-    //   this->response_->setHeader("Location", temp_url);
-    //   return;
-    // }
+  // if (*(request.getFilePath().rbegin()) == '/') {
+  //   findIndexForGetWhenOnlySlash(request, location);
+  //   std::cout << "after: [" << request.getFilePath() << "]" << std::endl;
+  //   if (*(request.getFilePath().rbegin()) == '/') {
+  //     setStatusLineWithCode(404);
+  //     return;
+  //   }
+  // }
+  // std::cout << "filepath2: [" << request.getFilePath() << std::endl;
+  // if (!isFileExist(request.getFilePath())) {
+  //   setStatusLineWithCode(404);
+  //   return;
+  // } else {
+  //   // if (S_ISDIR(this->stat_buffer_.st_mode)) {
+  //   //   setStatusLineWithCode(301);
+  //   //   // TODO: string 을 생성 하지 않도록 수정하는 작업 필요
+  //   //   // std::string temp_url = "http://" + request.getHeaderValue("Host") + request.getUri();
+  //   //   std::string temp_url = "http://" + request.getHeaderValue("Host") + request.getPath();
+  //   //   if (*(temp_url.rbegin()) != '/')
+  //   //     temp_url.append("/");
+  //   //   this->response_->setHeader("Location", temp_url);
+  //   //   return;
+  //   // }
     setStatusLineWithCode(200);
     // body가 만들져 있지 않는 경우의 조건 추가
     if (body_buf_->empty())
       setResponseBodyFromFile(request.getFilePath());
-  }
+  // }
 }
 
 void ResponseHandler::processPutMethod(Request &request) {
@@ -219,16 +219,8 @@ void ResponseHandler::processPostMethod(Request &request, LocationConfig *&locat
     setStatusLineWithCode(this->response_->getStatusCode());
     return;
   }
-  if (*(request.getFilePath().rbegin()) == '/') {
-    findIndexForGetWhenOnlySlash(request, location);
-    std::cout << "after: [" << request.getFilePath() << "]" << std::endl;
-    if (*(request.getFilePath().rbegin()) == '/') {
-      setStatusLineWithCode(404);
-      return;
-    }
-  }
   if (!location->checkCgiExtension(request.getFilePath())) {
-    std::cout << "getFilePath: [" << request.getFilePath() << "]" << std::endl;
+    std::cout << "getFilePath: 2[" << request.getFilePath() << "]" << std::endl;
     setStatusLineWithCode(405);
     return;
   }

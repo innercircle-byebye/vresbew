@@ -72,19 +72,28 @@ void Kqueue::kqueueProcessEvents(SocketManager *sm) {
         // std::cout << "=========c->buffer_=========" << std::endl;
         if (c->getRecvPhase() == MESSAGE_START_LINE_INCOMPLETE ||
             c->getRecvPhase() == MESSAGE_START_LINE_COMPLETE ||
-            c->getRecvPhase() == MESSAGE_HEADER_INCOMPLETE ||
-            c->getRecvPhase() == MESSAGE_CHUNKED) {
+            c->getRecvPhase() == MESSAGE_HEADER_INCOMPLETE) {
           MessageHandler::handle_request_header(c);
         }
         if (c->getRecvPhase() == MESSAGE_HEADER_COMPLETE) {
           MessageHandler::check_request_header(c);
-        } else if (c->getRecvPhase() == MESSAGE_BODY_INCOMING)
+        }
+        else if (c->getRecvPhase() == MESSAGE_CHUNKED)
+        {
+          std::cout << "do I even get here" << std::endl;
+          MessageHandler::handle_chunked_body(c);
+        }
+        else if (c->getRecvPhase() == MESSAGE_BODY_INCOMING)
           MessageHandler::handle_request_body(c);
         if (c->getRecvPhase() == MESSAGE_BODY_COMPLETE) {
+          std::cout << "filepath 3: [" << c->getRequest().getFilePath() << "]" << std::endl;
           if (c->status_code_ < 0)  // c->status_code_ 기본값 (-1) 일때 == 에러코드가 결정 되지 않았을 때 == 정상 request message 일 때
+          {
             MessageHandler::check_cgi_process(c);
+            std::cout << "filepath 3: [" << c->getRequest().getFilePath() << "]" << std::endl;
+          }
           if (c->getRecvPhase() == MESSAGE_CGI_COMPLETE) {
-            std::cout << "filepath 2: ["<< c->getRequest().getFilePath() << "]" <<std::endl;
+            std::cout << "filepath 2: [" << c->getRequest().getFilePath() << "]" << std::endl;
             CgiHandler::handle_cgi_header(c);
             CgiHandler::setup_cgi_message(c);
           } else {
@@ -133,7 +142,7 @@ void Kqueue::kqueueProcessEvents(SocketManager *sm) {
           }
         } else if (c->getRecvPhase() == MESSAGE_BODY_COMPLETE) {
           MessageHandler::send_response_to_client(c);
-          std::cout << "here" << std::endl;
+          std::cout << "Complete" << std::endl;
           if (!c->getResponse().getHeaderValue("Connection").compare("close") ||
               !c->getRequest().getHttpVersion().compare("HTTP/1.0")) {
             sm->closeConnection(c);

@@ -45,7 +45,7 @@ class RequestHandler {
   bool isUriDirectory(LocationConfig *location);
   bool isAllowedMethod(LocationConfig *location);
   void applyReturnDirectiveStatusCode(Connection *c, LocationConfig *location);
-
+  void handleChunked(Connection *c);
 
   void findIndexForGetWhenOnlySlash(LocationConfig *&location);
 
@@ -64,8 +64,6 @@ class RequestHandler {
 
   int checkHttpVersionErrorCode(std::string const &http_version);
   void checkCgiRequest(Connection *c);
-
-  void handleChunked(Connection *c);
 
   bool isFileExist(const std::string &path);
 };

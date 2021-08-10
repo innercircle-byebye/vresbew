@@ -28,6 +28,7 @@ class MessageHandler {
   static void handle_request_header(Connection *c);
   static void check_request_header(Connection *c);
   static void handle_request_body(Connection *c);
+  static void handle_chunked_body(Connection *c);
 
   static void execute_server_side(Connection *c);
   static void check_cgi_process(Connection *c);

@@ -55,6 +55,7 @@ class Connection {
   int string_buffer_content_length_;
 
  public:
+  size_t size_before;
   char buffer_[BUF_SIZE];
   bool interrupted;
   std::string body_buf_;

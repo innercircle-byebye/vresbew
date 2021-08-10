@@ -17,6 +17,7 @@ Connection::Connection()
   is_chunked_ = false;
   send_len = 0;
   client_max_body_size = -1;
+  size_before = 0;
   // real_send_len = 0;
 }
 
@@ -70,6 +71,7 @@ void Connection::clear() {
   send_len = 0;
   // real_send_len = 0;
   client_max_body_size = -1;
+  size_before = 0;
 }
 
 void Connection::clearAtChunked() {
@@ -83,6 +85,7 @@ void Connection::clearAtChunked() {
   send_len = 0;
   // real_send_len = 0;
   client_max_body_size = -1;
+  size_before = 0;
 }
 
 void Connection::appendBodyBuf(char *buffer) {

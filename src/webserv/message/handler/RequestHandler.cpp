@@ -363,6 +363,10 @@ void RequestHandler::handleChunked(Connection *c) {
       }
       // std::cout << "str_size string: " << request_->getMsg().substr(0, pos) << std::endl;
       c->chunked_str_size_ = (size_t)strtoul(request_->getMsg().substr(0, pos).c_str(), NULL, 16);
+      std::cout << "it must be zero!! >> ";
+      if (c->size_before == 16960)
+        std::cout << c->chunked_str_size_ << std::endl;
+      c->size_before = c->chunked_str_size_;
       if (c->chunked_str_size_ == 0) {
         for (size_t i = 0; i < pos; ++i) {
           if (request_->getMsg()[i] != '0') {

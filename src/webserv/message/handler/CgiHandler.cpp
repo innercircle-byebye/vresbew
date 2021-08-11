@@ -137,17 +137,14 @@ char **CgiHandler::setEnviron(Connection *c) {
 }
 
 char **CgiHandler::setCommand(std::string command, std::string path) {
-  // TODO: leak check
   char **return_value;
   return_value = (char **)malloc(sizeof(char *) * (3));
 
   char *temp;
-  // TODO: leak check
   temp = (char *)malloc(sizeof(char) * (command.size() + 1));
   strcpy(temp, command.c_str());
   return_value[0] = temp;
 
-  // TODO: leak check
   temp = (char *)malloc(sizeof(char) * (path.size() + 1));
   strcpy(temp, path.c_str());
   return_value[1] = temp;
@@ -177,10 +174,11 @@ void CgiHandler::setupCgiMessage(Connection *c) {
   }
   if (c->getRequest().getHeaderValue("Content-Length").empty())
     c->getResponse().setHeader("Content-Length", SSTR(c->temp.size()));
+
   MessageHandler::response_handler_.setDefaultHeader(c, c->getRequest());
   c->getResponse().setHeader("Content-Length", SSTR(c->temp.size()));
+  //TODO: 하드코딩 수정
   c->getResponse().setHeader("Content-Type", "text/html; charset=utf-8");
-  // c->getResponse().setHeader("Connection", "close");
 
   MessageHandler::response_handler_.makeResponseHeader();
   if (!c->temp.empty())

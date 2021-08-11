@@ -126,7 +126,7 @@ void  Connection::process_read_event(Kqueue *kq, SocketManager *sm) {
         MessageHandler::check_cgi_process(this);
       if (this->recv_phase_ == MESSAGE_CGI_COMPLETE) {
         CgiHandler::handleCgiHeader(this);
-        CgiHandler::setup_cgi_message(this);
+        CgiHandler::setupCgiMessage(this);
       } else {
         MessageHandler::execute_server_side(this);  // 서버가 실제 동작을 진행하는 부분
         MessageHandler::set_response_message(this);

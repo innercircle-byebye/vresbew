@@ -19,8 +19,8 @@ class CgiHandler {
   static void initCgiChild(Connection *c);
   static void handleCgiHeader(Connection *c);
   //TODO: rename
-  static void setup_cgi_message(Connection *c);
-  static void receive_cgi_body(Connection *c);
+  static void setupCgiMessage(Connection *c);
+  static void receiveCgiBody(Connection *c);
 
 };
 

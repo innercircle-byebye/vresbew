@@ -28,18 +28,15 @@ class MessageHandler {
   static ResponseHandler response_handler_;
   static RequestHandler request_handler_;
 
-  static void handle_request_header(Connection *c);
-  static void check_request_header(Connection *c);
-  static void handle_request_body(Connection *c);
-  static void handle_chunked_body(Connection *c);
+  static void handleRequestHeader(Connection *c);
+  static void checkRequestHeader(Connection *c);
+  static void handleRequestBody(Connection *c);
+  static void handleChunkedBody(Connection *c);
 
-  static void execute_server_side(Connection *c);
-  static void check_cgi_process(Connection *c);
-  static void set_response_header(Connection *c);
-  static void set_response_message(Connection *c);
-  static void send_response_to_client(Connection *c);
-
-  static void check_interrupt_received(Connection *c);
+  static void executeServerSide(Connection *c);
+  static void checkCgiProcess(Connection *c);
+  static void setResponseMessage(Connection *c);
+  static void sendResponseToClient(Connection *c);
 
  private:
   static void executePutMethod(std::string path, std::string content);

@@ -60,16 +60,14 @@ class ResponseHandler {
   // void setResponseBody();
   // Response::response_ setter end
 
-  // 애매함
   void setResponseBodyFromFile(const std::string &filepath);
-  // 애매함 end
 
   /*--------------------------EXECUTING METHODS--------------------------------*/
 
   // blocks for setResponseFields begin
   void processGetAndHeaderMethod(Request &request, LocationConfig *&location);
   void processPutMethod(Request &request);
-  void processDeleteMethod(const std::string &uri, LocationConfig *&location);
+  void processDeleteMethod(const std::string &uri);
   void processPostMethod(Request &request, LocationConfig *&location);
   // blocks for setResponseFields end
 
@@ -81,8 +79,8 @@ class ResponseHandler {
 
   void findIndexForGetWhenOnlySlash(Request &request, LocationConfig *&location);
 
-  int remove_file(std::string file_name);
-  int remove_directory(std::string directory_name);
+  int removeFile(std::string file_name);
+  int removeDirectory(std::string directory_name);
   // executing methods helper end
 
   void createLocationHeaderFor201(Connection *c, Request &request);

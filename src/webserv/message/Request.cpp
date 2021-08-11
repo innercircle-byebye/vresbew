@@ -15,7 +15,6 @@ void Request::clear() {
   headers_.clear();
   uri_struct_.schema_.clear();
   uri_struct_.host_.clear();
-  // TODO: 확인 후 반영/변경
   uri_.clear();
   uri_struct_.schema_.clear();
   uri_struct_.host_.clear();
@@ -29,7 +28,7 @@ void Request::clear() {
 std::string &Request::getMsg() { return msg_; }
 const std::string &Request::getMethod() const { return method_; }
 const std::string &Request::getSchema() const { return uri_struct_.schema_; }
-const std::string &Request::getUri() { return uri_; } // 원본
+const std::string &Request::getUri() { return uri_; }
 const std::string &Request::getHost() const { return uri_struct_.host_; }
 const std::string &Request::getPort() const { return uri_struct_.port_; }
 const std::string &Request::getPath() const { return uri_struct_.path_; }

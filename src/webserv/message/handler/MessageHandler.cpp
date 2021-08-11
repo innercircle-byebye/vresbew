@@ -8,30 +8,25 @@ ResponseHandler MessageHandler::response_handler_ = ResponseHandler();
 MessageHandler::MessageHandler() {}
 MessageHandler::~MessageHandler() {}
 
-void MessageHandler::handle_request_header(Connection *c) {
+void MessageHandler::handleRequestHeader(Connection *c) {
   if (c->getRecvPhase() == MESSAGE_START_LINE_INCOMPLETE && !std::string(c->buffer_).compare("\r\n"))
     return;
   // 1. request_handler의 request가 c의 request가 되도록 세팅
   request_handler_.setRequest(&c->getRequest());
-  // 2. buffer 안에서 ctrl_c 가 전송 되었는지 확인
-  // check_interrupt_received(c);
-  // 3. append (이전에 request가 setting되어야함)
+  // 2. append (이전에 request가 setting되어야함)
   request_handler_.appendMsg(c->buffer_);
-  // 4. process by recv_phase
+  // 3. process by recv_phase
   request_handler_.processByRecvPhase(c);
 }
 
-void MessageHandler::check_request_header(Connection *c) {
+void MessageHandler::checkRequestHeader(Connection *c) {
   ServerConfig *serverconfig_test = c->getHttpConfig()->getServerConfig(c->getSockaddrToConnect().sin_port, c->getSockaddrToConnect().sin_addr.s_addr, c->getRequest().getHeaderValue("Host"));
   LocationConfig *locationconfig_test = serverconfig_test->getLocationConfig(c->getRequest().getPath());
 
-  // 있어야되는지??
   request_handler_.setRequest(&c->getRequest());
 
-  //t_uri uri_struct 전체 셋업하는 부분으로...
   request_handler_.setupUriStruct(serverconfig_test, locationconfig_test);
 
-  //client_max_body_size 셋업
   c->client_max_body_size = locationconfig_test->getClientMaxBodySize();
 
   if (!c->getRequest().getHeaderValue("Content-Length").empty()) {
@@ -54,22 +49,21 @@ void MessageHandler::check_request_header(Connection *c) {
   }
   if (*(c->getRequest().getFilePath().rbegin()) == '/') {
     request_handler_.findIndexForGetWhenOnlySlash(locationconfig_test);
-    // std::cout << "after: [" << c->getRequest().getFilePath() << "]" << std::endl;
-    if (*(c->getRequest().getFilePath().rbegin()) == '/') {
+    if ((*(c->getRequest().getFilePath().rbegin()) == '/') && (locationconfig_test->getAutoindex() == false)) {
       c->status_code_ = 404;
       c->setRecvPhase(MESSAGE_BODY_COMPLETE);
       return;
     }
   }
 
-  if (request_handler_.isUriFileExist(locationconfig_test) == false &&
+  if (request_handler_.isUriFileExist() == false &&
       c->getRequest().getMethod() != "PUT" && c->getRequest().getMethod() != "POST") {
     c->status_code_ = 404;
     c->setRecvPhase(MESSAGE_BODY_COMPLETE);
     return;
   }
 
-  if (request_handler_.isUriDirectory(locationconfig_test) == true) {
+  if (request_handler_.isUriDirectory() == true) {
     c->status_code_ = 301;
     c->setRecvPhase(MESSAGE_BODY_COMPLETE);
     return;
@@ -78,17 +72,11 @@ void MessageHandler::check_request_header(Connection *c) {
   if (request_handler_.isAllowedMethod(locationconfig_test) == false) {
     c->status_code_ = 405;
     c->setRecvPhase(MESSAGE_BODY_COMPLETE);
-    return ;
+    return;
   }
-
-  // if (c->interrupted == true) {
-  //   c->setRecvPhase(MESSAGE_INTERRUPTED);
-  //   return;
-  // }
 
   if (c->getRequest().getMethod().compare("GET") && c->getRequest().getMethod().compare("HEAD") &&
       c->getRequest().getHeaderValue("Content-Length").empty() && !c->getRequest().getHeaderValue("Transfer-Encoding").compare("chunked")) {
-    std::cout << "chunked in!!!!!!!!!!!!!!!!" << std::endl;
     c->setRecvPhase(MESSAGE_CHUNKED);
     c->is_chunked_ = true;
   } else if (c->getRequest().getMethod() == "GET") {
@@ -106,28 +94,22 @@ void MessageHandler::check_request_header(Connection *c) {
   c->client_max_body_size = locationconfig_test->getClientMaxBodySize();
 }
 
-void MessageHandler::check_cgi_process(Connection *c) {
+void MessageHandler::checkCgiProcess(Connection *c) {
   ServerConfig *serverconfig_test = c->getHttpConfig()->getServerConfig(c->getSockaddrToConnect().sin_port, c->getSockaddrToConnect().sin_addr.s_addr, c->getRequest().getHeaderValue("Host"));
   LocationConfig *locationconfig_test = serverconfig_test->getLocationConfig(c->getRequest().getPath());
 
   if (!locationconfig_test->getCgiPath().empty() &&
       locationconfig_test->checkCgiExtension(c->getRequest().getPath())) {
-    CgiHandler::init_cgi_child(c);
+    CgiHandler::initCgiChild(c);
   }
 }
 
-void MessageHandler::handle_chunked_body(Connection *c) {
+void MessageHandler::handleChunkedBody(Connection *c) {
   request_handler_.setRequest(&c->getRequest());
-
   request_handler_.handleChunked(c);
-  // std::cout << "c_chunked_checker: " << c->chunked_checker_ << std::endl;
 }
 
-void MessageHandler::handle_request_body(Connection *c) {
-  // check_interrupt_received(c);
-
-  // TODO: 조건문 수정 CHUNKED_CHUNKED
-  // Transfer-Encoding : chunked 아닐 때
+void MessageHandler::handleRequestBody(Connection *c) {
   if (c->is_chunked_ == false) {
     if ((size_t)c->getStringBufferContentLength() <= strlen(c->buffer_)) {
       c->appendBodyBuf(c->buffer_, c->getStringBufferContentLength());
@@ -141,14 +123,10 @@ void MessageHandler::handle_request_body(Connection *c) {
     c->setRecvPhase(MESSAGE_BODY_COMPLETE);
 }
 
-void MessageHandler::execute_server_side(Connection *c) {
+void MessageHandler::executeServerSide(Connection *c) {
   request_handler_.setRequest(&c->getRequest());
-
   response_handler_.setResponse(&c->getResponse(), &c->getBodyBuf());
   response_handler_.setServerConfig(c->getHttpConfig(), c->getSockaddrToConnect(), c->getRequest().getHeaderValue("Host"));
-
-  // std::cout << "getFilePath: 1 [" << c->getRequest().getFilePath() << "]" << std::endl;
-  // std::cout << "c->status_code: 1[" << c->status_code_ << "]" << std::endl;
 
   // status_code 기본값: -1
   if (c->status_code_ > 0) {
@@ -160,16 +138,12 @@ void MessageHandler::execute_server_side(Connection *c) {
 
   if (c->getRequest().getMethod() == "PUT" &&
       (c->getResponse().getStatusCode() == 201 || (c->getResponse().getStatusCode() == 204))) {
-    // create response body
     executePutMethod(c->getRequest().getFilePath(), c->getBodyBuf());
-
-    //TODO: remove;
     c->getBodyBuf().clear();
   }
 }
 
-void MessageHandler::set_response_message(Connection *c) {
-  // MUST BE EXECUTED ONLY WHEN BODY IS NOT PROVIDED
+void MessageHandler::setResponseMessage(Connection *c) {
   // TODO: fix this garbage conditional statement...
   if (!(c->getResponse().getStatusCode() == 200 ||
         c->getResponse().getStatusCode() == 201 ||
@@ -181,7 +155,7 @@ void MessageHandler::set_response_message(Connection *c) {
   response_handler_.makeResponseHeader();
 }
 
-void MessageHandler::send_response_to_client(Connection *c) {
+void MessageHandler::sendResponseToClient(Connection *c) {
   send(c->getFd(), c->getResponse().getHeaderMsg().c_str(), c->getResponse().getHeaderMsg().size(), 0);
   if (c->getRequest().getMethod() != "HEAD")
     send(c->getFd(), c->getBodyBuf().c_str(), c->getBodyBuf().size(), 0);
@@ -192,14 +166,5 @@ void MessageHandler::executePutMethod(std::string path, std::string content) {
   output << content;
   output.close();
 }
-
-// void MessageHandler::check_interrupt_received(Connection *c) {
-//   int i = 0;
-//   while (i < CTRL_C_LIST) {
-//     if (strchr(c->buffer_, ctrl_c[i]))
-//       c->interrupted = true;
-//     i++;
-//   }
-// }
 
 }  // namespace ft

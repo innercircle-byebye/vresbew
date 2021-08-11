@@ -23,7 +23,6 @@ void ResponseHandler::setServerConfig(HttpConfig *http_config, struct sockaddr_i
 
 void ResponseHandler::executeMethod(Request &request) {
   LocationConfig *location = this->server_config_->getLocationConfig(request.getPath());
-  // std::cout << "getPath: " << request.getPath() << std::endl;
   if (request.getMethod() == "GET" || request.getMethod() == "HEAD")
     processGetAndHeaderMethod(request, location);
   else if (request.getMethod() == "PUT")
@@ -31,13 +30,12 @@ void ResponseHandler::executeMethod(Request &request) {
   else if (request.getMethod() == "POST")
     processPostMethod(request, location);
   else if (request.getMethod() == "DELETE")
-    processDeleteMethod(request.getPath(), location);
+    processDeleteMethod(request.getPath());
 }
 
 void ResponseHandler::setDefaultHeader(Connection *c, Request &request) {
   if (response_->getHeaderValue("Content-Length").empty())
-    response_->setHeader("Content-Length",
-                         std::to_string(this->body_buf_->size()));
+    response_->setHeader("Content-Length", SSTR(this->body_buf_->size()));
 
   response_->setHeader("Date", Time::getCurrentDate());
 
@@ -46,7 +44,6 @@ void ResponseHandler::setDefaultHeader(Connection *c, Request &request) {
   } else {
     size_t extension_len;
     if ((extension_len = request.getPath().find('.')) != std::string::npos) {
-      // TODO: string 안 만들고...
       std::string temp = request.getPath().substr(extension_len, request.getPath().size());
       response_->setHeader("Content-Type", MimeType::of(temp));
     }
@@ -81,7 +78,6 @@ void ResponseHandler::setResponseHeader() {
       response_->getHeaderMsg() += ": ";
       response_->getHeaderMsg() += it->second;
       response_->getHeaderMsg() += "\r\n";
-      // std::cout << "[" << it->first << "] [" << it->second << "]" << std::endl;
     }
   }
   response_->getHeaderMsg() += "\r\n";
@@ -148,53 +144,14 @@ void ResponseHandler::setAutoindexBody(const std::string &uri) {
 // ***********blocks for setResponseFields begin*************** //
 
 void ResponseHandler::processGetAndHeaderMethod(Request &request, LocationConfig *&location) {
-  //need last modified header
-  // if (stat(getAccessPath(request.getPath()).c_str(), &this->stat_buffer_) < 0) {
-  //   // Logger::logError();
-  //   return;
-  // }
   if (location->getAutoindex() && S_ISDIR(this->stat_buffer_.st_mode)) {
     setStatusLineWithCode(200);
     setAutoindexBody(request.getPath());
     return;
   }
-
-  // // TODO: connection의 status_code를 보고 결정하도록...
-  // if (this->response_->getHeaderValue("X-Powered-By") == "PHP/8.0.7" &&
-  //     this->response_->getHeaderValue("Status").empty()) {
-  //   setStatusLineWithCode(200);
-  //   return;
-  // }
-
-  // TODO: REQUEST에서 처리 해야될 수도 있을것같음
-  // if (*(request.getFilePath().rbegin()) == '/') {
-  //   findIndexForGetWhenOnlySlash(request, location);
-  //   std::cout << "after: [" << request.getFilePath() << "]" << std::endl;
-  //   if (*(request.getFilePath().rbegin()) == '/') {
-  //     setStatusLineWithCode(404);
-  //     return;
-  //   }
-  // }
-  // std::cout << "filepath2: [" << request.getFilePath() << std::endl;
-  // if (!isFileExist(request.getFilePath())) {
-  //   setStatusLineWithCode(404);
-  //   return;
-  // } else {
-  //   // if (S_ISDIR(this->stat_buffer_.st_mode)) {
-  //   //   setStatusLineWithCode(301);
-  //   //   // TODO: string 을 생성 하지 않도록 수정하는 작업 필요
-  //   //   // std::string temp_url = "http://" + request.getHeaderValue("Host") + request.getUri();
-  //   //   std::string temp_url = "http://" + request.getHeaderValue("Host") + request.getPath();
-  //   //   if (*(temp_url.rbegin()) != '/')
-  //   //     temp_url.append("/");
-  //   //   this->response_->setHeader("Location", temp_url);
-  //   //   return;
-  //   // }
-    setStatusLineWithCode(200);
-    // body가 만들져 있지 않는 경우의 조건 추가
-    if (body_buf_->empty())
-      setResponseBodyFromFile(request.getFilePath());
-  // }
+  setStatusLineWithCode(200);
+  if (body_buf_->empty())
+    setResponseBodyFromFile(request.getFilePath());
 }
 
 void ResponseHandler::processPutMethod(Request &request) {
@@ -202,16 +159,10 @@ void ResponseHandler::processPutMethod(Request &request) {
     setStatusLineWithCode(409);
     return;
   }
-  if (!isFileExist(request.getFilePath())) {
-    // 경로가 디렉토리 이거나, 경로에 파일을 쓸 수 없을때
-    // if (S_ISDIR(this->stat_buffer_.st_mode) || (this->stat_buffer_.st_mode & S_IRWXU)) {
-    //   setStatusLineWithCode(500);
-    //   return;
-    // }
+  if (!isFileExist(request.getFilePath()))
     setStatusLineWithCode(201);
-  } else {
+  else
     setStatusLineWithCode(204);
-  }
 }
 
 void ResponseHandler::processPostMethod(Request &request, LocationConfig *&location) {
@@ -220,21 +171,13 @@ void ResponseHandler::processPostMethod(Request &request, LocationConfig *&locat
     return;
   }
   if (!location->checkCgiExtension(request.getFilePath())) {
-    // std::cout << "getFilePath: 2[" << request.getFilePath() << "]" << std::endl;
     setStatusLineWithCode(405);
     return;
   }
   setStatusLineWithCode(200);
 }
 
-void ResponseHandler::processDeleteMethod(const std::string &uri, LocationConfig *&location) {
-  (void)location;
-  // TODO: 경로가 "/"로 시작하지 않는 경우에는 "./"를 붙이도록 수정
-  // if isUriOnlyOrSlash -> delete everything in there and 403 forbidden
-  // if path is directory -> 409 Conflict and do nothing
-  // if file is missing -> 404 not found
-  // if file is available -> 204 No Content and delete the file
-  // std::cout << "start process delete method : " << uri << std::endl;
+void ResponseHandler::processDeleteMethod(const std::string &uri) {
   if (!uri.compare("/")) {  // URI 에 "/" 만 있는 경우
     std::string url = getAccessPath(uri);
     if (stat(url.c_str(), &this->stat_buffer_) < 0) {
@@ -287,12 +230,11 @@ void ResponseHandler::processDeleteMethod(const std::string &uri, LocationConfig
   }
 }
 
+// TODO: 함수 삭제 시작
 // ***********blocks for setResponseFields end*************** //
-
 std::string ResponseHandler::getAccessPath(const std::string &uri) {
   LocationConfig *location = this->server_config_->getLocationConfig(uri);
-  std::string path;
-  path = location->getRoot() + uri;
+  std::string path = location->getRoot() + uri;
   return (path);
 }
 
@@ -303,22 +245,15 @@ std::string ResponseHandler::getAccessPath(const std::string &uri, LocationConfi
 }
 
 bool ResponseHandler::isFileExist(const std::string &path) {
-  // std::cout << "REMINDER: THIS METHOD SHOULD ONLY BE \
-  //   CALLED WHEN FILE PATH IS COMBINED WITH ROOT DIRECTIVE"
-  //           << path << std::endl;
-  // std::cout << "path: " << path << std::endl;
   if (stat(path.c_str(), &this->stat_buffer_) < 0) {
-    // std::cout << "this aint work" << std::endl;
-    // std::cout << "why :[" << path << "]" << std::endl;
     return (false);
   }
   return (true);
 }
+
 bool ResponseHandler::isFileExist(const std::string &path, LocationConfig *&location) {
-  if (stat(getAccessPath(path, location).c_str(), &this->stat_buffer_) < 0) {
-    // std::cout << "this doesn't work" << std::endl;
+  if (stat(getAccessPath(path, location).c_str(), &this->stat_buffer_) < 0)
     return (false);
-  }
   return (true);
 }
 
@@ -330,6 +265,7 @@ bool ResponseHandler::isPathAccessable(std::string &uri, LocationConfig *&locati
     return (true);
   return (false);
 }
+// TODO: 함수 삭제 끝
 
 // 함수가 불리는 시점에서는 이미 파일은 존재함
 void ResponseHandler::setResponseBodyFromFile(const std::string &filepath) {
@@ -367,19 +303,9 @@ int ResponseHandler::deletePathRecursive(std::string &path) {
         return (-1);
       }
     }
-    /*
-    if (rmdir(path.c_str()) == -1) {
-      return (-1);
-    }
-    */
-    return (remove_directory(path));
+    return (removeDirectory(path));
   } else if (S_ISREG(this->stat_buffer_.st_mode)) {
-    /*
-    if (remove(path.c_str()) != 0) {
-      return (-1);
-    }
-    */
-    return (remove_file(path));
+    return (removeFile(path));
   }
   return (0);
 }
@@ -389,7 +315,6 @@ void ResponseHandler::findIndexForGetWhenOnlySlash(Request &request, LocationCon
   std::string temp;
   for (it_index = location->getIndex().begin(); it_index != location->getIndex().end(); it_index++) {
     temp = request.getFilePath() + *it_index;
-    // std::cout << "temp: [" << temp << "]" << std::endl;
     if (isFileExist(temp)) {
       request.setFilePath(request.getFilePath() + *it_index);
       break;
@@ -398,26 +323,20 @@ void ResponseHandler::findIndexForGetWhenOnlySlash(Request &request, LocationCon
   }
 }
 
-int ResponseHandler::remove_file(std::string file_name) {
-  if (remove(file_name.c_str()) != 0) {
-    // std::cout << "fail remove " << file_name << std::endl;
+int ResponseHandler::removeFile(std::string file_name) {
+  if (remove(file_name.c_str()) != 0)
     return (-1);
-  }
-  // std::cout << "sucess remove file " << file_name << std::endl;
   return (0);
 }
 
-int ResponseHandler::remove_directory(std::string directory_name) {
+int ResponseHandler::removeDirectory(std::string directory_name) {
   if (rmdir(directory_name.c_str()) != 0) {
-    // std::cout << "fail remove " << directory_name << std::endl;
     return (-1);
   }
-  // std::cout << "sucess remove file " << directory_name << std::endl;
   return (0);
 }
 
 void ResponseHandler::createLocationHeaderFor201(Connection *c, Request &request) {
-  // TODO: 리팩토링..
   char str[INET_ADDRSTRLEN];
 
   inet_ntop(AF_INET, &(c->getSockaddrToConnect().sin_addr.s_addr), str, INET_ADDRSTRLEN);
@@ -430,20 +349,15 @@ void ResponseHandler::createLocationHeaderFor201(Connection *c, Request &request
     request.setHost(((strcmp(str, "127.0.0.1") == 0) ? "localhost" : str));
   if (request.getPort().empty())
     request.setPort(SSTR(htons(c->getSockaddrToConnect().sin_port)));
-
   full_uri = request.getSchema() + request.getHost() + ":" + request.getPort() + request.getPath();
   response_->setHeader("Location", full_uri);
 }
 
 void ResponseHandler::createLocationHeaderFor301(Request &request) {
-  // TODO: 리팩토링..
-  // TODO: string 을 생성 하지 않도록 수정하는 작업 필요
-  // std::string temp_url = "http://" + request.getHeaderValue("Host") + request.getUri();
   std::string temp_url = "http://" + request.getHeaderValue("Host") + request.getPath();
   if (*(temp_url.rbegin()) != '/')
     temp_url.append("/");
   this->response_->setHeader("Location", temp_url);
 }
-
 /*--------------------------EXECUTING METHODS END--------------------------------*/
 }  // namespace ft

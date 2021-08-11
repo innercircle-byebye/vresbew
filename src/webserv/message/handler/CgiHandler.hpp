@@ -16,12 +16,11 @@ class CgiHandler {
   static char **setCommand(std::string command, std::string path);
 
  public:
-  static void init_cgi_child(Connection *c);
-  static void handle_cgi_header(Connection *c);
-  //TODO: rename
-  static void setup_cgi_message(Connection *c);
-  static void receive_cgi_body(Connection *c);
+  static void initCgiChild(Connection *c);
+  static void handleCgiHeader(Connection *c);
 
+  static void setupCgiMessage(Connection *c);
+  static void receiveCgiBody(Connection *c);
 };
 
 }  // namespace ft

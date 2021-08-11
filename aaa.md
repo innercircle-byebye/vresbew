@@ -1,7 +1,0 @@
-- ResponseHandler::createLocationHeaderFor201 함수 추가
-  - 헤더 생성 단계에서 상태코드가 `201` 인 경우 location 헤더의 값을 추가
-  - http full uri를 기본으로 전달하나, 요청 메세지로 받아온 uri에 정보가 없을 경우 현재 connection의 접속 정보(host ip, 포트번호)를 조합하여 생성
-- RequestHandler::applyReturnDirectiveStatusCode 함수 추가
-  - request 메세지 완성 -> host 헤더 유무 확인 후 체크
-    - **해당 uri에 접근시 무조건 return 디렉티브의 정보로 응답 생성 후 전달.**
-  - config 파일 파싱 단계에서 uri만 들어 온경우 301? 2로 `locationconfig 의 return_code`가 자동 설정되어 조건문의 301...308 구문 내에서 바로 처리하도록 하였습니다.

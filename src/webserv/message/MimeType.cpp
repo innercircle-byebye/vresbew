@@ -23,8 +23,6 @@ std::map<std::string, std::string> MimeType::makeMimeTypes(void) {
 	types[".js"] = "application/javascript";
 	types[".mp3"] = "audio/mpeg";
 	types[".avi"] = "video/x-msvideo";
-	// TODO: 해당 부분 확인해보기..
-  // types[".php"] = "application/x-httpd-php";
 	types[".php"] = "text/html";
 	return types;
 }

@@ -112,7 +112,7 @@ void MessageHandler::check_cgi_process(Connection *c) {
 
   if (!locationconfig_test->getCgiPath().empty() &&
       locationconfig_test->checkCgiExtension(c->getRequest().getPath())) {
-    CgiHandler::init_cgi_child(c);
+        c->setRecvPhase(MESSAGE_CGI_INCOMING);
   }
 }
 
@@ -193,13 +193,5 @@ void MessageHandler::executePutMethod(std::string path, std::string content) {
   output.close();
 }
 
-// void MessageHandler::check_interrupt_received(Connection *c) {
-//   int i = 0;
-//   while (i < CTRL_C_LIST) {
-//     if (strchr(c->buffer_, ctrl_c[i]))
-//       c->interrupted = true;
-//     i++;
-//   }
-// }
 
 }  // namespace ft

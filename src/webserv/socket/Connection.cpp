@@ -95,7 +95,7 @@ void Connection::appendBodyBuf(char *buffer, size_t size) {
   body_buf_.append(buffer, size);
 }
 
-void  Connection::process_read_event(Kqueue *kq, SocketManager *sm) {
+void Connection::process_read_event(Kqueue *kq, SocketManager *sm) {
   if (this->listen_) {
     Connection *conn = this->eventAccept(sm);  // throw
     kq->kqueueSetEvent(conn, EVFILT_READ, EV_ADD);
@@ -107,7 +107,7 @@ void  Connection::process_read_event(Kqueue *kq, SocketManager *sm) {
 
     if (strchr(this->buffer_, ctrl_c[0])) {
       sm->closeConnection(this);
-      return ;
+      return;
     }
     if (this->recv_phase_ == MESSAGE_START_LINE_INCOMPLETE ||
         this->recv_phase_ == MESSAGE_START_LINE_COMPLETE ||
@@ -124,9 +124,11 @@ void  Connection::process_read_event(Kqueue *kq, SocketManager *sm) {
     if (this->recv_phase_ == MESSAGE_BODY_COMPLETE) {
       if (this->status_code_ < 0)
         MessageHandler::check_cgi_process(this);
-      if (this->recv_phase_ == MESSAGE_CGI_COMPLETE) {
-        CgiHandler::handle_cgi_header(this);
-        CgiHandler::setup_cgi_message(this);
+      if (this->recv_phase_ == MESSAGE_CGI_INCOMING) {
+        CgiHandler::init_cgi_child(this);
+        kq->kqueueSetEvent(this, EVFILT_READ, EV_DELETE);
+        kq->kqueueSetEvent(this, EVFILT_PROC, EV_ADD);
+        return;
       } else {
         MessageHandler::execute_server_side(this);  // 서버가 실제 동작을 진행하는 부분
         MessageHandler::set_response_message(this);
@@ -142,13 +144,13 @@ void Connection::process_write_event(Kqueue *kq, SocketManager *sm) {
   if (this->recv_phase_ == MESSAGE_CGI_COMPLETE) {
     if (this->send_len < this->response_.getHeaderMsg().size()) {
       size_t j = std::min(this->response_.getHeaderMsg().size(), this->send_len + BUF_SIZE);
-      ssize_t real_send_len = send(this->fd_, &(this->response_.getHeaderMsg()[this->send_len]), j - this->send_len, 0);  // -1인 경우 처리?  
+      ssize_t real_send_len = send(this->fd_, &(this->response_.getHeaderMsg()[this->send_len]), j - this->send_len, 0);  // -1인 경우 처리?
       this->send_len += real_send_len;
     }
     if (!this->response_.getHeaderValue("Connection").compare("close") ||
         !this->request_.getHttpVersion().compare("HTTP/1.0")) {
       sm->closeConnection(this);
-      return ;
+      return;
     }
     if (this->send_len >= this->response_.getHeaderMsg().size()) {
       kq->kqueueSetEvent(this, EVFILT_WRITE, EV_DELETE);
@@ -160,22 +162,20 @@ void Connection::process_write_event(Kqueue *kq, SocketManager *sm) {
     if (!this->response_.getHeaderValue("Connection").compare("close") ||
         !this->request_.getHttpVersion().compare("HTTP/1.0")) {
       sm->closeConnection(this);
-      return ;
+      return;
     }
     if (is_chunked_)
       this->recv_phase_ = MESSAGE_CHUNKED;
-    else
-    {
+    else {
       this->recv_phase_ = MESSAGE_START_LINE_INCOMPLETE;
       this->status_code_ = -1;
     }
     kq->kqueueSetEvent(this, EVFILT_WRITE, EV_DELETE);
     kq->kqueueSetEvent(this, EVFILT_READ, EV_ADD);
     this->clearAtChunked();
-  } 
+  }
   memset(this->buffer_, 0, BUF_SIZE);
 }
-
 
 /* SETTER */
 void Connection::setListen(bool listen) { listen_ = listen; }
@@ -199,7 +199,9 @@ socket_t Connection::getFd() const { return fd_; }
 Request &Connection::getRequest() { return request_; }
 Response &Connection::getResponse() { return response_; }
 HttpConfig *Connection::getHttpConfig() { return httpconfig_; }
-struct sockaddr_in &Connection::getSockaddrToConnect() { return sockaddr_to_connect_; }
+struct sockaddr_in &Connection::getSockaddrToConnect() {
+  return sockaddr_to_connect_;
+}
 int Connection::getRecvPhase() const { return recv_phase_; }
 int Connection::getStringBufferContentLength() const { return string_buffer_content_length_; }
 std::string &Connection::getBodyBuf() { return (body_buf_); }

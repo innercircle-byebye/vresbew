@@ -41,47 +41,6 @@ void CgiHandler::init_cgi_child(Connection *c) {
   close(c->readpipe[1]);
   memset(c->buffer_, 0, BUF_SIZE);
 
-  // std::cout << "check body buf" << std::endl;
-  // std::cout << c->getBodyBuf() << std::endl;
-  // std::cout << "check body buf" << std::endl;
-  if (c->getBodyBuf().size() == 0) {  //자식 프로세스로 보낼 c->body_buf_ 가 비어있는 경우 파이프 닫음
-    close(c->writepipe[1]);
-    read(c->readpipe[0], c->buffer_, BUF_SIZE);
-    c->temp.append(c->buffer_);
-  } else {
-    // // TODO: 수정 필요
-    size_t size = c->getBodyBuf().size();
-    // std::cout << "================body_buf_size=============" << std::endl;
-    // std::cout << c->getBodyBuf().size() << std::endl;
-    // std::cout << "================body_buf_size=============" << std::endl;
-    for (size_t i = 0; i < size; i += BUF_SIZE) {
-      // std::cout << "i: [" << i << "]" << std::endl;
-      size_t j = std::min(size, BUF_SIZE + i);
-      write(c->writepipe[1], c->getBodyBuf().substr(i, j).c_str(), j - i);
-      // c->getBodyBuf().erase(i, BUF_SIZE + i);
-      if (i == 0) {
-        read(c->readpipe[0], c->buffer_, BUF_SIZE);
-        c->temp.append(c->buffer_);
-        memset(c->buffer_, 0, BUF_SIZE);
-      }
-      read(c->readpipe[0], c->buffer_, BUF_SIZE);
-      c->temp.append(c->buffer_);
-      memset(c->buffer_, 0, BUF_SIZE);
-      // std::cout << c->buffer_ << std::endl;
-    }
-    //숫자 확인
-    c->setStringBufferContentLength(-1);
-    c->getBodyBuf().clear();  // 뒤에서 또 쓰일걸 대비해 혹시몰라 초기화.. #2
-    close(c->writepipe[1]);
-  }
-  // int i =0;
-  // while (i <= (int)c->temp.size())
-  // {
-  //   if (c->temp[i] != 'B')
-  //     std::cout << "here: " << i <<std::endl;
-  //     i++;
-  // }
-  c->setRecvPhase(MESSAGE_CGI_COMPLETE);
 }
 
 void CgiHandler::handle_cgi_header(Connection *c) {

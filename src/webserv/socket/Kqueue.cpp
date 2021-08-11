@@ -34,8 +34,14 @@ Kqueue::~Kqueue() {
 }
 
 void Kqueue::kqueueSetEvent(Connection *c, u_short filter, u_int flags) {
-  EV_SET(&change_list_[nchanges_], c->getFd(), filter, flags, 0, 0, c);  // udata = Connection
-  ++nchanges_;
+  if (filter == (u_short)EVFILT_PROC) {
+    std::cout << "ssup: [" << c->cgi_pid << "]" << std::endl;
+    EV_SET(&change_list_[nchanges_], c->cgi_pid, filter, flags, NOTE_EXIT | NOTE_FORK | NOTE_EXEC | NOTE_SIGNAL, 0, c);  // udata = Connection
+    ++nchanges_;
+  } else {
+    EV_SET(&change_list_[nchanges_], c->getFd(), filter, flags, 0, 0, c);  // udata = Connection
+    ++nchanges_;
+  }
 }
 
 void Kqueue::kqueueProcessEvents(SocketManager *sm) {
@@ -56,16 +62,57 @@ void Kqueue::kqueueProcessEvents(SocketManager *sm) {
       if (event_list_[i].flags & EV_EOF) {
         Logger::logError(LOG_ALERT, "%d kevent() reported about an closed connection %d", events, (int)event_list_[i].ident);
         sm->closeConnection(c);
-        continue ;
+        continue;
       }
       c->process_read_event(this, sm);
     } else if (event_list_[i].filter == EVFILT_WRITE) {
       if (event_list_[i].flags & EV_EOF) {
         Logger::logError(LOG_ALERT, "%d kevent() reported about an %d reader disconnects", events, (int)event_list_[i].ident);
         sm->closeConnection(c);
-        continue ;
+        continue;
       }
       c->process_write_event(this, sm);
+    } else if (event_list_[i].filter == EVFILT_PROC) {
+      if (c->getBodyBuf().size() == 0) {  //자식 프로세스로 보낼 c->body_buf_ 가 비어있는 경우 파이프 닫음
+        close(c->writepipe[1]);
+        read(c->readpipe[0], c->buffer_, BUF_SIZE);
+        c->temp.append(c->buffer_);
+      } else {
+        // // TODO: 수정 필요
+        size_t size = c->getBodyBuf().size();
+        for (size_t i = 0; i < size; i += BUF_SIZE) {
+          // std::cout << "i: [" << i << "]" << std::endl;
+          size_t j = std::min(size, BUF_SIZE + i);
+          write(c->writepipe[1], c->getBodyBuf().substr(i, j).c_str(), j - i);
+          // c->getBodyBuf().erase(i, BUF_SIZE + i);
+          if (i == 0) {
+            read(c->readpipe[0], c->buffer_, BUF_SIZE);
+            c->temp.append(c->buffer_);
+            memset(c->buffer_, 0, BUF_SIZE);
+          }
+          read(c->readpipe[0], c->buffer_, BUF_SIZE);
+          c->temp.append(c->buffer_);
+          memset(c->buffer_, 0, BUF_SIZE);
+          // std::cout << c->buffer_ << std::endl;
+        }
+        //숫자 확인
+        c->setStringBufferContentLength(-1);
+        c->getBodyBuf().clear();  // 뒤에서 또 쓰일걸 대비해 혹시몰라 초기화.. #2
+        close(c->writepipe[1]);
+      }
+      c->setRecvPhase(MESSAGE_CGI_COMPLETE);
+
+      // if (c->getRecvPhase()== MESSAGE_CGI_COMPLETE) {
+      CgiHandler::handle_cgi_header(c);
+      CgiHandler::setup_cgi_message(c);
+      // }
+      kqueueSetEvent(c, EVFILT_PROC, EV_DELETE);
+      kqueueSetEvent(c, EVFILT_WRITE, EV_ADD);
+      // if (event_list_[i].flags & EV_EOF) {
+      //   Logger::logError(LOG_ALERT, "cgi error", events, (int)event_list_[i].ident);
+      //   sm->closeConnection(c);
+      //   continue;
+      // }
     }
   }
 }

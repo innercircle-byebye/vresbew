@@ -125,7 +125,7 @@ void  Connection::process_read_event(Kqueue *kq, SocketManager *sm) {
       if (this->status_code_ < 0)
         MessageHandler::check_cgi_process(this);
       if (this->recv_phase_ == MESSAGE_CGI_COMPLETE) {
-        CgiHandler::handle_cgi_header(this);
+        CgiHandler::handleCgiHeader(this);
         CgiHandler::setup_cgi_message(this);
       } else {
         MessageHandler::execute_server_side(this);  // 서버가 실제 동작을 진행하는 부분
@@ -142,7 +142,7 @@ void Connection::process_write_event(Kqueue *kq, SocketManager *sm) {
   if (this->recv_phase_ == MESSAGE_CGI_COMPLETE) {
     if (this->send_len < this->response_.getHeaderMsg().size()) {
       size_t j = std::min(this->response_.getHeaderMsg().size(), this->send_len + BUF_SIZE);
-      ssize_t real_send_len = send(this->fd_, &(this->response_.getHeaderMsg()[this->send_len]), j - this->send_len, 0);  // -1인 경우 처리?  
+      ssize_t real_send_len = send(this->fd_, &(this->response_.getHeaderMsg()[this->send_len]), j - this->send_len, 0);  // -1인 경우 처리?
       this->send_len += real_send_len;
     }
     if (!this->response_.getHeaderValue("Connection").compare("close") ||
@@ -172,7 +172,7 @@ void Connection::process_write_event(Kqueue *kq, SocketManager *sm) {
     kq->kqueueSetEvent(this, EVFILT_WRITE, EV_DELETE);
     kq->kqueueSetEvent(this, EVFILT_READ, EV_ADD);
     this->clearAtChunked();
-  } 
+  }
   memset(this->buffer_, 0, BUF_SIZE);
 }
 

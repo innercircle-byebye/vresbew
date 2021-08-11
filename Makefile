@@ -40,6 +40,7 @@ $(NAME):		$(OBJS)
 
 clean:
 				$(RM) $(OBJS)
+				$(RM) -r ./webserv.dSYM
 
 
 

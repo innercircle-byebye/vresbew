@@ -7,8 +7,6 @@
 
 namespace ft {
 
-// TODO: getter/setter 반영
-// 다른 함수에서 t_uri 구조체 변수 쓰도록 바꾸기..
 typedef struct s_uri {
   std::string schema_;
   std::string host_;
@@ -18,18 +16,11 @@ typedef struct s_uri {
   std::string query_string_;
 } t_uri;
 
-// #define LF     (u_char) '\n'
-// #define CR     (u_char) '\r'
-// #define CRLF   "\r\n"
 
 struct Request {
  private:
   std::string msg_;
-  // start line
   std::string method_;
-  //TODO: 확인 후 구조체에서 이용하도록..
-  std::string port_;
-  //og_uri_ 역할
   std::string uri_;
   t_uri uri_struct_;
   std::string http_version_;

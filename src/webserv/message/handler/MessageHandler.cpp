@@ -112,7 +112,7 @@ void MessageHandler::check_cgi_process(Connection *c) {
 
   if (!locationconfig_test->getCgiPath().empty() &&
       locationconfig_test->checkCgiExtension(c->getRequest().getPath())) {
-    CgiHandler::init_cgi_child(c);
+    CgiHandler::initCgiChild(c);
   }
 }
 

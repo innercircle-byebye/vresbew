@@ -15,15 +15,12 @@ void ResponseHandler::setResponse(Response *response, std::string *body_buf) {
   body_buf_ = body_buf;
 }
 
-//TODO: setLocationConfig로 바꿔도 될지 확인해보기
-//      일단 안하는게 맞는걸로 확인되는데 다시 확인 필요...
 void ResponseHandler::setServerConfig(HttpConfig *http_config, struct sockaddr_in &addr, const std::string &host) {
   this->server_config_ = http_config->getServerConfig(addr.sin_port, addr.sin_addr.s_addr, host);
 }
 
 void ResponseHandler::executeMethod(Request &request) {
   LocationConfig *location = this->server_config_->getLocationConfig(request.getPath());
-  // std::cout << "getPath: " << request.getPath() << std::endl;
   if (request.getMethod() == "GET" || request.getMethod() == "HEAD")
     processGetAndHeaderMethod(request, location);
   else if (request.getMethod() == "PUT")
@@ -372,14 +369,14 @@ int ResponseHandler::deletePathRecursive(std::string &path) {
       return (-1);
     }
     */
-    return (remove_directory(path));
+    return (removeDirectory(path));
   } else if (S_ISREG(this->stat_buffer_.st_mode)) {
     /*
     if (remove(path.c_str()) != 0) {
       return (-1);
     }
     */
-    return (remove_file(path));
+    return (removeFile(path));
   }
   return (0);
 }
@@ -398,7 +395,7 @@ void ResponseHandler::findIndexForGetWhenOnlySlash(Request &request, LocationCon
   }
 }
 
-int ResponseHandler::remove_file(std::string file_name) {
+int ResponseHandler::removeFile(std::string file_name) {
   if (remove(file_name.c_str()) != 0) {
     // std::cout << "fail remove " << file_name << std::endl;
     return (-1);
@@ -407,7 +404,7 @@ int ResponseHandler::remove_file(std::string file_name) {
   return (0);
 }
 
-int ResponseHandler::remove_directory(std::string directory_name) {
+int ResponseHandler::removeDirectory(std::string directory_name) {
   if (rmdir(directory_name.c_str()) != 0) {
     // std::cout << "fail remove " << directory_name << std::endl;
     return (-1);

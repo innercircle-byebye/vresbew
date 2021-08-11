@@ -81,8 +81,8 @@ class ResponseHandler {
 
   void findIndexForGetWhenOnlySlash(Request &request, LocationConfig *&location);
 
-  int remove_file(std::string file_name);
-  int remove_directory(std::string directory_name);
+  int removeFile(std::string file_name);
+  int removeDirectory(std::string directory_name);
   // executing methods helper end
 
   void createLocationHeaderFor201(Connection *c, Request &request);

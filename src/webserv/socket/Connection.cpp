@@ -18,7 +18,6 @@ Connection::Connection()
   send_len = 0;
   client_max_body_size = -1;
   size_before = 0;
-  // real_send_len = 0;
 }
 
 Connection::~Connection() {}
@@ -69,7 +68,6 @@ void Connection::clear() {
   is_chunked_ = false;
   temp.clear();
   send_len = 0;
-  // real_send_len = 0;
   client_max_body_size = -1;
   size_before = 0;
 }
@@ -83,7 +81,6 @@ void Connection::clearAtChunked() {
   chunked_str_size_ = 0;
   temp.clear();
   send_len = 0;
-  // real_send_len = 0;
   client_max_body_size = -1;
   size_before = 0;
 }
@@ -101,10 +98,6 @@ void  Connection::process_read_event(Kqueue *kq, SocketManager *sm) {
     kq->kqueueSetEvent(conn, EVFILT_READ, EV_ADD);
   } else {
     ssize_t recv_len = recv(this->fd_, this->buffer_, BUF_SIZE, 0);
-    // std::cout << "==============buffer==============" << std::endl;
-    // std::cout << this->buffer_ << std::endl;
-    // std::cout << "==================================" << std::endl;
-
     if (strchr(this->buffer_, ctrl_c[0])) {
       sm->closeConnection(this);
       return ;

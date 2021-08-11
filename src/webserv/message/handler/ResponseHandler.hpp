@@ -42,9 +42,7 @@ class ResponseHandler {
   void setResponseBody();
   void setStatusLineWithCode(int status_code);
 
-  // making response message begin
   void setDefaultErrorBody();
-  // making response message end
 
   std::string getAccessPath(const std::string &uri);
   std::string getAccessPath(const std::string &uri, LocationConfig *&location);
@@ -53,16 +51,10 @@ class ResponseHandler {
   void setAutoindexBody(const std::string &uri);
 
 
-  // Response::response_ setter begin
-  // 흐름상 가장 아래에 위치함
   void setResponseStatusLine();
   void setResponseHeader();
-  // void setResponseBody();
-  // Response::response_ setter end
 
-  // 애매함
   void setResponseBodyFromFile(const std::string &filepath);
-  // 애매함 end
 
   /*--------------------------EXECUTING METHODS--------------------------------*/
 

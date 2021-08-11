@@ -5,8 +5,8 @@
 #include <map>
 #include <string>
 
-#include "webserv/socket/Connection.hpp"
 #include "webserv/message/handler/MessageHandler.hpp"
+#include "webserv/socket/Connection.hpp"
 
 namespace ft {
 
@@ -18,10 +18,9 @@ class CgiHandler {
  public:
   static void initCgiChild(Connection *c);
   static void handleCgiHeader(Connection *c);
-  //TODO: rename
+
   static void setupCgiMessage(Connection *c);
   static void receiveCgiBody(Connection *c);
-
 };
 
 }  // namespace ft

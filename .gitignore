@@ -10,3 +10,4 @@
 error.log
 webserv.dSYM
 ./webserv
+./var/www/html/put_here/*

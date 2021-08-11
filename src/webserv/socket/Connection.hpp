@@ -72,10 +72,8 @@ class Connection {
   size_t client_max_body_size;
 
   size_t send_len;
-  size_t real_send_len;
+  size_t real_send_len_;
 
-  // std::string temp_chunked;     //TODO: remove
-  // std::string cgi_output_temp;  //TODO: remove
 
   Connection();
   ~Connection();
@@ -101,8 +99,6 @@ class Connection {
   Connection *getNext() const;
   socket_t getFd() const;
   struct sockaddr_in getServerSockaddr() const;
-  // const HttpConfig	*getHttpConfig() const;
-  // const RequestMessage		&getRequestMessage() const;
   Request &getRequest();
   Response &getResponse();
   HttpConfig *getHttpConfig();

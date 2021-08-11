@@ -58,7 +58,7 @@ class RequestHandler {
   void parseHeaderLines(Connection *c);
   int parseHeaderLine(std::string &one_header_line);
   void parseEntityBody();
-  // static std::vector<std::string> splitByDelimiter(std::string const &str, char delimiter);
+
   static bool isValidHeaderKey(std::string const &key);
   static bool isValidMethod(std::string const &method);
 

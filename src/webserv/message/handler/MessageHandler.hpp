@@ -1,7 +1,6 @@
 #ifndef MESSAGE_HANDLER_HPP
 #define MESSAGE_HANDLER_HPP
 
-// #include <cstring>
 #include <exception>
 #include <iostream>
 #include <istream>

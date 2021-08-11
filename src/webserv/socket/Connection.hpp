@@ -1,15 +1,15 @@
 #ifndef CONNECTION_HPP
 #define CONNECTION_HPP
 
-#include "webserv/webserv.hpp"
 #include "webserv/logger/Logger.hpp"
+#include "webserv/message/Request.hpp"
+#include "webserv/message/Response.hpp"
+#include "webserv/message/handler/CgiHandler.hpp"
+#include "webserv/message/handler/MessageHandler.hpp"
 #include "webserv/socket/Kqueue.hpp"
 #include "webserv/socket/Listening.hpp"
 #include "webserv/socket/SocketManager.hpp"
-#include "webserv/message/Request.hpp"
-#include "webserv/message/Response.hpp"
-#include "webserv/message/handler/MessageHandler.hpp"
-#include "webserv/message/handler/CgiHandler.hpp"
+#include "webserv/webserv.hpp"
 
 namespace ft {
 
@@ -18,7 +18,7 @@ enum MessageFromBufferStatus {
   MESSAGE_START_LINE_COMPLETE,
   MESSAGE_HEADER_INCOMPLETE,
   MESSAGE_HEADER_COMPLETE,
-  MESSAGE_CHUNKED,        // to test chunked
+  MESSAGE_CHUNKED,  // to test chunked
   MESSAGE_CGI_INCOMING,
   MESSAGE_CGI_COMPLETE,
   MESSAGE_BODY_INCOMING,
@@ -55,9 +55,8 @@ class Connection {
   int string_buffer_content_length_;
 
  public:
-  size_t size_before;
   char buffer_[BUF_SIZE];
-  bool interrupted;
+
   std::string body_buf_;
   pid_t cgi_pid;
   int writepipe[2], readpipe[2];
@@ -72,10 +71,6 @@ class Connection {
   size_t client_max_body_size;
 
   size_t send_len;
-  size_t real_send_len;
-
-  // std::string temp_chunked;     //TODO: remove
-  // std::string cgi_output_temp;  //TODO: remove
 
   Connection();
   ~Connection();
@@ -85,8 +80,8 @@ class Connection {
   void clear();
   void clearAtChunked();
 
-  void  process_read_event(Kqueue *kq, SocketManager *sm);
-  void  process_write_event(Kqueue *kq, SocketManager *sm);
+  void process_read_event(Kqueue *kq, SocketManager *sm);
+  void process_write_event(Kqueue *kq, SocketManager *sm);
 
   void setListen(bool listen);
   void setNext(Connection *next);

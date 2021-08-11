@@ -113,23 +113,23 @@ void  Connection::process_read_event(Kqueue *kq, SocketManager *sm) {
         this->recv_phase_ == MESSAGE_START_LINE_COMPLETE ||
         this->recv_phase_ == MESSAGE_HEADER_INCOMPLETE ||
         this->recv_phase_ == MESSAGE_CHUNKED) {
-      MessageHandler::handle_request_header(this);
+      MessageHandler::handleRequestHeader(this);
     }
     if (this->recv_phase_ == MESSAGE_HEADER_COMPLETE)
-      MessageHandler::check_request_header(this);
+      MessageHandler::checkRequestHeader(this);
     if (this->recv_phase_ == MESSAGE_CHUNKED)
-      MessageHandler::handle_chunked_body(this);
+      MessageHandler::handleChunkedBody(this);
     else if (this->recv_phase_ == MESSAGE_BODY_INCOMING)
-      MessageHandler::handle_request_body(this);
+      MessageHandler::handleRequestBody(this);
     if (this->recv_phase_ == MESSAGE_BODY_COMPLETE) {
       if (this->status_code_ < 0)
-        MessageHandler::check_cgi_process(this);
+        MessageHandler::checkCgiProcess(this);
       if (this->recv_phase_ == MESSAGE_CGI_COMPLETE) {
         CgiHandler::handleCgiHeader(this);
         CgiHandler::setupCgiMessage(this);
       } else {
-        MessageHandler::execute_server_side(this);  // 서버가 실제 동작을 진행하는 부분
-        MessageHandler::set_response_message(this);
+        MessageHandler::executeServerSide(this);  // 서버가 실제 동작을 진행하는 부분
+        MessageHandler::setResponseMessage(this);
       }
       kq->kqueueSetEvent(this, EVFILT_READ, EV_DELETE);
       kq->kqueueSetEvent(this, EVFILT_WRITE, EV_ADD);
@@ -156,7 +156,7 @@ void Connection::process_write_event(Kqueue *kq, SocketManager *sm) {
       this->clear();
     }
   } else if (this->recv_phase_ == MESSAGE_BODY_COMPLETE) {
-    MessageHandler::send_response_to_client(this);
+    MessageHandler::sendResponseToClient(this);
     if (!this->response_.getHeaderValue("Connection").compare("close") ||
         !this->request_.getHttpVersion().compare("HTTP/1.0")) {
       sm->closeConnection(this);

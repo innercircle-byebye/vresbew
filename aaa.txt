@@ -10,23 +10,23 @@ index 9a7ecbd..6e2dadf 100644
  # - /put_test/* must answer to PUT request and save files to a directory of your choice
  # - any file with .bla as extension must answer to POST request by calling the cgi_test executable
  # - /post_body must answer anything to POST request with a maxBody of 100
--# - /directory/ must answer to GET request and the root of it would be the repository YoupiBanane 
+-# - /directory/ must answer to GET request and the root of it would be the repository YoupiBanane
 +# - /directory/ must answer to GET request and the root of it would be the repository YoupiBanane
  #    and if no file are requested, it should search for youpi.bad_extension files
  http {
      server {
 @@ -19,6 +19,7 @@ http {
- 
+
  		location /put_test/ {
  			limit_except PUT;
 +			root var/www/html/put_here;
  		}
- 
+
  		location /post_body {
 @@ -28,7 +29,7 @@ http {
              cgi_path ./tester/cgi_tester;
  		}
- 
+
 -		location /directory/ {
 +		location /directory {
  			limit_except GET POST;
@@ -47,7 +47,7 @@ index 23f4b8e..16ba7a1 100644
 +/*   Updated: 2021/08/08 16:23:09 by sucho            ###   ########.fr       */
  /*                                                                            */
  /* ************************************************************************** */
- 
+
 @@ -122,11 +122,11 @@ int main(int argc, char *argv[]) {
        env_set.insert(env_temp);
      }
@@ -100,7 +100,7 @@ index 76895be..50892eb 100644
 +++ b/src/webserv/config/LocationConfig.cpp
 @@ -260,19 +260,12 @@ LocationConfig::~LocationConfig(void) {
  }
- 
+
  bool LocationConfig::checkPrefixMatchUri(std::string request_uri) {
 -  if (this->uri.length() <= request_uri.length() + 1) {
 -    size_t compare_length = request_uri.length() > this->uri.length() ? this->uri.length() : request_uri.length();
@@ -118,7 +118,7 @@ index 76895be..50892eb 100644
 -  // }
 -  // return false;
  }
- 
+
  const std::string &LocationConfig::getUri(void) const {
 diff --git a/src/webserv/message/Request.cpp b/src/webserv/message/Request.cpp
 index 6c0a872..b828167 100644
@@ -159,7 +159,7 @@ index c231e20..3660a72 100644
 +  std::string filepath_;
    std::string query_string_;
  } t_uri;
- 
+
 @@ -52,6 +53,7 @@ struct Request {
    const std::string &getHost() const;
    const std::string &getPort() const;
@@ -181,7 +181,7 @@ index e1653ce..c6652a5 100644
 --- a/src/webserv/message/handler/CgiHandler.cpp
 +++ b/src/webserv/message/handler/CgiHandler.cpp
 @@ -4,7 +4,7 @@ namespace ft {
- 
+
  void CgiHandler::init_cgi_child(Connection *c) {
    ServerConfig *server_config = c->getHttpConfig()->getServerConfig(c->getSockaddrToConnect().sin_port, c->getSockaddrToConnect().sin_addr.s_addr, c->getRequest().getHeaderValue("Host"));
 -  LocationConfig *location = server_config->getLocationConfig(c->getRequest().getPath());
@@ -190,7 +190,7 @@ index e1653ce..c6652a5 100644
    // char **command;
    // environ = setEnviron(c);
 @@ -32,7 +32,7 @@ void CgiHandler::init_cgi_child(Connection *c) {
- 
+
      // execve(location->getCgiPath().c_str(), command, environ);
      execve(location->getCgiPath().c_str(),
 -           setCommand(location->getCgiPath(), location->getRoot() + c->getRequest().getPath()),
@@ -201,7 +201,7 @@ index e1653ce..c6652a5 100644
 @@ -40,6 +40,9 @@ void CgiHandler::init_cgi_child(Connection *c) {
    // TODO: 실패 예외처리
    close(c->readpipe[1]);
- 
+
 +  std::cout << "check body buf" << std::endl;
 +  std::cout << c->getBodyBuf() << std::endl;
 +  std::cout << "check body buf" << std::endl;
@@ -209,7 +209,7 @@ index e1653ce..c6652a5 100644
    write(c->writepipe[1], c->getBodyBuf().c_str(), (size_t)c->getBodyBuf().size());
    //숫자 확인
 @@ -90,7 +93,7 @@ void CgiHandler::handle_cgi_header(Connection *c) {
- 
+
  char **CgiHandler::setEnviron(Connection *c) {
    ServerConfig *server_config = c->getHttpConfig()->getServerConfig(c->getSockaddrToConnect().sin_port, c->getSockaddrToConnect().sin_addr.s_addr, c->getRequest().getHeaderValue("Host"));
 -  LocationConfig *location = server_config->getLocationConfig(c->getRequest().getPath());
@@ -239,7 +239,7 @@ index 3ab5233..019fc8b 100644
 @@ -28,6 +28,9 @@ void MessageHandler::check_request_header(Connection *c) {
    // 있어야되는지??
    request_handler_.setRequest(&c->getRequest());
- 
+
 +  //t_uri uri_struct 전체 셋업하는 부분으로...
 +  request_handler_.setupUriStruct(serverconfig_test, locationconfig_test);
 +
@@ -250,7 +250,7 @@ index 3ab5233..019fc8b 100644
      c->setRecvPhase(MESSAGE_BODY_COMPLETE);
      return;
    }
--  
+-
 -  // 문제가 되는 부분
 +
    if (request_handler_.isUriFileExist(locationconfig_test) == false &&
@@ -260,12 +260,12 @@ index 3ab5233..019fc8b 100644
      c->setRecvPhase(MESSAGE_BODY_COMPLETE);
      return;
 @@ -56,8 +58,6 @@ void MessageHandler::check_request_header(Connection *c) {
- 
+
    if (!c->getRequest().getHeaderValue("Content-Length").empty())
      c->setStringBufferContentLength(stoi(c->getRequest().getHeaderValue("Content-Length")));
 -  else
 -    c->chunked_message = true;
- 
+
    if (c->interrupted == true) {
      c->setRecvPhase(MESSAGE_INTERRUPTED);
 @@ -69,7 +69,8 @@ void MessageHandler::check_request_header(Connection *c) {
@@ -278,16 +278,16 @@ index 3ab5233..019fc8b 100644
      c->setRecvPhase(MESSAGE_BODY_COMPLETE);
    else
      c->setRecvPhase(MESSAGE_BODY_INCOMING);
-@@ -83,7 +84,6 @@ void MessageHandler::check_cgi_process(Connection *c) {
+@@ -83,7 +84,6 @@ void MessageHandler::checkCgiProcess(Connection *c) {
        locationconfig_test->checkCgiExtension(c->getRequest().getPath())) {
      CgiHandler::init_cgi_child(c);
    }
 -  std::cout << "cgi??" << std::endl;
  }
- 
+
  void MessageHandler::handle_request_body(Connection *c) {
 @@ -91,7 +91,7 @@ void MessageHandler::handle_request_body(Connection *c) {
- 
+
    // TODO: 조건문 수정 CHUNKED_CHUNKED
    // Transfer-Encoding : chunked 아닐 때
 -  if (c->chunked_message == false) {
@@ -307,14 +307,14 @@ index 3ab5233..019fc8b 100644
 -    ////// 여기
    }
  }
- 
+
 @@ -124,7 +118,7 @@ void MessageHandler::execute_server_side(Connection *c) {
    if (c->getRequest().getMethod() == "PUT" &&
        (c->getResponse().getStatusCode() == 201 || (c->getResponse().getStatusCode() == 204))) {
      // create response body
 -    executePutMethod(response_handler_.getAccessPath(c->getRequest().getPath()), c->getBodyBuf());
 +    executePutMethod(c->getRequest().getFilePath(), c->getBodyBuf());
- 
+
      //TODO: remove;
      c->getBodyBuf().clear();
 diff --git a/src/webserv/message/handler/RequestHandler.cpp b/src/webserv/message/handler/RequestHandler.cpp
@@ -325,7 +325,7 @@ index 2d2b8d5..94fa1f6 100644
    if (c->getRecvPhase() == MESSAGE_START_LINE_INCOMPLETE)
      checkMsgForStartLine(c);
    if (c->getRecvPhase() == MESSAGE_START_LINE_COMPLETE)
--    parseStartLine(c); 
+-    parseStartLine(c);
 +    parseStartLine(c);
    if (c->getRecvPhase() == MESSAGE_HEADER_INCOMPLETE)
      checkMsgForHeader(c);
@@ -344,8 +344,8 @@ index 2d2b8d5..94fa1f6 100644
 @@ -222,7 +218,7 @@ void RequestHandler::parseHeaderLines(Connection *c) {
      header_lines.erase(0, pos + 2);
    }
- 
--  if (request_->getMethod().compare("GET") && request_->getMethod().compare("HEAD") && 
+
+-  if (request_->getMethod().compare("GET") && request_->getMethod().compare("HEAD") &&
 +  if (request_->getMethod().compare("GET") && request_->getMethod().compare("HEAD") &&
        request_->getHeaderValue("Content-Length").empty() && !request_->getHeaderValue("Transfer-Encoding").compare("chunked"))
      c->setRecvPhase(MESSAGE_CHUNKED);
@@ -353,14 +353,14 @@ index 2d2b8d5..94fa1f6 100644
 @@ -294,36 +290,14 @@ bool RequestHandler::isHostHeaderExist() {
    return (false);
  }
- 
+
 -#include <dirent.h>
  bool RequestHandler::isUriFileExist(LocationConfig *location) {
 -  DIR *dir_ptr;
 +  (void)location;
    struct stat stat_buffer_;
 -  std::string filepath = location->getRoot() + request_->getPath();
- 
+
 -  if (request_->getMethod() != "GET" && request_->getMethod() != "HEAD") {
 -    if (stat(filepath.c_str(), &stat_buffer_) < 0)
 -      return false;
@@ -389,15 +389,15 @@ index 2d2b8d5..94fa1f6 100644
 -  return true;
 +  return (true);
  }
- 
+
  bool RequestHandler::isAllowedMethod(LocationConfig *location) {
 @@ -351,7 +325,6 @@ void RequestHandler::applyReturnDirectiveStatusCode(Connection *c, LocationConfi
  }
- 
+
  void RequestHandler::handleChunked(Connection *c) {
 -  std::cout << c->getRequest().getMethod() << " handle chunked" << std::endl;
    size_t pos;
- 
+
    if (c->chunked_checker_ == STR_SIZE) {
 @@ -365,27 +338,72 @@ void RequestHandler::handleChunked(Connection *c) {
      }
@@ -484,7 +484,7 @@ index 2d2b8d5..94fa1f6 100644
 +  request_->setFilePath(filepath);
 +  std::cout << "filepath: [" << request_->getFilePath() << "]" << std::endl;
  }
- 
+
  }  // namespace ft
 diff --git a/src/webserv/message/handler/RequestHandler.hpp b/src/webserv/message/handler/RequestHandler.hpp
 index 55f71bb..804b667 100644
@@ -493,7 +493,7 @@ index 55f71bb..804b667 100644
 @@ -39,6 +39,7 @@ class RequestHandler {
    void processByRecvPhase(Connection *c);
    static std::vector<std::string> splitByDelimiter(std::string const &str, char delimiter);
- 
+
 +  void setupUriStruct(ServerConfig *server, LocationConfig *location);
    bool isHostHeaderExist();
    bool isUriFileExist(LocationConfig *location);
@@ -503,19 +503,19 @@ index 1db23f1..ab8bd22 100644
 --- a/src/webserv/message/handler/ResponseHandler.cpp
 +++ b/src/webserv/message/handler/ResponseHandler.cpp
 @@ -2,9 +2,13 @@
- 
+
  namespace ft {
- 
+
 -ResponseHandler::ResponseHandler() {}
 +ResponseHandler::ResponseHandler() {
 +  memset(&this->stat_buffer_, 0, sizeof(this->stat_buffer_));
 +}
- 
+
 -ResponseHandler::~ResponseHandler() {}
 +ResponseHandler::~ResponseHandler() {
 +  memset(&this->stat_buffer_, 0, sizeof(this->stat_buffer_));
 +}
- 
+
  void ResponseHandler::setResponse(Response *response, std::string *body_buf) {
    response_ = response;
 @@ -23,7 +27,7 @@ void ResponseHandler::executeMethod(Request &request) {
@@ -547,7 +547,7 @@ index 1db23f1..ab8bd22 100644
      if (S_ISDIR(this->stat_buffer_.st_mode))
        pathname += "/";
 @@ -142,14 +146,14 @@ void ResponseHandler::setAutoindexBody(const std::string &uri) {
- 
+
  void ResponseHandler::processGetAndHeaderMethod(Request &request, LocationConfig *&location) {
    //need last modified header
 -  if (stat(getAccessPath(request.getPath()).c_str(), &this->stat_buffer_) < 0) {
@@ -564,11 +564,11 @@ index 1db23f1..ab8bd22 100644
 -    return ;
 +    return;
    }
- 
+
    // TODO: connection의 status_code를 보고 결정하도록...
 @@ -160,45 +164,47 @@ void ResponseHandler::processGetAndHeaderMethod(Request &request, LocationConfig
    }
- 
+
    // TODO: REQUEST에서 처리 해야될 수도 있을것같음
 -  if (*(request.getPath().rbegin()) == '/') {
 +  if (*(request.getFilePath().rbegin()) == '/') {
@@ -607,7 +607,7 @@ index 1db23f1..ab8bd22 100644
 +      setResponseBodyFromFile(request.getFilePath());
    }
  }
- 
+
 -void ResponseHandler::processPutMethod(Request &request, LocationConfig *&location) {
 +void ResponseHandler::processPutMethod(Request &request) {
    if (*(request.getPath().rbegin()) == '/') {
@@ -648,13 +648,13 @@ index 1db23f1..ab8bd22 100644
    return (true);
 @@ -323,8 +329,8 @@ bool ResponseHandler::isPathAccessable(std::string &uri, LocationConfig *&locati
  }
- 
+
  // 함수가 불리는 시점에서는 이미 파일은 존재함
 -void ResponseHandler::setResponseBodyFromFile(const std::string &uri, LocationConfig *&location) {
 -  std::ifstream file(getAccessPath(uri, location).c_str());
 +void ResponseHandler::setResponseBodyFromFile(const std::string &filepath) {
 +  std::ifstream file(filepath.c_str());
- 
+
    file.seekg(0, std::ios::end);
    body_buf_->reserve(file.tellg());
 @@ -379,9 +385,10 @@ void ResponseHandler::findIndexForGetWhenOnlySlash(Request &request, LocationCon
@@ -676,14 +676,14 @@ index f92279e..cd810a7 100644
 +++ b/src/webserv/message/handler/ResponseHandler.hpp
 @@ -61,14 +61,14 @@ class ResponseHandler {
    // Response::response_ setter end
- 
+
    // 애매함
 -  void setResponseBodyFromFile(const std::string &uri, LocationConfig *&location);
 +  void setResponseBodyFromFile(const std::string &filepath);
    // 애매함 end
- 
+
    /*--------------------------EXECUTING METHODS--------------------------------*/
- 
+
    // blocks for setResponseFields begin
    void processGetAndHeaderMethod(Request &request, LocationConfig *&location);
 -  void processPutMethod(Request &request, LocationConfig *&location);
@@ -700,7 +700,7 @@ index def4c5b..2696047 100644
    sockaddr_to_connect_.sin_family = AF_INET;
    memset(buffer_, 0, BUF_SIZE);
 -  chunked_message = false;
- 
+
    recv_phase_ = MESSAGE_START_LINE_INCOMPLETE;
    interrupted = false;
 @@ -58,7 +57,6 @@ void Connection::clear() {
@@ -718,11 +718,11 @@ index ccf6bd0..12af7be 100644
 @@ -58,8 +58,6 @@ class Connection {
    pid_t cgi_pid;
    int writepipe[2], readpipe[2];
- 
+
 -  bool chunked_message;
 -
    int status_code_;
- 
+
    int chunked_checker_;
 diff --git a/src/webserv/socket/Kqueue.cpp b/src/webserv/socket/Kqueue.cpp
 index 7ddcce9..4533414 100644
@@ -750,7 +750,7 @@ index 7ddcce9..4533414 100644
          } else {
 -          //std::cout << "please" << std::endl;
            if (c->status_code_ < 0) // c->status_code_ 기본값 (-1) 일때 == 에러코드가 결정 되지 않았을 때 == 정상 request message 일 때
-             MessageHandler::check_cgi_process(c);
+             MessageHandler::checkCgiProcess(c);
            if (c->getRecvPhase() == MESSAGE_CGI_COMPLETE) {
 -            std::cout << "cgi" << std::endl;
              CgiHandler::handle_cgi_header(c);
@@ -763,9 +763,9 @@ index 7ddcce9..4533414 100644
 -         std::cout << "status code0: " << c->getResponse().getStatusCode() << std::endl;
            MessageHandler::execute_server_side(c);  // 서버가 실제 동작을 진행하는 부분
 -         std::cout << "status code1: " << c->getResponse().getStatusCode() << std::endl;
-           MessageHandler::set_response_message(c);
+           MessageHandler::setResponseMessage(c);
 -         std::cout << "status code2: " << c->getResponse().getStatusCode() << std::endl;
-           MessageHandler::send_response_to_client(c);
+           MessageHandler::sendResponseToClient(c);
            std::cout << "status code: " << c->getResponse().getStatusCode() << std::endl;
 -         std::cout << "status code3: " << c->getResponse().getStatusCode() << std::endl;
            if (!c->getResponse().getHeaderValue("Connection").compare("close") ||

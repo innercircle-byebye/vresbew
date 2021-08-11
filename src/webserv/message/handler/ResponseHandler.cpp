@@ -22,6 +22,7 @@ void ResponseHandler::setServerConfig(HttpConfig *http_config, struct sockaddr_i
 }
 
 void ResponseHandler::executeMethod(Request &request) {
+  std::cout << "in execute method" << std::endl;
   LocationConfig *location = this->server_config_->getLocationConfig(request.getPath());
   if (request.getMethod() == "GET" || request.getMethod() == "HEAD")
     processGetAndHeaderMethod(request, location);
@@ -29,8 +30,15 @@ void ResponseHandler::executeMethod(Request &request) {
     processPutMethod(request);
   else if (request.getMethod() == "POST")
     processPostMethod(request, location);
-  else if (request.getMethod() == "DELETE")
-    processDeleteMethod(request.getPath());
+  // else if (request.getMethod() == "DELETE")
+  //   processDeleteMethod(request.getPath());
+  else if (request.getMethod() == "DELETE") {
+    std::string get_path = request.getPath();
+    std::cout << "getRoot() : " << location->getRoot() << std::endl;
+    std::cout << "getFilePath() : " << request.getFilePath() << std::endl;
+    std::cout << "get_path : " << get_path << std::endl;
+    processDeleteMethod(request.getFilePath());
+  }
 }
 
 void ResponseHandler::setDefaultHeader(Connection *c, Request &request) {
@@ -177,9 +185,13 @@ void ResponseHandler::processPostMethod(Request &request, LocationConfig *&locat
   setStatusLineWithCode(200);
 }
 
-void ResponseHandler::processDeleteMethod(const std::string &uri) {
-  if (!uri.compare("/")) {  // URI 에 "/" 만 있는 경우
-    std::string url = getAccessPath(uri);
+// void ResponseHandler::processDeleteMethod(const std::string &uri) {
+void ResponseHandler::processDeleteMethod(const std::string &url) {
+  // if (!uri.compare("/")) {  // URI 에 "/" 만 있는 경우
+  if (!url.compare("/")) {  // URI 에 "/" 만 있는 경우
+    // std::string url = getAccessPath(uri);
+    // // test print log
+    // std::cout << "is /, url : " << url << std::endl;
     if (stat(url.c_str(), &this->stat_buffer_) < 0) {
       setStatusLineWithCode(405);
       return;
@@ -189,6 +201,7 @@ void ResponseHandler::processDeleteMethod(const std::string &uri) {
         struct dirent *item;
 
         if (!(dir_ptr = opendir(url.c_str()))) {
+          std::cout << "fail dir_ptr" << std::endl;
           setStatusLineWithCode(403);  // Not Allowed
           return;
         }
@@ -212,8 +225,11 @@ void ResponseHandler::processDeleteMethod(const std::string &uri) {
       }
     }
   } else {  // "/" 가 아닌 경우
-    std::string url = getAccessPath(uri);
+    // std::string url = getAccessPath(uri);
+    // test print log
+    std::cout << "is not /, url : " << url << std::endl;
     if (stat(url.c_str(), &this->stat_buffer_) < 0) {
+      std::cout << "fail stat" << std::endl;
       setStatusLineWithCode(404);
     } else {
       // file or directory

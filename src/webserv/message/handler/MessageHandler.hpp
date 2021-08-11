@@ -9,12 +9,15 @@
 #include <string>
 
 #include "webserv/config/HttpConfig.hpp"
-#include "webserv/message/handler/CgiHandler.hpp"
-#include "webserv/message/handler/RequestHandler.hpp"
-#include "webserv/message/handler/ResponseHandler.hpp"
 #include "webserv/socket/Connection.hpp"
+#include "webserv/message/handler/ResponseHandler.hpp"
+#include "webserv/message/handler/RequestHandler.hpp"
+#include "webserv/message/handler/CgiHandler.hpp"
 
 namespace ft {
+
+class RequestHandler;
+class ResponseHandler;
 
 class MessageHandler {
  private:
@@ -28,6 +31,7 @@ class MessageHandler {
   static void handle_request_header(Connection *c);
   static void check_request_header(Connection *c);
   static void handle_request_body(Connection *c);
+  static void handle_chunked_body(Connection *c);
 
   static void execute_server_side(Connection *c);
   static void check_cgi_process(Connection *c);

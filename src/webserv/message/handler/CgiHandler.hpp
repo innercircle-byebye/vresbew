@@ -19,7 +19,7 @@ class CgiHandler {
   static void init_cgi_child(Connection *c);
   static void handle_cgi_header(Connection *c);
   //TODO: rename
-  static void send_chunked_cgi_response_to_client_and_close(Connection *c);
+  static void setup_cgi_message(Connection *c);
   static void receive_cgi_body(Connection *c);
 
 };

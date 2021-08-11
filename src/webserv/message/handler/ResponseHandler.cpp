@@ -23,7 +23,7 @@ void ResponseHandler::setServerConfig(HttpConfig *http_config, struct sockaddr_i
 
 void ResponseHandler::executeMethod(Request &request) {
   LocationConfig *location = this->server_config_->getLocationConfig(request.getPath());
-
+  // std::cout << "getPath: " << request.getPath() << std::endl;
   if (request.getMethod() == "GET" || request.getMethod() == "HEAD")
     processGetAndHeaderMethod(request, location);
   else if (request.getMethod() == "PUT")
@@ -35,8 +35,9 @@ void ResponseHandler::executeMethod(Request &request) {
 }
 
 void ResponseHandler::setDefaultHeader(Connection *c, Request &request) {
-  response_->setHeader("Content-Length",
-                       std::to_string(this->body_buf_->size()));
+  if (response_->getHeaderValue("Content-Length").empty())
+    response_->setHeader("Content-Length",
+                         std::to_string(this->body_buf_->size()));
 
   response_->setHeader("Date", Time::getCurrentDate());
 
@@ -52,6 +53,8 @@ void ResponseHandler::setDefaultHeader(Connection *c, Request &request) {
   }
   if (response_->getStatusCode() == 201)
     createLocationHeaderFor201(c, request);
+  if (response_->getStatusCode() == 301)
+    createLocationHeaderFor301(request);
 }
 /*-----------------------MAKING RESPONSE MESSAGE-----------------------------*/
 
@@ -156,42 +159,42 @@ void ResponseHandler::processGetAndHeaderMethod(Request &request, LocationConfig
     return;
   }
 
-  // TODO: connection의 status_code를 보고 결정하도록...
-  if (this->response_->getHeaderValue("X-Powered-By") == "PHP/8.0.7" &&
-      this->response_->getHeaderValue("Status").empty()) {
-    setStatusLineWithCode(200);
-    return;
-  }
+  // // TODO: connection의 status_code를 보고 결정하도록...
+  // if (this->response_->getHeaderValue("X-Powered-By") == "PHP/8.0.7" &&
+  //     this->response_->getHeaderValue("Status").empty()) {
+  //   setStatusLineWithCode(200);
+  //   return;
+  // }
 
   // TODO: REQUEST에서 처리 해야될 수도 있을것같음
-  if (*(request.getFilePath().rbegin()) == '/') {
-    findIndexForGetWhenOnlySlash(request, location);
-    std::cout <<"after: [" << request.getFilePath() << "]" << std::endl;
-    if (*(request.getFilePath().rbegin()) == '/') {
-      setStatusLineWithCode(404);
-      return;
-    }
-  }
-  std::cout << "filepath2: [" << request.getFilePath() << std::endl;
-  if (!isFileExist(request.getFilePath()) ){
-    setStatusLineWithCode(404);
-    return;
-  } else {
-    if (S_ISDIR(this->stat_buffer_.st_mode)) {
-      setStatusLineWithCode(301);
-      // TODO: string 을 생성 하지 않도록 수정하는 작업 필요
-      // std::string temp_url = "http://" + request.getHeaderValue("Host") + request.getUri();
-      std::string temp_url = "http://" + request.getHeaderValue("Host") + request.getPath();
-      if (*(temp_url.rbegin()) != '/')
-        temp_url.append("/");
-      this->response_->setHeader("Location", temp_url);
-      return;
-    }
+  // if (*(request.getFilePath().rbegin()) == '/') {
+  //   findIndexForGetWhenOnlySlash(request, location);
+  //   std::cout << "after: [" << request.getFilePath() << "]" << std::endl;
+  //   if (*(request.getFilePath().rbegin()) == '/') {
+  //     setStatusLineWithCode(404);
+  //     return;
+  //   }
+  // }
+  // std::cout << "filepath2: [" << request.getFilePath() << std::endl;
+  // if (!isFileExist(request.getFilePath())) {
+  //   setStatusLineWithCode(404);
+  //   return;
+  // } else {
+  //   // if (S_ISDIR(this->stat_buffer_.st_mode)) {
+  //   //   setStatusLineWithCode(301);
+  //   //   // TODO: string 을 생성 하지 않도록 수정하는 작업 필요
+  //   //   // std::string temp_url = "http://" + request.getHeaderValue("Host") + request.getUri();
+  //   //   std::string temp_url = "http://" + request.getHeaderValue("Host") + request.getPath();
+  //   //   if (*(temp_url.rbegin()) != '/')
+  //   //     temp_url.append("/");
+  //   //   this->response_->setHeader("Location", temp_url);
+  //   //   return;
+  //   // }
     setStatusLineWithCode(200);
     // body가 만들져 있지 않는 경우의 조건 추가
     if (body_buf_->empty())
       setResponseBodyFromFile(request.getFilePath());
-  }
+  // }
 }
 
 void ResponseHandler::processPutMethod(Request &request) {
@@ -216,8 +219,8 @@ void ResponseHandler::processPostMethod(Request &request, LocationConfig *&locat
     setStatusLineWithCode(this->response_->getStatusCode());
     return;
   }
-  if (!location->checkCgiExtension(request.getPath()) ||
-      location->getCgiPath().empty()) {
+  if (!location->checkCgiExtension(request.getFilePath())) {
+    // std::cout << "getFilePath: 2[" << request.getFilePath() << "]" << std::endl;
     setStatusLineWithCode(405);
     return;
   }
@@ -231,7 +234,7 @@ void ResponseHandler::processDeleteMethod(const std::string &uri, LocationConfig
   // if path is directory -> 409 Conflict and do nothing
   // if file is missing -> 404 not found
   // if file is available -> 204 No Content and delete the file
-  std::cout << "start process delete method : " << uri << std::endl;
+  // std::cout << "start process delete method : " << uri << std::endl;
   if (!uri.compare("/")) {  // URI 에 "/" 만 있는 경우
     std::string url = getAccessPath(uri);
     if (stat(url.c_str(), &this->stat_buffer_) < 0) {
@@ -305,15 +308,15 @@ bool ResponseHandler::isFileExist(const std::string &path) {
   //           << path << std::endl;
   // std::cout << "path: " << path << std::endl;
   if (stat(path.c_str(), &this->stat_buffer_) < 0) {
-    std::cout << "this aint work" << std::endl;
-    std::cout << "why :[" << path << "]" <<std::endl;
+    // std::cout << "this aint work" << std::endl;
+    // std::cout << "why :[" << path << "]" << std::endl;
     return (false);
   }
   return (true);
 }
 bool ResponseHandler::isFileExist(const std::string &path, LocationConfig *&location) {
   if (stat(getAccessPath(path, location).c_str(), &this->stat_buffer_) < 0) {
-    std::cout << "this doesn't work" << std::endl;
+    // std::cout << "this doesn't work" << std::endl;
     return (false);
   }
   return (true);
@@ -386,7 +389,7 @@ void ResponseHandler::findIndexForGetWhenOnlySlash(Request &request, LocationCon
   std::string temp;
   for (it_index = location->getIndex().begin(); it_index != location->getIndex().end(); it_index++) {
     temp = request.getFilePath() + *it_index;
-    std::cout <<"temp: [" << temp << "]" << std::endl;
+    // std::cout << "temp: [" << temp << "]" << std::endl;
     if (isFileExist(temp)) {
       request.setFilePath(request.getFilePath() + *it_index);
       break;
@@ -397,19 +400,19 @@ void ResponseHandler::findIndexForGetWhenOnlySlash(Request &request, LocationCon
 
 int ResponseHandler::remove_file(std::string file_name) {
   if (remove(file_name.c_str()) != 0) {
-    std::cout << "fail remove " << file_name << std::endl;
+    // std::cout << "fail remove " << file_name << std::endl;
     return (-1);
   }
-  std::cout << "sucess remove file " << file_name << std::endl;
+  // std::cout << "sucess remove file " << file_name << std::endl;
   return (0);
 }
 
 int ResponseHandler::remove_directory(std::string directory_name) {
   if (rmdir(directory_name.c_str()) != 0) {
-    std::cout << "fail remove " << directory_name << std::endl;
+    // std::cout << "fail remove " << directory_name << std::endl;
     return (-1);
   }
-  std::cout << "sucess remove file " << directory_name << std::endl;
+  // std::cout << "sucess remove file " << directory_name << std::endl;
   return (0);
 }
 
@@ -430,6 +433,16 @@ void ResponseHandler::createLocationHeaderFor201(Connection *c, Request &request
 
   full_uri = request.getSchema() + request.getHost() + ":" + request.getPort() + request.getPath();
   response_->setHeader("Location", full_uri);
+}
+
+void ResponseHandler::createLocationHeaderFor301(Request &request) {
+  // TODO: 리팩토링..
+  // TODO: string 을 생성 하지 않도록 수정하는 작업 필요
+  // std::string temp_url = "http://" + request.getHeaderValue("Host") + request.getUri();
+  std::string temp_url = "http://" + request.getHeaderValue("Host") + request.getPath();
+  if (*(temp_url.rbegin()) != '/')
+    temp_url.append("/");
+  this->response_->setHeader("Location", temp_url);
 }
 
 /*--------------------------EXECUTING METHODS END--------------------------------*/

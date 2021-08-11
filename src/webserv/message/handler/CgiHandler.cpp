@@ -39,42 +39,66 @@ void CgiHandler::init_cgi_child(Connection *c) {
   close(c->writepipe[0]);
   // TODO: 실패 예외처리
   close(c->readpipe[1]);
+  memset(c->buffer_, 0, BUF_SIZE);
 
   // std::cout << "check body buf" << std::endl;
   // std::cout << c->getBodyBuf() << std::endl;
   // std::cout << "check body buf" << std::endl;
   if (c->getBodyBuf().size() == 0) {  //자식 프로세스로 보낼 c->body_buf_ 가 비어있는 경우 파이프 닫음
     close(c->writepipe[1]);
+    read(c->readpipe[0], c->buffer_, BUF_SIZE);
+    c->temp.append(c->buffer_);
   } else {
     // // TODO: 수정 필요
     size_t size = c->getBodyBuf().size();
-    for (size_t i = 0; i < size; i += 10) {
-      // std::cout << c->getBodyBuf().substr(i, 10 + i) << std::endl;
-      write(c->writepipe[1], c->getBodyBuf().substr(i, 10 + i).c_str(), 10);
+    // std::cout << "================body_buf_size=============" << std::endl;
+    // std::cout << c->getBodyBuf().size() << std::endl;
+    // std::cout << "================body_buf_size=============" << std::endl;
+    for (size_t i = 0; i < size; i += BUF_SIZE) {
+      // std::cout << "i: [" << i << "]" << std::endl;
+      size_t j = std::min(size, BUF_SIZE + i);
+      write(c->writepipe[1], c->getBodyBuf().substr(i, j).c_str(), j - i);
+      // c->getBodyBuf().erase(i, BUF_SIZE + i);
+      if (i == 0) {
+        read(c->readpipe[0], c->buffer_, BUF_SIZE);
+        c->temp.append(c->buffer_);
+        memset(c->buffer_, 0, BUF_SIZE);
+      }
+      read(c->readpipe[0], c->buffer_, BUF_SIZE);
+      c->temp.append(c->buffer_);
+      memset(c->buffer_, 0, BUF_SIZE);
+      // std::cout << c->buffer_ << std::endl;
     }
     //숫자 확인
     c->setStringBufferContentLength(-1);
     c->getBodyBuf().clear();  // 뒤에서 또 쓰일걸 대비해 혹시몰라 초기화.. #2
+    close(c->writepipe[1]);
   }
-
+  // int i =0;
+  // while (i <= (int)c->temp.size())
+  // {
+  //   if (c->temp[i] != 'B')
+  //     std::cout << "here: " << i <<std::endl;
+  //     i++;
+  // }
   c->setRecvPhase(MESSAGE_CGI_COMPLETE);
 }
 
 void CgiHandler::handle_cgi_header(Connection *c) {
   MessageHandler::response_handler_.setResponse(&c->getResponse(), &c->getBodyBuf());
 
-  std::cout << "am i even working" << std::endl;
-  size_t nbytes;
-  nbytes = read(c->readpipe[0], c->buffer_, BUF_SIZE);
-  std::cout << "c->buffer" << c->buffer_ << std::endl;
-  c->appendBodyBuf(c->buffer_);
-  memset(c->buffer_, 0, nbytes);
+  // std::cout << "am i even working" << std::endl;
+  // std::cout << "temp_size 1: [" << c->temp.size() << "]" << std::endl;
+
+  // nbytes = read(c->readpipe[0], c->buffer_, BUF_SIZE);
+  // std::cout << "c->buffer" << c->buffer_ << std::endl;
+  // c->appendBodyBuf(c->buffer_);
 
   std::string cgi_output_response_header;
   {
-    size_t pos = c->getBodyBuf().find("\r\n\r\n");
-    cgi_output_response_header = c->getBodyBuf().substr(0, pos);
-    c->getBodyBuf().erase(0, pos + 4);
+    size_t pos = c->temp.find("\r\n\r\n");
+    cgi_output_response_header = c->temp.substr(0, pos + 2);
+    c->temp.erase(0, pos + 4);
     while ((pos = cgi_output_response_header.find("\r\n")) != std::string::npos) {
       std::string one_header_line = cgi_output_response_header.substr(0, pos);
       std::vector<std::string> key_and_value = MessageHandler::request_handler_.splitByDelimiter(one_header_line, SPACE);
@@ -90,8 +114,8 @@ void CgiHandler::handle_cgi_header(Connection *c) {
         MessageHandler::response_handler_.setStatusLineWithCode(stoi(value));
         c->status_code_ = stoi(value);
       }
-      std::cout << "key: " << key << std::endl;
-      std::cout << "value: " << value << std::endl;
+      // std::cout << "key: " << key << std::endl;
+      // std::cout << "value: " << value << std::endl;
       if (key.compare("Status") != 0)
         c->getResponse().setHeader(key, value);
       cgi_output_response_header.erase(0, pos + 2);
@@ -109,6 +133,8 @@ char **CgiHandler::setEnviron(Connection *c) {
     } else {
       env_set["CONTENT_LENGTH"] = SSTR(c->getBodyBuf().size());
     }
+    if (!c->getRequest().getHeaderValue("X-Secret-Header-For-Test").empty())
+      env_set["HTTP_X_SECRET_HEADER_FOR_TEST"] = c->getRequest().getHeaderValue("X-Secret-Header-For-Test");
     if (c->getRequest().getMethod() == "GET") {
       // TODO: getEntityBody 삭제 필요, 구조체로 변경
       env_set["QUERY_STRING"] = c->getRequest().getQueryString();
@@ -164,23 +190,6 @@ char **CgiHandler::setCommand(std::string command, std::string path) {
   return (return_value);
 }
 
-void CgiHandler::send_chunked_cgi_response_to_client_and_close(Connection *c) {
-  size_t nbytes;
-  MessageHandler::response_handler_.makeResponseHeader();
-  send(c->getFd(), c->getResponse().getHeaderMsg().c_str(), c->getResponse().getHeaderMsg().size(), 0);
-  send(c->getFd(), c->getBodyBuf().c_str(), (size_t)c->getBodyBuf().size(), 0);
-  while ((nbytes = read(c->readpipe[0], c->buffer_, BUF_SIZE))) {
-    send(c->getFd(), c->buffer_, nbytes, 0);
-    memset(c->buffer_, 0, nbytes);
-  }
-  close(c->readpipe[0]);
-  close(c->readpipe[1]);
-  close(c->writepipe[0]);
-  close(c->writepipe[1]);
-  // send(c->getFd(), &"0", 1, 0);
-  wait(NULL);
-}
-
 void CgiHandler::receive_cgi_body(Connection *c) {
   size_t nbytes;
   if (c->getRecvPhase() == MESSAGE_CGI_COMPLETE) {
@@ -194,5 +203,42 @@ void CgiHandler::receive_cgi_body(Connection *c) {
     close(c->writepipe[1]);
     wait(NULL);
   }
+}
+
+void CgiHandler::setup_cgi_message(Connection *c) {
+  // std::cout << "status_code: [" << c->status_code_ << "]" << std::endl;
+  if (c->status_code_ < 0 && !c->getResponse().getHeaderValue("X-Powered-By").compare("PHP/8.0.7")) {
+    c->status_code_ = 200;
+    MessageHandler::response_handler_.setStatusLineWithCode(200);
+  }
+  if (c->getRequest().getHeaderValue("Content-Length").empty())
+    c->getResponse().setHeader("Content-Length", SSTR(c->temp.size()));
+  // c->getResponse().setHeader("Transfer-Encoding", "chunked");
+  MessageHandler::response_handler_.setDefaultHeader(c, c->getRequest());
+  c->getResponse().setHeader("Content-Length", SSTR(c->temp.size()));
+  c->getResponse().setHeader("Content-Type", "text/html; charset=utf-8");
+  // c->getResponse().setHeader("Connection", "close");
+
+  MessageHandler::response_handler_.makeResponseHeader();
+  // std::cout << "================temp=============" << std::endl;
+  // std::cout << c->temp << std::endl;
+  // std::cout << "================temp=============" << std::endl;
+  // std::cout << "temp_size :" << c->temp.size() << std::endl;
+  // std::cout << "================header=============" << std::endl;
+  // std::cout << c->getResponse().getHeaderMsg().c_str() << std::endl;
+  // std::cout << "================header=============" << std::endl;
+  if (!c->temp.empty())
+    c->getResponse().getHeaderMsg().append(c->temp);
+  // std::cout << "temp_size :" << c->temp.size() << std::endl;
+  // std::cout << "size      :" << c->getResponse().getHeaderMsg().size() << std::endl;
+
+  // c->temp.clear();
+
+  c->send_len = 0;
+  close(c->readpipe[0]);
+  close(c->readpipe[1]);
+  close(c->writepipe[0]);
+  close(c->writepipe[1]);
+  wait(NULL);
 }
 }  // namespace ft

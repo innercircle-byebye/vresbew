@@ -14,10 +14,10 @@
 
 #include "webserv/config/HttpConfig.hpp"
 #include "webserv/logger/Time.hpp"
+#include "webserv/socket/Connection.hpp"
 #include "webserv/message/Request.hpp"
 #include "webserv/message/Response.hpp"
 #include "webserv/message/StatusMessage.hpp"
-#include "webserv/socket/Connection.hpp"
 #include "webserv/message/MimeType.hpp"
 
 namespace ft {
@@ -86,7 +86,7 @@ class ResponseHandler {
   // executing methods helper end
 
   void createLocationHeaderFor201(Connection *c, Request &request);
-
+  void createLocationHeaderFor301(Request &request);
   /*--------------------------EXECUTING METHODS END--------------------------------*/
 };
 }  // namespace ft

@@ -9,8 +9,8 @@
 #include <string>
 
 #include "webserv/config/HttpConfig.hpp"
-#include "webserv/message/Request.hpp"
 #include "webserv/socket/Connection.hpp"
+#include "webserv/message/Request.hpp"
 
 namespace ft {
 
@@ -42,8 +42,12 @@ class RequestHandler {
   void setupUriStruct(ServerConfig *server, LocationConfig *location);
   bool isHostHeaderExist();
   bool isUriFileExist(LocationConfig *location);
+  bool isUriDirectory(LocationConfig *location);
   bool isAllowedMethod(LocationConfig *location);
   void applyReturnDirectiveStatusCode(Connection *c, LocationConfig *location);
+  void handleChunked(Connection *c);
+
+  void findIndexForGetWhenOnlySlash(LocationConfig *&location);
 
  private:
   void checkMsgForStartLine(Connection *c);
@@ -61,7 +65,7 @@ class RequestHandler {
   int checkHttpVersionErrorCode(std::string const &http_version);
   void checkCgiRequest(Connection *c);
 
-  void handleChunked(Connection *c);
+  bool isFileExist(const std::string &path);
 };
 }  // namespace ft
 #endif

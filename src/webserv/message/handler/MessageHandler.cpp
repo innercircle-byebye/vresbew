@@ -14,7 +14,7 @@ void MessageHandler::handle_request_header(Connection *c) {
   // 1. request_handler의 request가 c의 request가 되도록 세팅
   request_handler_.setRequest(&c->getRequest());
   // 2. buffer 안에서 ctrl_c 가 전송 되었는지 확인
-  check_interrupt_received(c);
+  // check_interrupt_received(c);
   // 3. append (이전에 request가 setting되어야함)
   request_handler_.appendMsg(c->buffer_);
   // 4. process by recv_phase
@@ -31,6 +31,16 @@ void MessageHandler::check_request_header(Connection *c) {
   //t_uri uri_struct 전체 셋업하는 부분으로...
   request_handler_.setupUriStruct(serverconfig_test, locationconfig_test);
 
+  //client_max_body_size 셋업
+  c->client_max_body_size = locationconfig_test->getClientMaxBodySize();
+
+  if (!c->getRequest().getHeaderValue("Content-Length").empty()) {
+    c->setStringBufferContentLength(stoi(c->getRequest().getHeaderValue("Content-Length")));
+    if (!c->getRequest().getMsg().empty())
+      c->setBodyBuf(c->getRequest().getMsg());
+  } else if (c->getRequest().getMethod().compare("HEAD") && c->getRequest().getMethod().compare("GET"))
+    c->is_chunked_ = true;
+
   if (request_handler_.isHostHeaderExist() == false) {
     c->status_code_ = 400;
     c->setRecvPhase(MESSAGE_BODY_COMPLETE);
@@ -42,10 +52,25 @@ void MessageHandler::check_request_header(Connection *c) {
     c->setRecvPhase(MESSAGE_BODY_COMPLETE);
     return;
   }
+  if (*(c->getRequest().getFilePath().rbegin()) == '/') {
+    request_handler_.findIndexForGetWhenOnlySlash(locationconfig_test);
+    // std::cout << "after: [" << c->getRequest().getFilePath() << "]" << std::endl;
+    if (*(c->getRequest().getFilePath().rbegin()) == '/') {
+      c->status_code_ = 404;
+      c->setRecvPhase(MESSAGE_BODY_COMPLETE);
+      return;
+    }
+  }
 
   if (request_handler_.isUriFileExist(locationconfig_test) == false &&
-      c->getRequest().getMethod() != "PUT") {
+      c->getRequest().getMethod() != "PUT" && c->getRequest().getMethod() != "POST") {
     c->status_code_ = 404;
+    c->setRecvPhase(MESSAGE_BODY_COMPLETE);
+    return;
+  }
+
+  if (request_handler_.isUriDirectory(locationconfig_test) == true) {
+    c->status_code_ = 301;
     c->setRecvPhase(MESSAGE_BODY_COMPLETE);
     return;
   }
@@ -53,21 +78,21 @@ void MessageHandler::check_request_header(Connection *c) {
   if (request_handler_.isAllowedMethod(locationconfig_test) == false) {
     c->status_code_ = 405;
     c->setRecvPhase(MESSAGE_BODY_COMPLETE);
-    return;
+    return ;
   }
 
-  if (!c->getRequest().getHeaderValue("Content-Length").empty())
-    c->setStringBufferContentLength(stoi(c->getRequest().getHeaderValue("Content-Length")));
-  else
+  // if (c->interrupted == true) {
+  //   c->setRecvPhase(MESSAGE_INTERRUPTED);
+  //   return;
+  // }
+
+  if (c->getRequest().getMethod().compare("GET") && c->getRequest().getMethod().compare("HEAD") &&
+      c->getRequest().getHeaderValue("Content-Length").empty() && !c->getRequest().getHeaderValue("Transfer-Encoding").compare("chunked")) {
+    std::cout << "chunked in!!!!!!!!!!!!!!!!" << std::endl;
+    c->setRecvPhase(MESSAGE_CHUNKED);
     c->is_chunked_ = true;
-
-  if (c->interrupted == true) {
-    c->setRecvPhase(MESSAGE_INTERRUPTED);
-    return;
-  }
-
-  // TODO: 조건문 정리 CHUNKED_CHUNKED
-  if (c->getRequest().getMethod() == "GET") {
+  } else if (c->getRequest().getMethod() == "GET") {
+    c->is_chunked_ = false;
     c->getBodyBuf().clear();
     c->setStringBufferContentLength(-1);
     c->setRecvPhase(MESSAGE_BODY_COMPLETE);
@@ -78,6 +103,7 @@ void MessageHandler::check_request_header(Connection *c) {
     c->setRecvPhase(MESSAGE_BODY_COMPLETE);
   else
     c->setRecvPhase(MESSAGE_BODY_INCOMING);
+  c->client_max_body_size = locationconfig_test->getClientMaxBodySize();
 }
 
 void MessageHandler::check_cgi_process(Connection *c) {
@@ -86,16 +112,19 @@ void MessageHandler::check_cgi_process(Connection *c) {
 
   if (!locationconfig_test->getCgiPath().empty() &&
       locationconfig_test->checkCgiExtension(c->getRequest().getPath())) {
-    std::cout << "check body buf" << std::endl;
-    std::cout << c->getBodyBuf() << std::endl;
-    std::cout << "check body buf" << std::endl;
-    std::cout << "yo" << std::endl;
     CgiHandler::init_cgi_child(c);
   }
 }
 
+void MessageHandler::handle_chunked_body(Connection *c) {
+  request_handler_.setRequest(&c->getRequest());
+
+  request_handler_.handleChunked(c);
+  // std::cout << "c_chunked_checker: " << c->chunked_checker_ << std::endl;
+}
+
 void MessageHandler::handle_request_body(Connection *c) {
-  check_interrupt_received(c);
+  // check_interrupt_received(c);
 
   // TODO: 조건문 수정 CHUNKED_CHUNKED
   // Transfer-Encoding : chunked 아닐 때
@@ -108,14 +137,18 @@ void MessageHandler::handle_request_body(Connection *c) {
       c->setStringBufferContentLength(c->getStringBufferContentLength() - strlen(c->buffer_));
       c->setBodyBuf(c->buffer_);
     }
-  }
-  else
+  } else
     c->setRecvPhase(MESSAGE_BODY_COMPLETE);
 }
 
 void MessageHandler::execute_server_side(Connection *c) {
+  request_handler_.setRequest(&c->getRequest());
+
   response_handler_.setResponse(&c->getResponse(), &c->getBodyBuf());
   response_handler_.setServerConfig(c->getHttpConfig(), c->getSockaddrToConnect(), c->getRequest().getHeaderValue("Host"));
+
+  // std::cout << "getFilePath: 1 [" << c->getRequest().getFilePath() << "]" << std::endl;
+  // std::cout << "c->status_code: 1[" << c->status_code_ << "]" << std::endl;
 
   // status_code 기본값: -1
   if (c->status_code_ > 0) {
@@ -160,13 +193,13 @@ void MessageHandler::executePutMethod(std::string path, std::string content) {
   output.close();
 }
 
-void MessageHandler::check_interrupt_received(Connection *c) {
-  int i = 0;
-  while (i < CTRL_C_LIST) {
-    if (strchr(c->buffer_, ctrl_c[i]))
-      c->interrupted = true;
-    i++;
-  }
-}
+// void MessageHandler::check_interrupt_received(Connection *c) {
+//   int i = 0;
+//   while (i < CTRL_C_LIST) {
+//     if (strchr(c->buffer_, ctrl_c[i]))
+//       c->interrupted = true;
+//     i++;
+//   }
+// }
 
 }  // namespace ft

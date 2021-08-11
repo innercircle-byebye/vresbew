@@ -73,46 +73,26 @@ void Kqueue::kqueueProcessEvents(SocketManager *sm) {
       }
       c->process_write_event(this, sm);
     } else if (event_list_[i].filter == EVFILT_PROC) {
+      memset(c->buffer_, 0, BUF_SIZE);
+      std::cout << "event_list[i].fflag" << event_list_[i].fflags << std::endl;
+
       if (c->getBodyBuf().size() == 0) {  //자식 프로세스로 보낼 c->body_buf_ 가 비어있는 경우 파이프 닫음
         close(c->writepipe[1]);
         read(c->readpipe[0], c->buffer_, BUF_SIZE);
         c->temp.append(c->buffer_);
+        c->setRecvPhase(MESSAGE_CGI_COMPLETE);
       } else {
-        // // TODO: 수정 필요
-        size_t size = c->getBodyBuf().size();
-        for (size_t i = 0; i < size; i += BUF_SIZE) {
-          // std::cout << "i: [" << i << "]" << std::endl;
-          size_t j = std::min(size, BUF_SIZE + i);
-          write(c->writepipe[1], c->getBodyBuf().substr(i, j).c_str(), j - i);
-          // c->getBodyBuf().erase(i, BUF_SIZE + i);
-          if (i == 0) {
-            read(c->readpipe[0], c->buffer_, BUF_SIZE);
-            c->temp.append(c->buffer_);
-            memset(c->buffer_, 0, BUF_SIZE);
-          }
-          read(c->readpipe[0], c->buffer_, BUF_SIZE);
-          c->temp.append(c->buffer_);
-          memset(c->buffer_, 0, BUF_SIZE);
-          // std::cout << c->buffer_ << std::endl;
-        }
-        //숫자 확인
-        c->setStringBufferContentLength(-1);
-        c->getBodyBuf().clear();  // 뒤에서 또 쓰일걸 대비해 혹시몰라 초기화.. #2
-        close(c->writepipe[1]);
+        kqueueSetEvent(c, EVFILT_PROC, EV_DELETE);
+        kqueueSetEvent(c, EVFILT_WRITE, EV_ADD);
+        return;
       }
-      c->setRecvPhase(MESSAGE_CGI_COMPLETE);
-
-      // if (c->getRecvPhase()== MESSAGE_CGI_COMPLETE) {
-      CgiHandler::handle_cgi_header(c);
-      CgiHandler::setup_cgi_message(c);
-      // }
-      kqueueSetEvent(c, EVFILT_PROC, EV_DELETE);
-      kqueueSetEvent(c, EVFILT_WRITE, EV_ADD);
-      // if (event_list_[i].flags & EV_EOF) {
-      //   Logger::logError(LOG_ALERT, "cgi error", events, (int)event_list_[i].ident);
-      //   sm->closeConnection(c);
-      //   continue;
-      // }
+      if (c->getRecvPhase() == MESSAGE_CGI_COMPLETE) {
+      std::cout << "event_list[i].fflag" << event_list_[i].fflags << std::endl;
+        CgiHandler::handle_cgi_header(c);
+        CgiHandler::setup_cgi_message(c);
+        kqueueSetEvent(c, EVFILT_PROC, EV_DELETE);
+        kqueueSetEvent(c, EVFILT_WRITE, EV_ADD);
+      }
     }
   }
 }

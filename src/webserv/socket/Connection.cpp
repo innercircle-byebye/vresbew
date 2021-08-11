@@ -141,6 +141,30 @@ void Connection::process_read_event(Kqueue *kq, SocketManager *sm) {
 }
 
 void Connection::process_write_event(Kqueue *kq, SocketManager *sm) {
+  if (this->recv_phase_ == MESSAGE_CGI_INCOMING) {
+    if (this->send_len < this->getBodyBuf().size() + BUF_SIZE) {
+      std::cout << "hihi2" << std::endl;
+      size_t j = std::min(this->getBodyBuf().size() + BUF_SIZE, this->send_len + BUF_SIZE);
+      ssize_t real_send_len = write(this->writepipe[1], &(this->getBodyBuf()[this->send_len]), j - this->send_len);
+      std::cout << "send_len: " << this->send_len << std::endl;
+      this->send_len += real_send_len;
+      std::cout << "real_send_len: " << real_send_len << std::endl;
+      read(this->readpipe[0], this->buffer_, BUF_SIZE);
+      this->temp.append(this->buffer_);
+    }
+    else {
+      this->send_len = 0;
+      this->setStringBufferContentLength(-1);
+      this->getBodyBuf().clear();  // 뒤에서 또 쓰일걸 대비해 혹시몰라 초기화.. #2
+      close(this->writepipe[1]);
+      this->setRecvPhase(MESSAGE_CGI_COMPLETE);
+      CgiHandler::handle_cgi_header(this);
+      CgiHandler::setup_cgi_message(this);
+      // kq->kqueueSetEvent(this, EVFILT_WRITE, EV_DELETE);
+      // kq->kqueueSetEvent(this, EVFILT_PROC, EV_ADD);
+      // return;
+    }
+  }
   if (this->recv_phase_ == MESSAGE_CGI_COMPLETE) {
     if (this->send_len < this->response_.getHeaderMsg().size()) {
       size_t j = std::min(this->response_.getHeaderMsg().size(), this->send_len + BUF_SIZE);

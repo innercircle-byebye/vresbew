@@ -182,10 +182,10 @@ void CgiHandler::setup_cgi_message(Connection *c) {
   // std::cout << "================temp=============" << std::endl;
   // std::cout << c->temp << std::endl;
   // std::cout << "================temp=============" << std::endl;
-  // std::cout << "temp_size :" << c->temp.size() << std::endl;
-  // std::cout << "================header=============" << std::endl;
-  // std::cout << c->getResponse().getHeaderMsg().c_str() << std::endl;
-  // std::cout << "================header=============" << std::endl;
+  std::cout << "temp_size :" << c->temp.size() << std::endl;
+  std::cout << "================header=============" << std::endl;
+  std::cout << c->getResponse().getHeaderMsg().c_str() << std::endl;
+  std::cout << "================header=============" << std::endl;
   if (!c->temp.empty())
     c->getResponse().getHeaderMsg().append(c->temp);
   // std::cout << "temp_size :" << c->temp.size() << std::endl;

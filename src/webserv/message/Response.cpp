@@ -56,6 +56,7 @@ void Response::setConnectionHeaderByStatusCode(int status_code) {
       status_code == 404 ||
       status_code == 405 ||  // TODO: 재확인 필요
       status_code == 409 ||  // TODO: 재확인 필요
+      status_code == 413 ||  // TODO: 재확인 필요
       status_code == 501 ||
       status_code == 503)
     setHeader("Connection", "keep-alive");

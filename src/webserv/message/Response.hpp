@@ -39,7 +39,6 @@ class Response {
   void setHttpVersion(std::string http_version);
   void setHeader(std::string key, std::string value);
   void setHeaderMsg(std::string msg);
-  void setServerHeader(LocationConfig *location);
   void setConnectionHeaderByStatusCode(int status_code);
 
 

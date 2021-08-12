@@ -136,6 +136,7 @@ void MessageHandler::executeServerSide(Connection *c) {
 
   if (c->req_status_code_ != NOT_SET) {
     response_handler_.setStatusLineWithCode(c->req_status_code_);
+    c->getBodyBuf().clear();
     return;
   }
 

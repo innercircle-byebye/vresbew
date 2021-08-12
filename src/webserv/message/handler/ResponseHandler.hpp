@@ -58,7 +58,7 @@ class ResponseHandler {
   // blocks for setResponseFields begin
   void processGetAndHeaderMethod(Request &request, LocationConfig *&location);
   void processPutMethod(Request &request);
-  void processDeleteMethod(const std::string &uri);
+  void processDeleteMethod(Request &request);
   void processPostMethod(Request &request, LocationConfig *&location);
   // blocks for setResponseFields end
 

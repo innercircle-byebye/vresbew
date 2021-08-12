@@ -66,7 +66,8 @@ void MessageHandler::checkRequestHeader(Connection *c) {
     return;
   }
 
-  if (request_handler_.isUriDirectory(locationconfig_test) == true) {
+  if (request_handler_.isUriDirectory(locationconfig_test) == true &&
+      c->getRequest().getMethod().compare("DELETE")) {
     c->req_status_code_ = 301;
     c->setRecvPhase(MESSAGE_BODY_COMPLETE);
     return;

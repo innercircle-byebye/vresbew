@@ -38,8 +38,6 @@ class MessageHandler {
   static void setResponseMessage(Connection *c);
   static void sendResponseToClient(Connection *c);
 
-  static void checkInterruptReceived(Connection *c);
-
  private:
   static void executePutMethod(std::string path, std::string content);
 };

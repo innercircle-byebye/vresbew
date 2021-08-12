@@ -85,7 +85,7 @@ void SocketManager::closeConnection(Connection *c) {
   fd = c->getFd();
   c->setFd(-1);
   c->clear();
-  std::cout << "close socket fd:" << fd << std::endl;
+  // std::cout << "close socket fd:" << fd << std::endl;
   if (closeSocket(fd) == -1) {
     Logger::logError(LOG_ALERT, "close() socket %d failed", fd);
     throw CloseSocketException();

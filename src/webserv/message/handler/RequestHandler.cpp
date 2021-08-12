@@ -29,6 +29,7 @@ void RequestHandler::checkMsgForStartLine(Connection *c) {
   size_t pos;
 
   if (c->interrupted == true) {
+    std::cout << "1111111" << std::endl;
     c->setRecvPhase(MESSAGE_BODY_COMPLETE);
   } else if ((pos = request_->getMsg().find(CRLF)) != std::string::npos)
     c->setRecvPhase(MESSAGE_START_LINE_COMPLETE);
@@ -190,6 +191,7 @@ int RequestHandler::parseUri(std::string uri_str) {
 
 void RequestHandler::parseHeaderLines(Connection *c) {
   if (c->interrupted == true) {
+    std::cout << "222222" << std::endl;
     c->setRecvPhase(MESSAGE_BODY_COMPLETE);
     return;
   }

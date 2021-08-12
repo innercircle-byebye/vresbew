@@ -80,7 +80,6 @@ void MessageHandler::checkRequestHeader(Connection *c) {
 
   if (c->getRequest().getMethod().compare("GET") && c->getRequest().getMethod().compare("HEAD") &&
       c->getRequest().getHeaderValue("Content-Length").empty() && !c->getRequest().getHeaderValue("Transfer-Encoding").compare("chunked")) {
-    std::cout << "chunked in!!!!!!!!!!!!!!!!" << std::endl;
     c->setRecvPhase(MESSAGE_CHUNKED);
     c->is_chunked_ = true;
   } else if (c->getRequest().getMethod() == "GET") {

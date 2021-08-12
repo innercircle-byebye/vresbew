@@ -23,7 +23,6 @@ enum MessageFromBufferStatus {
   MESSAGE_CGI_COMPLETE,
   MESSAGE_BODY_INCOMING,
   MESSAGE_BODY_COMPLETE,
-  MESSAGE_INTERRUPTED,
   MESSAGE_CHUNKED_REMAINDER
 };
 
@@ -71,7 +70,6 @@ class Connection {
   size_t client_max_body_size;
 
   size_t send_len;
-  size_t real_send_len_;
 
 
   Connection();

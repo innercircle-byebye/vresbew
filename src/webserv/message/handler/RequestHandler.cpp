@@ -350,6 +350,7 @@ void RequestHandler::handleChunked(Connection *c) {
       }
     }
     if (c->chunked_checker_ == STR) {
+      // 조건문 확인 부탁드립니다
       if (request_->getMsg().size() >= (c->chunked_str_size_ + 2) && !request_->getMsg().substr(c->chunked_str_size_, 2).compare(CRLF)) {
         c->appendBodyBuf((char *)request_->getMsg().c_str(), c->chunked_str_size_);
         request_->getMsg().erase(0, c->chunked_str_size_ + 2);

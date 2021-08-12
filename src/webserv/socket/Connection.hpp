@@ -55,13 +55,12 @@ class Connection {
 
  public:
   char buffer_[BUF_SIZE];
-  bool interrupted;
   std::string body_buf_;
   pid_t cgi_pid;
   int writepipe[2], readpipe[2];
 
   std::string temp;
-  int status_code_;
+  int req_status_code_;
   bool is_chunked_;
 
   int chunked_checker_;

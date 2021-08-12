@@ -40,7 +40,7 @@ void MessageHandler::checkRequestHeader(Connection *c) {
     c->is_chunked_ = true;
 
   if (request_handler_.isHostHeaderExist() == false) {
-    c->status_code_ = 400;
+    c->req_status_code_ = 400;
     c->setRecvPhase(MESSAGE_BODY_COMPLETE);
     return;
   }
@@ -53,7 +53,7 @@ void MessageHandler::checkRequestHeader(Connection *c) {
   if (*(c->getRequest().getFilePath().rbegin()) == '/') {
     request_handler_.findIndexForGetWhenOnlySlash(locationconfig_test);
     if (*(c->getRequest().getFilePath().rbegin()) == '/') {
-      c->status_code_ = 404;
+      c->req_status_code_ = 404;
       c->setRecvPhase(MESSAGE_BODY_COMPLETE);
       return;
     }
@@ -61,26 +61,25 @@ void MessageHandler::checkRequestHeader(Connection *c) {
 
   if (request_handler_.isUriFileExist(locationconfig_test) == false &&
       c->getRequest().getMethod() != "PUT" && c->getRequest().getMethod() != "POST") {
-    c->status_code_ = 404;
+    c->req_status_code_ = 404;
     c->setRecvPhase(MESSAGE_BODY_COMPLETE);
     return;
   }
 
   if (request_handler_.isUriDirectory(locationconfig_test) == true) {
-    c->status_code_ = 301;
+    c->req_status_code_ = 301;
     c->setRecvPhase(MESSAGE_BODY_COMPLETE);
     return;
   }
 
   if (request_handler_.isAllowedMethod(locationconfig_test) == false) {
-    c->status_code_ = 405;
+    c->req_status_code_ = 405;
     c->setRecvPhase(MESSAGE_BODY_COMPLETE);
     return;
   }
 
   if (c->getRequest().getMethod().compare("GET") && c->getRequest().getMethod().compare("HEAD") &&
       c->getRequest().getHeaderValue("Content-Length").empty() && !c->getRequest().getHeaderValue("Transfer-Encoding").compare("chunked")) {
-    std::cout << "chunked in!!!!!!!!!!!!!!!!" << std::endl;
     c->setRecvPhase(MESSAGE_CHUNKED);
     c->is_chunked_ = true;
   } else if (c->getRequest().getMethod() == "GET") {
@@ -134,8 +133,8 @@ void MessageHandler::executeServerSide(Connection *c) {
   response_handler_.setResponse(&c->getResponse(), &c->getBodyBuf());
   response_handler_.setServerConfig(c->getHttpConfig(), c->getSockaddrToConnect(), c->getRequest().getHeaderValue("Host"));
 
-  if (c->status_code_ > 0) {
-    response_handler_.setStatusLineWithCode(c->status_code_);
+  if (c->req_status_code_ != NOT_SET) {
+    response_handler_.setStatusLineWithCode(c->req_status_code_);
     return;
   }
 

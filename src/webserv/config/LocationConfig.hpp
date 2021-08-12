@@ -8,6 +8,7 @@
 
 #include "webserv/config/LocationConfig.hpp"
 #include "webserv/config/ServerConfig.hpp"
+#include "webserv/webserv.hpp"
 
 namespace ft {
 

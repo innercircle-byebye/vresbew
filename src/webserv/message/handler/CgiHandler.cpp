@@ -38,19 +38,20 @@ void CgiHandler::initCgiChild(Connection *c) {
 
   if (c->getBodyBuf().size() == 0) {  //자식 프로세스로 보낼 c->body_buf_ 가 비어있는 경우 파이프 닫음
     close(c->writepipe[1]);
-    read(c->readpipe[0], c->buffer_, BUF_SIZE);
+    read(c->readpipe[0], c->buffer_, BUF_SIZE - 1);
     c->temp.append(c->buffer_);
   } else {
     size_t size = c->getBodyBuf().size();
-    for (size_t i = 0; i < size; i += BUF_SIZE) {
-      size_t j = std::min(size, BUF_SIZE + i);
+    for (size_t i = 0; i < size; i += BUF_SIZE - 1) {
+      // std::cout << "i :" << i << std::endl;
+      size_t j = std::min(size, BUF_SIZE + i - 1);
       write(c->writepipe[1], c->getBodyBuf().substr(i, j).c_str(), j - i);
       if (i == 0) {
-        read(c->readpipe[0], c->buffer_, BUF_SIZE);
+        read(c->readpipe[0], c->buffer_, BUF_SIZE - 1);
         c->temp.append(c->buffer_);
         memset(c->buffer_, 0, BUF_SIZE);
       }
-      read(c->readpipe[0], c->buffer_, BUF_SIZE);
+      read(c->readpipe[0], c->buffer_, BUF_SIZE - 1);
       c->temp.append(c->buffer_);
       memset(c->buffer_, 0, BUF_SIZE);
     }
@@ -68,7 +69,7 @@ void CgiHandler::handleCgiHeader(Connection *c) {
   {
     size_t pos = c->temp.find(CRLFCRLF);
     cgi_output_response_header = c->temp.substr(0, pos + CRLF_LEN);
-    c->temp.erase(0, pos + 4);
+    c->temp.erase(0, pos + CRLFCRLF_LEN);
     while ((pos = cgi_output_response_header.find(CRLF)) != std::string::npos) {
       std::string one_header_line = cgi_output_response_header.substr(0, pos);
       std::vector<std::string> key_and_value = MessageHandler::request_handler_.splitByDelimiter(one_header_line, SPACE);
@@ -80,7 +81,7 @@ void CgiHandler::handleCgiHeader(Connection *c) {
       value = key_and_value[1];
       if (key.compare("Status") == 0) {
         MessageHandler::response_handler_.setStatusLineWithCode(stoi(value));
-        c->status_code_ = stoi(value);
+        c->req_status_code_ = stoi(value);
       }
       if (key.compare("Status") != 0)
         c->getResponse().setHeader(key, value);
@@ -155,7 +156,7 @@ char **CgiHandler::setCommand(std::string command, std::string path) {
 void CgiHandler::receiveCgiBody(Connection *c) {
   size_t nbytes;
   if (c->getRecvPhase() == MESSAGE_CGI_COMPLETE) {
-    while ((nbytes = read(c->readpipe[0], c->buffer_, BUF_SIZE))) {
+    while ((nbytes = read(c->readpipe[0], c->buffer_, BUF_SIZE - 1))) {
       c->appendBodyBuf(c->buffer_);
       memset(c->buffer_, 0, nbytes);
     }
@@ -168,8 +169,8 @@ void CgiHandler::receiveCgiBody(Connection *c) {
 }
 
 void CgiHandler::setupCgiMessage(Connection *c) {
-  if (c->status_code_ < 0 && !c->getResponse().getHeaderValue("X-Powered-By").compare("PHP/8.0.7")) {
-    c->status_code_ = 200;
+  if (c->req_status_code_ == NOT_SET && !c->getResponse().getHeaderValue("X-Powered-By").compare("PHP/8.0.7")) {
+    c->req_status_code_ = 200;
     MessageHandler::response_handler_.setStatusLineWithCode(200);
   }
   if (c->getRequest().getHeaderValue("Content-Length").empty())
@@ -181,6 +182,11 @@ void CgiHandler::setupCgiMessage(Connection *c) {
   c->getResponse().setHeader("Content-Type", "text/html; charset=utf-8");
 
   MessageHandler::response_handler_.makeResponseHeader();
+
+  // std::cout << "========header============" << std::endl;
+  // std::cout << c->getResponse().getHeaderMsg() << std::endl;
+  // std::cout << "========header============" << std::endl;
+
   if (!c->temp.empty())
     c->getResponse().getHeaderMsg().append(c->temp);
 

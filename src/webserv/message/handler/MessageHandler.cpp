@@ -75,7 +75,7 @@ void MessageHandler::checkRequestHeader(Connection *c) {
   if (request_handler_.isAllowedMethod(locationconfig_test) == false) {
     c->status_code_ = 405;
     c->setRecvPhase(MESSAGE_BODY_COMPLETE);
-    return ;
+    return;
   }
 
   if (c->getRequest().getMethod().compare("GET") && c->getRequest().getMethod().compare("HEAD") &&
@@ -115,7 +115,6 @@ void MessageHandler::handleChunkedBody(Connection *c) {
 }
 
 void MessageHandler::handleRequestBody(Connection *c) {
-
   if (c->is_chunked_ == false) {
     if ((size_t)c->getStringBufferContentLength() <= strlen(c->buffer_)) {
       c->appendBodyBuf(c->buffer_, c->getStringBufferContentLength());
@@ -153,8 +152,27 @@ void MessageHandler::setResponseMessage(Connection *c) {
   if (!(c->getResponse().getStatusCode() == 200 ||
         c->getResponse().getStatusCode() == 201 ||
         c->getResponse().getStatusCode() == 204) &&
-      c->getBodyBuf().empty())
-    response_handler_.setDefaultErrorBody();
+      c->getBodyBuf().empty()) {
+    ServerConfig *server_config = c->getHttpConfig()->getServerConfig(c->getSockaddrToConnect().sin_port, c->getSockaddrToConnect().sin_addr.s_addr, c->getRequest().getHeaderValue("Host"));
+    LocationConfig *location = server_config->getLocationConfig(c->getRequest().getUri());
+
+    bool check_error_body = false;
+    if (location->getErrorPage() != "") {
+      std::string error_page_path = location->getErrorPage() + "/" + SSTR(c->getResponse().getStatusCode()) + ".html";
+      struct stat stat_buff;
+      if (stat(error_page_path.c_str(), &stat_buff) == 0 && S_ISREG(stat_buff.st_mode)) {
+        check_error_body = true;
+        std::ifstream file(error_page_path.c_str());
+        file.seekg(0, std::ios::end);
+        c->getBodyBuf().reserve(file.tellg());
+        file.seekg(0, std::ios::beg);
+        c->getBodyBuf().assign((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
+      }
+    }
+
+    if (check_error_body == false)
+      response_handler_.setDefaultErrorBody();
+  }
 
   response_handler_.setDefaultHeader(c, c->getRequest());
   response_handler_.makeResponseHeader();

@@ -23,7 +23,6 @@ enum MessageFromBufferStatus {
   MESSAGE_CGI_COMPLETE,
   MESSAGE_BODY_INCOMING,
   MESSAGE_BODY_COMPLETE,
-  MESSAGE_INTERRUPTED,
   MESSAGE_CHUNKED_REMAINDER
 };
 
@@ -55,7 +54,6 @@ class Connection {
   int string_buffer_content_length_;
 
  public:
-  size_t size_before;
   char buffer_[BUF_SIZE];
   bool interrupted;
   std::string body_buf_;
@@ -72,7 +70,6 @@ class Connection {
   size_t client_max_body_size;
 
   size_t send_len;
-  size_t real_send_len_;
 
 
   Connection();

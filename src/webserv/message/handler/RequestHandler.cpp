@@ -28,27 +28,29 @@ void RequestHandler::processByRecvPhase(Connection *c) {
 void RequestHandler::checkMsgForStartLine(Connection *c) {
   size_t pos;
 
-  if (c->interrupted == true) {
-    c->setRecvPhase(MESSAGE_BODY_COMPLETE);
-  } else if ((pos = request_->getMsg().find("\r\n")) != std::string::npos)
+  // if (c->interrupted == true) {
+  //   std::cout << "111111111111111" << std::endl;
+  //   c->setRecvPhase(MESSAGE_BODY_COMPLETE);
+  if ((pos = request_->getMsg().find(CRLF)) != std::string::npos)
     c->setRecvPhase(MESSAGE_START_LINE_COMPLETE);
 }
 
 void RequestHandler::checkMsgForHeader(Connection *c) {
   size_t pos;
 
-  std::string temp_rn_ctrlc = "\r\n";
-  temp_rn_ctrlc += ctrl_c[0];
-  if ((pos = request_->getMsg().find("\r\n\r\n")) != std::string::npos)
+  // 일단 주석
+  // std::string temp_rn_ctrlc = CRLF;
+  // temp_rn_ctrlc += ctrl_c[0];
+  if ((pos = request_->getMsg().find(CRLFCRLF)) != std::string::npos)
     c->setRecvPhase(MESSAGE_HEADER_COMPLETE);
 }
 
 /* PARSE FUNCTIONS */
 void RequestHandler::parseStartLine(Connection *c) {
   // schema://host:port/uri?query
-  size_t pos = request_->getMsg().find("\r\n");
+  size_t pos = request_->getMsg().find(CRLF);
   std::string const start_line = request_->getMsg().substr(0, pos);
-  request_->getMsg().erase(0, pos + 2);
+  request_->getMsg().erase(0, pos + CRLF_LEN);
   std::vector<std::string> start_line_split = RequestHandler::splitByDelimiter(start_line, SPACE);
 
   if ((c->status_code_ = (start_line_split.size() == 3) ? -1 : 400) > 0) {
@@ -191,21 +193,22 @@ int RequestHandler::parseUri(std::string uri_str) {
 }
 
 void RequestHandler::parseHeaderLines(Connection *c) {
-  if (c->interrupted == true) {
-    c->setRecvPhase(MESSAGE_BODY_COMPLETE);
-    return;
-  }
-  size_t pos = request_->getMsg().find("\r\n\r\n");
+  // if (c->interrupted == true) {
+  //   std::cout << "22222222" << std::endl;
+  //   c->setRecvPhase(MESSAGE_BODY_COMPLETE);
+  //   return;
+  // }
+  size_t pos = request_->getMsg().find(CRLFCRLF);
   std::string header_lines = request_->getMsg().substr(0, pos + 2);
-  request_->getMsg().erase(0, pos + 4);
+  request_->getMsg().erase(0, pos + CRLFCRLF_LEN);
 
-  while ((pos = header_lines.find("\r\n")) != std::string::npos) {
+  while ((pos = header_lines.find(CRLF)) != std::string::npos) {
     std::string one_header_line = header_lines.substr(0, pos);
     if ((c->status_code_ = this->parseHeaderLine(one_header_line)) > 0) {
       c->setRecvPhase(MESSAGE_BODY_COMPLETE);
       return;
     }
-    header_lines.erase(0, pos + 2);
+    header_lines.erase(0, pos + CRLF_LEN);
   }
 }
 
@@ -319,9 +322,9 @@ void RequestHandler::applyReturnDirectiveStatusCode(Connection *c, LocationConfi
 void RequestHandler::handleChunked(Connection *c) {
   size_t pos;
 
-  while ((pos = request_->getMsg().find("\r\n")) != std::string::npos) {
+  while ((pos = request_->getMsg().find(CRLF)) != std::string::npos) {
     if (c->chunked_checker_ == STR_SIZE) {
-      if ((pos = request_->getMsg().find("\r\n")) != std::string::npos) {
+      if ((pos = request_->getMsg().find(CRLF)) != std::string::npos) {
         if (c->client_max_body_size < c->getBodyBuf().length()) {
           c->getBodyBuf().clear();
           c->status_code_ = 413;
@@ -330,12 +333,6 @@ void RequestHandler::handleChunked(Connection *c) {
           return;
         }
         c->chunked_str_size_ = (size_t)strtoul(request_->getMsg().substr(0, pos).c_str(), NULL, 16);
-        // TODO: 확인 바랍니다
-        if (c->size_before == 16960) {
-          std::cout << "it must be zero!! >> ";
-          std::cout << c->chunked_str_size_ << std::endl;
-        }
-        c->size_before = c->chunked_str_size_;
         if (c->chunked_str_size_ == 0) {
           for (size_t i = 0; i < pos; ++i) {
             if (request_->getMsg()[i] != '0') {
@@ -352,21 +349,14 @@ void RequestHandler::handleChunked(Connection *c) {
           c->chunked_checker_ = END;
         else
           c->chunked_checker_ = STR;
-      } else {
-        std::cout << "11111111111111" << std::endl;
       }
     }
     if (c->chunked_checker_ == STR) {
-      if (request_->getMsg().size() >= (c->chunked_str_size_ + 2) && !request_->getMsg().substr(c->chunked_str_size_, 2).compare("\r\n")) {
+      // 조건문 확인 부탁드립니다
+      if (request_->getMsg().size() >= (c->chunked_str_size_ + 2) && !request_->getMsg().substr(c->chunked_str_size_, 2).compare(CRLF)) {
         c->appendBodyBuf((char *)request_->getMsg().c_str(), c->chunked_str_size_);
-        if (c->getBodyBuf().size() == 1000000)
-          std::cout << "all in=============================>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> " << c->chunked_str_size_ << std::endl;
         request_->getMsg().erase(0, c->chunked_str_size_ + 2);
         c->chunked_checker_ = STR_SIZE;
-        // TODO: 확인 바랍니다 시작
-        if (request_->getMethod() == "PUT") {
-        }
-        // TODO: 확인 바랍니다 끝
       }
       if (request_->getMsg().size() >= c->chunked_str_size_ + 4) {
         c->getBodyBuf().clear();
@@ -376,23 +366,18 @@ void RequestHandler::handleChunked(Connection *c) {
       }
     }
     if (c->chunked_checker_ == END) {
-      pos = request_->getMsg().find("\r\n");
-      if (pos != std::string::npos)
-        std::cout << "pos: " << pos << std::endl;
-      if (pos == 0) {
+      if ((pos = request_->getMsg().find(CRLF)) == 0) {
         request_->getMsg().clear();
         if (c->status_code_ > 0) {
           c->setRecvPhase(MESSAGE_START_LINE_INCOMPLETE);
           c->status_code_ = -1;
-          std::cout << "chunked end with error" << std::endl;
-        } else {
+        } else
           c->setRecvPhase(MESSAGE_BODY_COMPLETE);
-          std::cout << "chunked end" << std::endl;
-        }
+
         c->is_chunked_ = false;
         c->chunked_checker_ = STR_SIZE;
       } else if (pos != std::string::npos)
-        request_->getMsg().erase(0, pos + 2);
+        request_->getMsg().erase(0, pos + CRLF_LEN);
     }
   }
 }

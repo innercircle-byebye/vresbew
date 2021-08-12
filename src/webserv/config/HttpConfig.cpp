@@ -2,207 +2,50 @@
 
 namespace ft {
 HttpConfig::HttpConfig(std::string program_name, std::string config_file_path) {
+  setProgramName(program_name);
+  init();
 
-  size_t program_name_start_pos;
-  if ((program_name_start_pos = program_name.rfind('/')) != std::string::npos) {
-    this->program_name = program_name.substr(program_name_start_pos + 1);
-  } else {
-    this->program_name = program_name;
-  }
-  
-  // 초기화부분
-  this->root = "html";
-  this->index.push_back("index.html");
-  this->autoindex = false;
-  this->client_max_body_size = 1000000;
+  std::vector<std::string> tokens = tokenizeConfigFile(config_file_path);
+  std::vector<std::string>::iterator it = tokens.begin();
+  const std::vector<std::string>::iterator end_it = tokens.end();
 
-  // 한번이라도 세팅했었는지 체크하는 변수
+  if (!(it != end_it && *it == "http"))
+    throw std::runtime_error("webserv: [emerg] must start with \"http\" directive");
+  it++;
+  if (!(it != end_it && *it == "{"))
+    throw std::runtime_error("webserv: [emerg] invalid number of arguments in \"http\" directive");
+  it++;
+
+  std::vector<std::vector<std::string> > servers_tokens;
   bool check_root_setting = false;
   bool check_index_setting = false;
   bool check_autoindex_setting = false;
-  bool check_client_max_body_size = false;
+  bool check_client_max_body_size_setting = false;
+  bool check_error_page_setting = false;
 
-  // config파일을 읽어서 content 변수에 담는다.
-  std::ifstream ifs(config_file_path);
-  std::string content((std::istreambuf_iterator<char>(ifs)), (std::istreambuf_iterator<char>()));
-
-  // content를 유의미한 단위로 자른다.(토큰화한다)
-  ft::Tokenizer tokenizer;
-  std::vector<std::string> tokens = tokenizer.parse(content);
-
-  std::vector<std::vector<std::string> > servers_tokens;  // ServerConfig 객체 생성할떄 사용할 토큰들
-
-  std::vector<std::string>::iterator it = tokens.begin();
-
-  if (*it != "http")
-    throw std::runtime_error("webserv: [emerg] invalid number of arguments in \"" + (*it) + "\" directive");
-  if (*(it + 1) != "{")
-    throw std::runtime_error("webserv: [emerg] invalid number of arguments in \"http\" directive");
-
-  it += 2;
-  while (*it != "}") {
-    if (*it == "root") {
-      if (*(it + 1) == ";" || *(it + 2) != ";")
-        throw std::runtime_error("webserv: [emerg] invalid number of arguments in \"root\" directive");
-      if (check_root_setting == true)
-        throw std::runtime_error("webserv: [emerg] \"root\" directive is duplicate");
-
-      this->root = *(it + 1);
-      check_root_setting = true;
-
-      it += 3;
-
-    } else if (*it == "index") {
-      if (*(it + 1) == ";")
-        throw std::runtime_error("webserv: [emerg] invalid number of arguments in \"index\" directive");
-
-      if (check_index_setting == false) {
-        this->index.clear();
-        check_index_setting = true;
-      }
-
-      it++;
-      while (*it != ";") {
-        this->index.push_back(*it);
-        it++;
-      }
-      it++;
-
-    } else if (*it == "autoindex") {
-      if (*(it + 1) == ";" || *(it + 2) != ";")
-        throw std::runtime_error("webserv: [emerg] invalid number of arguments in \"autoindex\" directive");
-      if (check_autoindex_setting == true)
-        throw std::runtime_error("webserv: [emerg] \"autoindex\" directive is duplicate");
-      if ((*(it + 1)) != "on" && *(it + 1) != "off")
-        throw std::runtime_error("webserv: [emerg] invalid value \"" + *(it + 1) + "\" in \"autoindex\" directive, it must be \"on\" or \"off\"");
-
-      if (*(it + 1) == "on")
-        this->autoindex = true;
-      else
-        this->autoindex = false;
-
-      check_autoindex_setting = true;
-      it += 3;
-
-    } else if (*it == "error_page") {
-      int count = 0;  // error_page 지시어 뒤에오는 단어의 개수
-      while (*(it + count + 1) != ";")
-        count++;
-
-      if (count < 2) {  // error_page 지시어 뒤에 단어가 2개 미만으로 들어오면 에러발생
-        throw std::runtime_error("webserv: [emerg] invalid number of arguments in \"error_page\" directive");
-      }
-
-      for (int i = 1; i < count; i++) {
-        std::string &code = *(it + i);
-
-        for (std::string::iterator i = code.begin(); i != code.end(); i++) {  // code에 숫자만 들어오는지 확인 // 함수로 빼는게 나을듯 ?
-          if (!isdigit(*i))
-            throw std::runtime_error("webserv: [emerg] invalid value \"" + code + "\"");
-        }
-
-        int status_code = atoi(code.c_str());
-        if (status_code < 300 || status_code > 599) {  // status_code의 범위 확인
-          throw std::runtime_error("webserv: [emerg] value \"" + code + "\" must be between 300 and 599");
-        }
-
-        if (this->error_page.find(status_code) == this->error_page.end()) {
-          this->error_page[status_code] = *(it + count);
-        }
-      }
-      it += (count + 2);
-
-    } else if (*it == "client_max_body_size") {
-      if (*(it + 1) == ";" || *(it + 2) != ";")
-        throw std::runtime_error("webserv: [emerg] invalid number of arguments in \"client_max_body_size\" directive");
-
-      if (check_client_max_body_size == true)
-        throw std::runtime_error("webserv: [emerg] \"client_max_body_size\" directive is duplicate");
-
-      std::string &size_str = *(it + 1);
-      int num_of_mutifly_by_2 = 0;
-      if (*size_str.rbegin() == 'k') {
-        num_of_mutifly_by_2 = 10;
-      } else if (*size_str.rbegin() == 'm') {
-        num_of_mutifly_by_2 = 20;
-      } else if (*size_str.rbegin() == 'g') {
-        num_of_mutifly_by_2 = 30;
-      }
-      if (num_of_mutifly_by_2 != 0) {
-        size_str = size_str.substr(0, size_str.length() - 1);
-      }
-
-      if (size_str.length() > 19) {
-        throw std::runtime_error("webserv: [emerg] \"client_max_body_size\" directive invalid value");
-      }
-
-      for (std::string::iterator i = size_str.begin(); i != size_str.end(); i++) {  // code에 숫자만 들어오는지 확인 // 함수로 빼는게 나을듯 ?
-        if (!isdigit(*i))
-          throw std::runtime_error("webserv: [emerg] \"client_max_body_size\" directive invalid value");
-      }
-
-      this->client_max_body_size = strtoul(size_str.c_str(), NULL, 0);
-      if (this->client_max_body_size > LONG_MAX) {
-        throw std::runtime_error("webserv: [emerg] \"client_max_body_size\" directive invalid value");
-      }
-      for (int i = 0; i < num_of_mutifly_by_2; i++) {
-        this->client_max_body_size *= 2;
-        if (this->client_max_body_size > LONG_MAX) {
-          throw std::runtime_error("webserv: [emerg] \"client_max_body_size\" directive invalid value");
-        }
-      }
-
-      check_client_max_body_size = true;
-      it += 3;
-
-    } else if (*it == "server") {
-      // TODO : 예외처리해야함
-
-      std::vector<std::string> server_tokens;
-
-      server_tokens.push_back(*it);
-      it++;
-      server_tokens.push_back(*it);
-      it++;
-
-      int cnt = 1;
-      while (cnt != 0) {
-        if (*it == "{")
-          cnt++;
-        else if (*it == "}")
-          cnt--;
-        server_tokens.push_back(*it);
-        it++;
-      }
-      servers_tokens.push_back(server_tokens);
-
-    } else {
+  while (it != end_it && *it != "}") {
+    if (*it == "root")
+      rootProcess(it, end_it, check_root_setting);
+    else if (*it == "index")
+      indexProcess(it, end_it, check_index_setting);
+    else if (*it == "autoindex")
+      autoindexProcess(it, end_it, check_autoindex_setting);
+    else if (*it == "client_max_body_size")
+      clientMaxBodySizeProcess(it, end_it, check_client_max_body_size_setting);
+    else if (*it == "error_page")
+      errorPageProcess(it, end_it, check_error_page_setting);
+    else if (*it == "server")
+      serverProcess(it, end_it, servers_tokens);
+    else
       throw std::runtime_error("webserv: [emerg] unknown directive \"" + (*it) + "\"");
-    }
   }
 
-  std::vector<std::vector<std::string> >::iterator server_it = servers_tokens.begin();
-  for (; server_it != servers_tokens.end(); server_it++) {
-    ServerConfig *new_server = new ServerConfig(*server_it, this);
+  if (it == end_it)
+    throw std::runtime_error("webserv: [emerg] unexpected end of file");
+  if (it + 1 != end_it)
+    throw std::runtime_error("webserv: [emerg] wrong configuration file");
 
-    for (std::vector<std::string>::const_iterator i = new_server->getListen().begin(); i != new_server->getListen().end(); i++) {
-      std::size_t pos = (*i).find(':');
-      std::string ip_addr_str = (*i).substr(0, pos);
-      std::string port_str = (*i).substr(pos + 1);
-
-      in_addr_t ip_addr = inet_addr(ip_addr_str.c_str());
-      in_port_t port = htons(atoi(port_str.c_str()));
-
-      this->server_configs[port][ip_addr].push_back(new_server);
-
-      if (this->must_listens.find(port) == this->must_listens.end() || this->must_listens.find(port)->second != inet_addr("0.0.0.0")) {
-        if (ip_addr == inet_addr("0.0.0.0")) {
-          this->must_listens.erase(port);
-        }
-        this->must_listens.insert(std::pair<in_port_t, in_addr_t>(port, ip_addr));
-      }
-    }
-  }
+  createServerConfig(servers_tokens);
 }
 
 HttpConfig::~HttpConfig() {
@@ -210,19 +53,19 @@ HttpConfig::~HttpConfig() {
 }
 
 const std::string &HttpConfig::getProgramName(void) const {
-  return this->program_name;
+  return this->program_name_;
 }
 
 ServerConfig *HttpConfig::getServerConfig(in_port_t port, in_addr_t ip_addr, std::string server_name) {
-  if (this->server_configs.find(port) == this->server_configs.end())
+  if (this->server_configs_.find(port) == this->server_configs_.end())
     return NULL;
 
   std::vector<ServerConfig *> *server_list = NULL;
 
-  if (this->server_configs[port].find(ip_addr) != this->server_configs[port].end()) {
-    server_list = &this->server_configs[port][ip_addr];
-  } else if (this->server_configs[port].find(inet_addr("0.0.0.0")) != this->server_configs[port].end()) {
-    server_list = &this->server_configs[port][inet_addr("0.0.0.0")];
+  if (this->server_configs_[port].find(ip_addr) != this->server_configs_[port].end()) {
+    server_list = &this->server_configs_[port][ip_addr];
+  } else if (this->server_configs_[port].find(inet_addr("0.0.0.0")) != this->server_configs_[port].end()) {
+    server_list = &this->server_configs_[port][inet_addr("0.0.0.0")];
   }
 
   if (server_list == NULL) {
@@ -251,35 +94,226 @@ LocationConfig *HttpConfig::getLocationConfig(in_port_t port, in_addr_t ip_addr,
 }
 
 const std::multimap<in_port_t, in_addr_t> &HttpConfig::getMustListens(void) const {
-  return this->must_listens;
+  return this->must_listens_;
 }
 
 const std::string &HttpConfig::getRoot(void) const {
-  return this->root;
+  return this->root_;
 }
 
 const std::vector<std::string> &HttpConfig::getIndex(void) const {
-  return this->index;
+  return this->index_;
 }
 
 const bool &HttpConfig::getAutoindex(void) const {
-  return this->autoindex;
+  return this->autoindex_;
 }
 
 const unsigned long &HttpConfig::getClientMaxBodySize(void) const {
-  return this->client_max_body_size;
+  return this->client_max_body_size_;
 }
 
-const std::map<int, std::string> &HttpConfig::getErrorPage(void) const {
-  return this->error_page;
+const std::string &HttpConfig::getErrorPage(void) const {
+  return this->error_page_;
+}
+
+void HttpConfig::init(void) {
+  this->root_ = "html";
+  this->index_.push_back("index.html");
+  this->autoindex_ = false;
+  this->client_max_body_size_ = 1000000;
+  this->error_page_ = "";
+}
+
+void HttpConfig::setProgramName(const std::string &program_name) {
+  size_t program_name_start_pos;
+  if ((program_name_start_pos = program_name.rfind('/')) != std::string::npos)
+    this->program_name_ = program_name.substr(program_name_start_pos + 1);
+  else
+    this->program_name_ = program_name;
+}
+
+std::vector<std::string> HttpConfig::tokenizeConfigFile(const std::string &config_file_path) {
+  std::ifstream ifs(config_file_path);
+  std::string content((std::istreambuf_iterator<char>(ifs)), (std::istreambuf_iterator<char>()));
+  ft::Tokenizer tokenizer;
+  return tokenizer.parse(content);
+}
+
+void HttpConfig::rootProcess(std::vector<std::string>::iterator &it, const std::vector<std::string>::iterator &end_it, bool &check_root_setting) {
+  int directiveValueCnt = getDirectiveValueCnt(it, end_it, ";");
+  if (directiveValueCnt != 1)
+    throw std::runtime_error("webserv: [emerg] invalid number of arguments in \"root\" directive");
+  if (check_root_setting == true)
+    throw std::runtime_error("webserv: [emerg] \"root\" directive is duplicate");
+
+  this->root_ = *(it + 1);
+  check_root_setting = true;
+
+  it += 3;
+}
+
+void HttpConfig::indexProcess(std::vector<std::string>::iterator &it, const std::vector<std::string>::iterator &end_it, bool &check_index_setting) {
+  int directiveValueCnt = getDirectiveValueCnt(it, end_it, ";");
+  if (directiveValueCnt == 0)
+    throw std::runtime_error("webserv: [emerg] invalid number of arguments in \"index\" directive");
+
+  if (check_index_setting == false) {
+    this->index_.clear();
+    check_index_setting = true;
+  }
+
+  it++;
+  for (; *it != ";"; it++)
+    this->index_.push_back(*it);
+  it++;
+}
+
+void HttpConfig::autoindexProcess(std::vector<std::string>::iterator &it, const std::vector<std::string>::iterator &end_it, bool &check_autoindex_setting) {
+  int directiveValueCnt = getDirectiveValueCnt(it, end_it, ";");
+  if (directiveValueCnt != 1)
+    throw std::runtime_error("webserv: [emerg] invalid number of arguments in \"autoindex\" directive");
+  if (check_autoindex_setting == true)
+    throw std::runtime_error("webserv: [emerg] \"autoindex\" directive is duplicate");
+  if ((*(it + 1)) != "on" && *(it + 1) != "off")
+    throw std::runtime_error("webserv: [emerg] invalid value \"" + *(it + 1) + "\" in \"autoindex\" directive, it must be \"on\" or \"off\"");
+
+  if (*(it + 1) == "on")
+    this->autoindex_ = true;
+  else
+    this->autoindex_ = false;
+
+  check_autoindex_setting = true;
+  it += 3;
+}
+
+void HttpConfig::clientMaxBodySizeProcess(std::vector<std::string>::iterator &it, const std::vector<std::string>::iterator &end_it, bool &check_client_max_body_size_setting) {
+  int directiveValueCnt = getDirectiveValueCnt(it, end_it, ";");
+  if (directiveValueCnt != 1)
+    throw std::runtime_error("webserv: [emerg] invalid number of arguments in \"client_max_body_size\" directive");
+
+  if (check_client_max_body_size_setting == true)
+    throw std::runtime_error("webserv: [emerg] \"client_max_body_size\" directive is duplicate");
+
+  std::string &size_str = *(it + 1);
+  int num_of_mutifly_by_2 = 0;
+  if (*size_str.rbegin() == 'k') {
+    num_of_mutifly_by_2 = 10;
+  } else if (*size_str.rbegin() == 'm') {
+    num_of_mutifly_by_2 = 20;
+  } else if (*size_str.rbegin() == 'g') {
+    num_of_mutifly_by_2 = 30;
+  }
+  if (num_of_mutifly_by_2 != 0) {
+    size_str = size_str.substr(0, size_str.length() - 1);
+  }
+
+  if (size_str.length() > 19) {
+    throw std::runtime_error("webserv: [emerg] \"client_max_body_size\" directive invalid value");
+  }
+
+  for (std::string::iterator i = size_str.begin(); i != size_str.end(); i++) {  // code에 숫자만 들어오는지 확인 // 함수로 빼는게 나을듯 ?
+    if (!isdigit(*i))
+      throw std::runtime_error("webserv: [emerg] \"client_max_body_size\" directive invalid value");
+  }
+
+  this->client_max_body_size_ = strtoul(size_str.c_str(), NULL, 0);
+  if (this->client_max_body_size_ > LONG_MAX) {
+    throw std::runtime_error("webserv: [emerg] \"client_max_body_size\" directive invalid value");
+  }
+  for (int i = 0; i < num_of_mutifly_by_2; i++) {
+    this->client_max_body_size_ *= 2;
+    if (this->client_max_body_size_ > LONG_MAX) {
+      throw std::runtime_error("webserv: [emerg] \"client_max_body_size\" directive invalid value");
+    }
+  }
+
+  check_client_max_body_size_setting = true;
+  it += 3;
+}
+
+void HttpConfig::errorPageProcess(std::vector<std::string>::iterator &it, const std::vector<std::string>::iterator &end_it, bool &check_error_page_setting) {
+  int directiveValueCnt = getDirectiveValueCnt(it, end_it, ";");
+  if (directiveValueCnt != 1)
+    throw std::runtime_error("webserv: [emerg] invalid number of arguments in \"error_page\" directive");
+  if (check_error_page_setting == true)
+    throw std::runtime_error("webserv: [emerg] \"error_page\" directive is duplicate");
+  
+  this->error_page_ = *(it + 1);
+  check_error_page_setting = true;
+  it += 3;
+}
+
+void HttpConfig::serverProcess(std::vector<std::string>::iterator &it, const std::vector<std::string>::iterator &end_it, std::vector<std::vector<std::string> > &servers_tokens) {
+  int directiveValueCnt = getDirectiveValueCnt(it, end_it, "{");
+  if (directiveValueCnt != 0)
+    throw std::runtime_error("webserv: [emerg] invalid number of arguments in \"server\" directive");
+
+  std::vector<std::string> server_tokens;
+
+  server_tokens.push_back(*it);
+  it++;
+  server_tokens.push_back(*it);
+  it++;
+
+  int cnt = 1;
+  while (it != end_it && cnt != 0) {
+    if (*it == "{")
+      cnt++;
+    else if (*it == "}")
+      cnt--;
+    server_tokens.push_back(*it);
+    it++;
+  }
+  if (it == end_it)
+    throw std::runtime_error("webserv: [emerg] unexpected end of file");
+  servers_tokens.push_back(server_tokens);
+}
+
+void HttpConfig::createServerConfig(std::vector<std::vector<std::string> > &servers_tokens) {
+  std::vector<std::vector<std::string> >::iterator server_it = servers_tokens.begin();
+  for (; server_it != servers_tokens.end(); server_it++) {
+    ServerConfig *new_server = new ServerConfig(*server_it, this);
+
+    for (std::vector<std::string>::const_iterator i = new_server->getListen().begin(); i != new_server->getListen().end(); i++) {
+      std::size_t pos = (*i).find(':');
+      std::string ip_addr_str = (*i).substr(0, pos);
+      std::string port_str = (*i).substr(pos + 1);
+
+      in_addr_t ip_addr = inet_addr(ip_addr_str.c_str());
+      in_port_t port = htons(atoi(port_str.c_str()));
+
+      this->server_configs_[port][ip_addr].push_back(new_server);
+      setMustListens(ip_addr, port);
+    }
+  }
+}
+
+void HttpConfig::setMustListens(in_addr_t ip_addr, in_port_t port) {
+  if (this->must_listens_.find(port) == this->must_listens_.end() || this->must_listens_.find(port)->second != inet_addr("0.0.0.0")) {
+    if (ip_addr == inet_addr("0.0.0.0")) {
+      this->must_listens_.erase(port);
+    }
+    this->must_listens_.insert(std::pair<in_port_t, in_addr_t>(port, ip_addr));
+  }
+}
+
+int HttpConfig::getDirectiveValueCnt(std::vector<std::string>::iterator it, std::vector<std::string>::iterator end_it, std::string terminator) const {
+  it++;
+  int cnt = 0;
+  for (; it != end_it && *it != terminator; it++)
+    cnt++;
+  if (it == end_it)
+    throw std::runtime_error("webserv: [emerg] unexpected end of file");
+  return cnt;
 }
 
 // ############## for debug ###################
-void HttpConfig::print_all_server_location_for_debug(void)  // TODO : remove
+void HttpConfig::print_all_server_location_for_debug(void)
 {
   this->print_status_for_debug("");
 
-  for (std::map<in_port_t, std::map<in_addr_t, std::vector<ServerConfig *> > >::iterator it = server_configs.begin(); it != server_configs.end(); it++) {
+  for (std::map<in_port_t, std::map<in_addr_t, std::vector<ServerConfig *> > >::iterator it = server_configs_.begin(); it != server_configs_.end(); it++) {
     in_port_t port = it->first;
     std::map<in_addr_t, std::vector<ServerConfig *> > addr_server_map = it->second;
 
@@ -305,35 +339,31 @@ void HttpConfig::print_all_server_location_for_debug(void)  // TODO : remove
   }
 }
 
-void HttpConfig::print_status_for_debug(std::string prefix) {  // TODO : remove
+void HttpConfig::print_status_for_debug(std::string prefix) {
   std::cout << prefix;
   std::cout << "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ HttpConfig ~~~~~~~~~~~~~~~~~~~~~~~~~" << std::endl;
 
   std::cout << prefix;
-  std::cout << "program_name : " << this->program_name << std::endl;
+  std::cout << "program_name : " << this->program_name_ << std::endl;
 
   std::cout << prefix;
-  std::cout << "root : " << this->root << std::endl;
+  std::cout << "root : " << this->root_ << std::endl;
 
   std::cout << prefix;
   std::cout << "index : ";
-  for (std::vector<std::string>::iterator i = this->index.begin(); i != this->index.end(); i++) {
+  for (std::vector<std::string>::iterator i = this->index_.begin(); i != this->index_.end(); i++) {
     std::cout << *i << " ";
   }
   std::cout << std::endl;
 
   std::cout << prefix;
-  std::cout << "autoindex : " << this->autoindex << std::endl;
+  std::cout << "autoindex : " << this->autoindex_ << std::endl;
 
   std::cout << prefix;
-  std::cout << "client_max_body_size : " << this->client_max_body_size << std::endl;
+  std::cout << "client_max_body_size : " << this->client_max_body_size_ << std::endl;
 
   std::cout << prefix;
-  std::cout << "error_page : ";
-  for (std::map<int, std::string>::iterator i = this->error_page.begin(); i != this->error_page.end(); i++) {
-    std::cout << i->first << ":" << i->second << "  ";
-  }
-  std::cout << std::endl;
+  std::cout << "error_page : " << this->error_page_ << std::endl;
   std::cout << prefix;
   std::cout << "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~" << std::endl;
 }

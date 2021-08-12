@@ -66,10 +66,10 @@ void CgiHandler::handleCgiHeader(Connection *c) {
 
   std::string cgi_output_response_header;
   {
-    size_t pos = c->temp.find("\r\n\r\n");
-    cgi_output_response_header = c->temp.substr(0, pos + 2);
+    size_t pos = c->temp.find(CRLFCRLF);
+    cgi_output_response_header = c->temp.substr(0, pos + CRLF_LEN);
     c->temp.erase(0, pos + 4);
-    while ((pos = cgi_output_response_header.find("\r\n")) != std::string::npos) {
+    while ((pos = cgi_output_response_header.find(CRLF)) != std::string::npos) {
       std::string one_header_line = cgi_output_response_header.substr(0, pos);
       std::vector<std::string> key_and_value = MessageHandler::request_handler_.splitByDelimiter(one_header_line, SPACE);
       // @sungyongcho: 저는 CGI 실행파일을 믿습니다...
@@ -84,7 +84,7 @@ void CgiHandler::handleCgiHeader(Connection *c) {
       }
       if (key.compare("Status") != 0)
         c->getResponse().setHeader(key, value);
-      cgi_output_response_header.erase(0, pos + 2);
+      cgi_output_response_header.erase(0, pos + CRLF_LEN);
     }
   }
 }

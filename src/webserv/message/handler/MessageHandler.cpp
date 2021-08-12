@@ -156,22 +156,7 @@ void MessageHandler::setResponseMessage(Connection *c) {
     ServerConfig *server_config = c->getHttpConfig()->getServerConfig(c->getSockaddrToConnect().sin_port, c->getSockaddrToConnect().sin_addr.s_addr, c->getRequest().getHeaderValue("Host"));
     LocationConfig *location = server_config->getLocationConfig(c->getRequest().getUri());
 
-    bool check_error_body = false;
-    if (location->getErrorPage() != "") {
-      std::string error_page_path = location->getErrorPage() + "/" + SSTR(c->getResponse().getStatusCode()) + ".html";
-      struct stat stat_buff;
-      if (stat(error_page_path.c_str(), &stat_buff) == 0 && S_ISREG(stat_buff.st_mode)) {
-        check_error_body = true;
-        std::ifstream file(error_page_path.c_str());
-        file.seekg(0, std::ios::end);
-        c->getBodyBuf().reserve(file.tellg());
-        file.seekg(0, std::ios::beg);
-        c->getBodyBuf().assign((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
-      }
-    }
-
-    if (check_error_body == false)
-      response_handler_.setDefaultErrorBody();
+    response_handler_.setErrorBody(location->getErrorPage());
   }
 
   response_handler_.setDefaultHeader(c, c->getRequest());

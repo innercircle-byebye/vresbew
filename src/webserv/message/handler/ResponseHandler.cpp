@@ -91,6 +91,27 @@ void ResponseHandler::setStatusLineWithCode(int status_code) {
   response_->setConnectionHeaderByStatusCode(status_code);
 }
 
+void ResponseHandler::setErrorBody(const std::string &error_page_directory_path) {
+  bool check_error_body = false;
+
+  if (error_page_directory_path != "") {
+    std::string error_page_path = error_page_directory_path + "/" + SSTR(response_->getStatusCode()) + ".html";
+    struct stat stat_buff;
+
+    if (stat(error_page_path.c_str(), &stat_buff) == 0 && S_ISREG(stat_buff.st_mode)) {
+      check_error_body = true;
+      std::ifstream file(error_page_path.c_str());
+      file.seekg(0, std::ios::end);
+      body_buf_->reserve(file.tellg());
+      file.seekg(0, std::ios::beg);
+      body_buf_->assign((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
+    }
+  }
+
+  if (check_error_body == false)
+    setDefaultErrorBody();
+}
+
 void ResponseHandler::setDefaultErrorBody() {
   body_buf_->append("<html>\r\n");
   body_buf_->append("<head><title>" + SSTR(response_->getStatusCode()) + " " + StatusMessage::of(response_->getStatusCode()) + "</title></head>\r\n");

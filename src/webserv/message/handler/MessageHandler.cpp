@@ -23,6 +23,9 @@ void MessageHandler::checkRequestHeader(Connection *c) {
   ServerConfig *serverconfig_test = c->getHttpConfig()->getServerConfig(c->getSockaddrToConnect().sin_port, c->getSockaddrToConnect().sin_addr.s_addr, c->getRequest().getHeaderValue("Host"));
   LocationConfig *locationconfig_test = serverconfig_test->getLocationConfig(c->getRequest().getPath());
 
+  locationconfig_test->print_status_for_debug("============");
+  std::cout <<"ntohs:["<< ntohs(c->getSockaddrToConnect().sin_port) << "]" <<std::endl;
+  std::cout << c->getRequest().getHeaderValue("Host") << "]" << std::endl;
   // 있어야되는지??
   request_handler_.setRequest(&c->getRequest());
 
@@ -31,6 +34,14 @@ void MessageHandler::checkRequestHeader(Connection *c) {
 
   //client_max_body_size 셋업
   c->client_max_body_size = locationconfig_test->getClientMaxBodySize();
+
+  std::cout << "uri: " << c->getRequest().getUri() << std::endl;
+  std::cout << "schema: " << c->getRequest().getSchema() << std::endl;
+  std::cout << "host: " << c->getRequest().getHost() << std::endl;
+  std::cout << "port: " << c->getRequest().getPort() << std::endl;
+  std::cout << "path: " << c->getRequest().getPath() << std::endl;
+  std::cout << "filepath: " << c->getRequest().getFilePath() << std::endl;
+  std::cout << "query_string: |" << c->getRequest().getQueryString() << "|" << std::endl;
 
   if (!c->getRequest().getHeaderValue("Content-Length").empty()) {
     c->setStringBufferContentLength(stoi(c->getRequest().getHeaderValue("Content-Length")));
@@ -52,7 +63,7 @@ void MessageHandler::checkRequestHeader(Connection *c) {
   }
   if (*(c->getRequest().getFilePath().rbegin()) == '/') {
     request_handler_.findIndexForGetWhenOnlySlash(locationconfig_test);
-    if (*(c->getRequest().getFilePath().rbegin()) == '/') {
+    if (*(c->getRequest().getFilePath().rbegin()) == '/' && locationconfig_test->getAutoindex() == false) {
       c->req_status_code_ = 404;
       c->setRecvPhase(MESSAGE_BODY_COMPLETE);
       return;
@@ -61,13 +72,15 @@ void MessageHandler::checkRequestHeader(Connection *c) {
 
   if (request_handler_.isUriFileExist(locationconfig_test) == false &&
       c->getRequest().getMethod() != "PUT" && c->getRequest().getMethod() != "POST") {
+      std::cout << "aaa" << std::endl;
     c->req_status_code_ = 404;
     c->setRecvPhase(MESSAGE_BODY_COMPLETE);
     return;
   }
 
   if (request_handler_.isUriDirectory(locationconfig_test) == true &&
-      c->getRequest().getMethod().compare("DELETE")) {
+      c->getRequest().getMethod().compare("DELETE") && locationconfig_test->getAutoindex() == false ) {
+      std::cout << "bbb" << std::endl;
     c->req_status_code_ = 301;
     c->setRecvPhase(MESSAGE_BODY_COMPLETE);
     return;
@@ -140,12 +153,6 @@ void MessageHandler::executeServerSide(Connection *c) {
   }
 
   response_handler_.executeMethod(c->getRequest());
-
-  if (c->getRequest().getMethod() == "PUT" &&
-      (c->getResponse().getStatusCode() == 201 || (c->getResponse().getStatusCode() == 204))) {
-    executePutMethod(c->getRequest().getFilePath(), c->getBodyBuf());
-    c->getBodyBuf().clear();
-  }
 }
 
 void MessageHandler::setResponseMessage(Connection *c) {
@@ -154,7 +161,7 @@ void MessageHandler::setResponseMessage(Connection *c) {
         c->getResponse().getStatusCode() == 204) &&
       c->getBodyBuf().empty()) {
     ServerConfig *server_config = c->getHttpConfig()->getServerConfig(c->getSockaddrToConnect().sin_port, c->getSockaddrToConnect().sin_addr.s_addr, c->getRequest().getHeaderValue("Host"));
-    LocationConfig *location = server_config->getLocationConfig(c->getRequest().getUri());
+    LocationConfig *location = server_config->getLocationConfig(c->getRequest().getPath());
 
     response_handler_.setErrorBody(location->getErrorPage());
   }
@@ -167,12 +174,6 @@ void MessageHandler::sendResponseToClient(Connection *c) {
   send(c->getFd(), c->getResponse().getHeaderMsg().c_str(), c->getResponse().getHeaderMsg().size(), 0);
   if (c->getRequest().getMethod() != "HEAD")
     send(c->getFd(), c->getBodyBuf().c_str(), c->getBodyBuf().size(), 0);
-}
-
-void MessageHandler::executePutMethod(std::string path, std::string content) {
-  std::ofstream output(path.c_str());
-  output << content;
-  output.close();
 }
 
 }  // namespace ft

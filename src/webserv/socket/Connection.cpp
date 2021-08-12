@@ -143,6 +143,7 @@ void Connection::process_write_event(Kqueue *kq, SocketManager *sm) {
       this->clear();
     }
   } else if (this->recv_phase_ == MESSAGE_BODY_COMPLETE) {
+    std::cout << "ddd" << this->req_status_code_ << std::endl;
     MessageHandler::sendResponseToClient(this);
     if (!this->response_.getHeaderValue("Connection").compare("close") ||
         !this->request_.getHttpVersion().compare("HTTP/1.0")) {

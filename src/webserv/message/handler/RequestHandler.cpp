@@ -35,9 +35,6 @@ void RequestHandler::checkMsgForStartLine(Connection *c) {
 void RequestHandler::checkMsgForHeader(Connection *c) {
   size_t pos;
 
-  // 일단 주석
-  // std::string temp_rn_ctrlc = CRLF;
-  // temp_rn_ctrlc += ctrl_c[0];
   if ((pos = request_->getMsg().find(CRLFCRLF)) != std::string::npos)
     c->setRecvPhase(MESSAGE_HEADER_COMPLETE);
 }
@@ -74,7 +71,6 @@ void RequestHandler::parseStartLine(Connection *c) {
   }
 
   request_->setHttpVersion(start_line_split[2]);
-
   c->setRecvPhase(MESSAGE_HEADER_INCOMPLETE);
 }
 
@@ -185,6 +181,14 @@ int RequestHandler::parseUri(std::string uri_str) {
   }
   if (request_->getPath().empty())
     request_->setPath("/");
+
+  // std::cout << "uri: " << request_->getUri() << std::endl;
+  // std::cout << "schema: " << request_->getSchema() << std::endl;
+  // std::cout << "host: " << request_->getHost() << std::endl;
+  // std::cout << "port: " << request_->getPort() << std::endl;
+  // std::cout << "path: " << request_->getPath() << std::endl;
+  // // std::cout << "filepath: " << request_->getFilePath() << std::endl;
+  // std::cout << "query_string: |" << request_->getQueryString() << "|" << std::endl;
 
   return (PARSE_VALID_URI);
 }

@@ -4,46 +4,62 @@ namespace ft {
 
 void CgiHandler::initCgiChild(Connection *c) {
   ServerConfig *server_config = c->getHttpConfig()->getServerConfig(c->getSockaddrToConnect().sin_port, c->getSockaddrToConnect().sin_addr.s_addr, c->getRequest().getHeaderValue("Host"));
-  LocationConfig *location = server_config->getLocationConfig(c->getRequest().getUri());
+  LocationConfig *location = server_config->getLocationConfig(c->getRequest().getPath());
   std::string cgi_output_temp;
   // TODO: 실패 예외처리
   pipe(c->writepipe);
   // TODO: 실패 예외처리
   pipe(c->readpipe);
-  c->cgi_pid = fork();
-  if (!c->cgi_pid) {
-    // TODO: 실패 예외처리
-    close(c->writepipe[1]);
-    // TODO: 실패 예외처리
-    close(c->readpipe[0]);
-    // TODO: 실패 예외처리
-    dup2(c->writepipe[0], 0);
-    // TODO: 실패 예외처리
-    close(c->writepipe[0]);
-    // TODO: 실패 예외처리
-    dup2(c->readpipe[1], 1);
-    // TODO: 실패 예외처리
-    close(c->readpipe[1]);
-    // TODO: 실패 예외처리
 
-    execve(location->getCgiPath().c_str(),
-           setCommand(location->getCgiPath(), c->getRequest().getFilePath()),
-           setEnviron(c));
+  char **cgi_command;
+  char **env_variable;
+
+  if ((env_variable = setEnviron(c)) == NULL) {
+    Logger::logError(LOG_ALERT, "cgi process environment varible creating failed (malloc failed)");
+    c->req_status_code_ = 500;
+    c->setRecvPhase(MESSAGE_BODY_COMPLETE);
+    return;
   }
-  // TODO: 실패 예외처리
+
+  if ((cgi_command = setCommand(location->getCgiPath(), c->getRequest().getFilePath())) == NULL) {
+    Logger::logError(LOG_ALERT, "cgi process command creating failed (malloc failed)");
+    c->req_status_code_ = 500;
+    c->setRecvPhase(MESSAGE_BODY_COMPLETE);
+    return;
+  }
+
+  if ((c->cgi_pid = fork()) == -1) {
+    close(c->readpipe[0]);
+    close(c->readpipe[1]);
+    close(c->writepipe[0]);
+    close(c->writepipe[1]);
+    Logger::logError(LOG_ALERT, "cgi process fork failed");
+    c->req_status_code_ = 500;
+    c->setRecvPhase(MESSAGE_BODY_COMPLETE);
+    return;
+  }
+
+  if (c->cgi_pid == 0) {
+    close(c->writepipe[1]);
+    close(c->readpipe[0]);
+    dup2(c->writepipe[0], STDIN_FILENO);
+    close(c->writepipe[0]);
+    dup2(c->readpipe[1], STDOUT_FILENO);
+    close(c->readpipe[1]);
+
+    execve(location->getCgiPath().c_str(), cgi_command, env_variable);
+  }
   close(c->writepipe[0]);
-  // TODO: 실패 예외처리
   close(c->readpipe[1]);
   memset(c->buffer_, 0, BUF_SIZE);
 
-  if (c->getBodyBuf().size() == 0) {  //자식 프로세스로 보낼 c->body_buf_ 가 비어있는 경우 파이프 닫음
+  if (c->getBodyBuf().size() == 0) {
     close(c->writepipe[1]);
     read(c->readpipe[0], c->buffer_, BUF_SIZE - 1);
     c->temp.append(c->buffer_);
   } else {
     size_t size = c->getBodyBuf().size();
     for (size_t i = 0; i < size; i += BUF_SIZE - 1) {
-      // std::cout << "i :" << i << std::endl;
       size_t j = std::min(size, BUF_SIZE + i - 1);
       write(c->writepipe[1], c->getBodyBuf().substr(i, j).c_str(), j - i);
       if (i == 0) {
@@ -56,7 +72,7 @@ void CgiHandler::initCgiChild(Connection *c) {
       memset(c->buffer_, 0, BUF_SIZE);
     }
     c->setStringBufferContentLength(-1);
-    c->getBodyBuf().clear();  // 뒤에서 또 쓰일걸 대비해 혹시몰라 초기화.. #2
+    c->getBodyBuf().clear();
     close(c->writepipe[1]);
   }
   c->setRecvPhase(MESSAGE_CGI_COMPLETE);
@@ -92,7 +108,7 @@ void CgiHandler::handleCgiHeader(Connection *c) {
 
 char **CgiHandler::setEnviron(Connection *c) {
   ServerConfig *server_config = c->getHttpConfig()->getServerConfig(c->getSockaddrToConnect().sin_port, c->getSockaddrToConnect().sin_addr.s_addr, c->getRequest().getHeaderValue("Host"));
-  LocationConfig *location = server_config->getLocationConfig(c->getRequest().getUri());
+  LocationConfig *location = server_config->getLocationConfig(c->getRequest().getPath());
   std::map<std::string, std::string> env_set;
   {
     if (!c->getRequest().getHeaderValue("Content-Length").empty()) {
@@ -117,7 +133,8 @@ char **CgiHandler::setEnviron(Connection *c) {
     env_set["REQUEST_URI"] = c->getRequest().getUri();
     env_set["HTTP_HOST"] = c->getRequest().getHeaderValue("Host");
     env_set["SERVER_PORT"] = SSTR(ntohs(c->getSockaddrToConnect().sin_port));
-    env_set["SERVER_SOFTWARE"] = "versbew";
+    // env_set["SERVER_SOFTWARE"] = location->getProgramName();
+    env_set["SERVER_SOFTWARE"] = "vresbew";
     env_set["SCRIPT_NAME"] = location->getCgiPath();
   }
   char **return_value;
@@ -178,14 +195,7 @@ void CgiHandler::setupCgiMessage(Connection *c) {
 
   MessageHandler::response_handler_.setDefaultHeader(c, c->getRequest());
   c->getResponse().setHeader("Content-Length", SSTR(c->temp.size()));
-  //TODO: 하드코딩 수정
-  c->getResponse().setHeader("Content-Type", "text/html; charset=utf-8");
-
   MessageHandler::response_handler_.makeResponseHeader();
-
-  // std::cout << "========header============" << std::endl;
-  // std::cout << c->getResponse().getHeaderMsg() << std::endl;
-  // std::cout << "========header============" << std::endl;
 
   if (!c->temp.empty())
     c->getResponse().getHeaderMsg().append(c->temp);

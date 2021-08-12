@@ -44,6 +44,8 @@ typedef int socket_t;
 
 #define CRLF "\r\n"
 #define CRLFCRLF "\r\n\r\n"
+#define CRLF_LEN 2
+#define CRLFCRLF_LEN 4
 
 // in_addr_t inet_addr2(const char *cp) { return inet_addr(strcmp(cp, "localhost") == 0 ? "127.0.0.1" : cp); }
 

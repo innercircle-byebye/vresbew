@@ -201,19 +201,8 @@ void ResponseHandler::processPostMethod(Request &request, LocationConfig *&locat
 }
 
 void ResponseHandler::processDeleteMethod(Request &request) {
-  // test print log
-  std::cout << "test print resquest path" << std::endl;
-  std::cout << "getPath() : " << request.getPath() << std::endl;
-  std::cout << "getFilePath() : " << request.getFilePath() << std::endl;
-  // var/www/html/index.html 이 출력되고 있습니다... index.html 이 사라졌으면 좋겠음.
-  std::cout << "compare(\"/\") : " << request.getPath().compare("/") << std::endl;
-  // if (!filepath.compare("/")) {  // URI 에 "/" 만 있는 경우
-  // if (stat(filepath.c_str(), &this->stat_buffer_) < 0) {
   if (!request.getPath().compare("/")) {  // URI 에 "/" 만 있는 경우
     std::string path = request.getFilePath().substr(0, request.getFilePath().find_last_of("/") + 1);
-    // var/www/html/
-    std::cout << "path : " << path << std::endl;
-    // if (stat(request.getFilePath().c_str(), &this->stat_buffer_) < 0) {
     if (stat(path.c_str(), &this->stat_buffer_) < 0) {
       setStatusLineWithCode(405);
       return;
@@ -222,7 +211,6 @@ void ResponseHandler::processDeleteMethod(Request &request) {
         DIR *dir_ptr;
         struct dirent *item;
 
-        // if (!(dir_ptr = opendir(filepath.c_str()))) {
         if (!(dir_ptr = opendir(path.c_str()))) {
           setStatusLineWithCode(403);  // Not Allowed
           return;
@@ -230,7 +218,6 @@ void ResponseHandler::processDeleteMethod(Request &request) {
         while ((item = readdir(dir_ptr))) {
           if (strcmp(item->d_name, ".") == 0 || strcmp(item->d_name, "..") == 0)
             continue;
-          // std::string new_path(filepath);
           std::string new_path(path);
           new_path += item->d_name;
           if (deletePathRecursive(new_path) == -1) {
@@ -240,7 +227,6 @@ void ResponseHandler::processDeleteMethod(Request &request) {
         }
         setStatusLineWithCode(403);
       } else {
-        // if (remove(filepath.c_str()) != 0) {
         if (remove(path.c_str()) != 0) {
           setStatusLineWithCode(403);
           return;
@@ -260,7 +246,6 @@ void ResponseHandler::processDeleteMethod(Request &request) {
           return;
         }
       } else {  // is not directory == file ?!
-        // if (remove(filepath.c_str()) != 0) {
         if (remove(path.c_str()) != 0) {
           setStatusLineWithCode(403);
           return;

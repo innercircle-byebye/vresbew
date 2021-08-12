@@ -40,7 +40,7 @@ class ServerConfig {
   const std::vector<std::string> &getServerName(void) const;
 
  private:
-  void init(HttpConfig* http_config);
+  void init(HttpConfig *http_config);
   void rootProcess(std::vector<std::string>::iterator &it, const std::vector<std::string>::iterator &end_it, bool &check_root_setting);
   void indexProcess(std::vector<std::string>::iterator &it, const std::vector<std::string>::iterator &end_it, bool &check_index_setting);
   void autoindexProcess(std::vector<std::string>::iterator &it, const std::vector<std::string>::iterator &end_it, bool &check_autoindex_setting);

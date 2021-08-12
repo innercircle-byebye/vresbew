@@ -28,9 +28,6 @@ void RequestHandler::processByRecvPhase(Connection *c) {
 void RequestHandler::checkMsgForStartLine(Connection *c) {
   size_t pos;
 
-  // if (c->interrupted == true) {
-  //   std::cout << "111111111111111" << std::endl;
-  //   c->setRecvPhase(MESSAGE_BODY_COMPLETE);
   if ((pos = request_->getMsg().find(CRLF)) != std::string::npos)
     c->setRecvPhase(MESSAGE_START_LINE_COMPLETE);
 }
@@ -193,11 +190,6 @@ int RequestHandler::parseUri(std::string uri_str) {
 }
 
 void RequestHandler::parseHeaderLines(Connection *c) {
-  // if (c->interrupted == true) {
-  //   std::cout << "22222222" << std::endl;
-  //   c->setRecvPhase(MESSAGE_BODY_COMPLETE);
-  //   return;
-  // }
   size_t pos = request_->getMsg().find(CRLFCRLF);
   std::string header_lines = request_->getMsg().substr(0, pos + 2);
   request_->getMsg().erase(0, pos + CRLFCRLF_LEN);

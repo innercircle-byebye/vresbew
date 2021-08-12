@@ -10,33 +10,36 @@ void CgiHandler::initCgiChild(Connection *c) {
   pipe(c->writepipe);
   // TODO: 실패 예외처리
   pipe(c->readpipe);
-  c->cgi_pid = fork();
-  if (!c->cgi_pid) {
-    // TODO: 실패 예외처리
-    close(c->writepipe[1]);
-    // TODO: 실패 예외처리
+
+  if ((c->cgi_pid = fork()) == -1)
+  {
     close(c->readpipe[0]);
-    // TODO: 실패 예외처리
-    dup2(c->writepipe[0], 0);
-    // TODO: 실패 예외처리
-    close(c->writepipe[0]);
-    // TODO: 실패 예외처리
-    dup2(c->readpipe[1], 1);
-    // TODO: 실패 예외처리
     close(c->readpipe[1]);
-    // TODO: 실패 예외처리
+    close(c->writepipe[0]);
+    close(c->writepipe[1]);
+    Logger::logError(LOG_ALERT, "cgi process fork failed");
+    c->req_status_code_ = 500;
+    c->setRecvPhase(MESSAGE_BODY_COMPLETE);
+    return ;
+  }
+
+  if (c->cgi_pid == 0) {
+    close(c->writepipe[1]);
+    close(c->readpipe[0]);
+    dup2(c->writepipe[0], STDIN_FILENO);
+    close(c->writepipe[0]);
+    dup2(c->readpipe[1], STDOUT_FILENO);
+    close(c->readpipe[1]);
 
     execve(location->getCgiPath().c_str(),
            setCommand(location->getCgiPath(), c->getRequest().getFilePath()),
            setEnviron(c));
   }
-  // TODO: 실패 예외처리
   close(c->writepipe[0]);
-  // TODO: 실패 예외처리
   close(c->readpipe[1]);
   memset(c->buffer_, 0, BUF_SIZE);
 
-  if (c->getBodyBuf().size() == 0) {  //자식 프로세스로 보낼 c->body_buf_ 가 비어있는 경우 파이프 닫음
+  if (c->getBodyBuf().size() == 0) {
     close(c->writepipe[1]);
     read(c->readpipe[0], c->buffer_, BUF_SIZE - 1);
     c->temp.append(c->buffer_);
@@ -178,14 +181,7 @@ void CgiHandler::setupCgiMessage(Connection *c) {
 
   MessageHandler::response_handler_.setDefaultHeader(c, c->getRequest());
   c->getResponse().setHeader("Content-Length", SSTR(c->temp.size()));
-  //TODO: 하드코딩 수정
-  c->getResponse().setHeader("Content-Type", "text/html; charset=utf-8");
-
   MessageHandler::response_handler_.makeResponseHeader();
-
-  // std::cout << "========header============" << std::endl;
-  // std::cout << c->getResponse().getHeaderMsg() << std::endl;
-  // std::cout << "========header============" << std::endl;
 
   if (!c->temp.empty())
     c->getResponse().getHeaderMsg().append(c->temp);

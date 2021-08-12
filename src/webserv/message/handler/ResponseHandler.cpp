@@ -19,6 +19,10 @@ void ResponseHandler::setServerConfig(HttpConfig *http_config, struct sockaddr_i
   this->server_config_ = http_config->getServerConfig(addr.sin_port, addr.sin_addr.s_addr, host);
 }
 
+void ResponseHandler::setServerNameHeader(LocationConfig *location) {
+  response_->setHeader("Server", location->getProgramName());
+}
+
 void ResponseHandler::executeMethod(Request &request) {
   LocationConfig *location = this->server_config_->getLocationConfig(request.getPath());
   stat(request.getFilePath().c_str(), &this->stat_buffer_);
@@ -33,6 +37,8 @@ void ResponseHandler::executeMethod(Request &request) {
 }
 
 void ResponseHandler::setDefaultHeader(Connection *c, Request &request) {
+  LocationConfig *location = this->server_config_->getLocationConfig(request.getPath());
+  response_->setHeader("Server", location->getProgramName());
   if (response_->getHeaderValue("Content-Length").empty())
     response_->setHeader("Content-Length",
                          SSTR(this->body_buf_->size()));
@@ -167,7 +173,6 @@ void ResponseHandler::setAutoindexBody(const std::string &uri) {
 // ***********blocks for setResponseFields begin*************** //
 
 void ResponseHandler::processGetAndHeaderMethod(Request &request, LocationConfig *&location) {
-
   if (location->getAutoindex() && S_ISDIR(this->stat_buffer_.st_mode)) {
     std::cout << "ccc" << std::endl;
 

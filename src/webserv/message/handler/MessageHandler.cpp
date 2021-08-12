@@ -67,7 +67,7 @@ void MessageHandler::checkRequestHeader(Connection *c) {
   }
 
   if (request_handler_.isUriDirectory(locationconfig_test) == true &&
-      c->getRequest().getMethod().compare("DELETE") && locationconfig_test->getAutoindex() == false ) {
+      c->getRequest().getMethod().compare("DELETE") && locationconfig_test->getAutoindex() == false) {
     c->req_status_code_ = 301;
     c->setRecvPhase(MESSAGE_BODY_COMPLETE);
     return;
@@ -144,13 +144,15 @@ void MessageHandler::executeServerSide(Connection *c) {
 }
 
 void MessageHandler::setResponseMessage(Connection *c) {
+  ServerConfig *server_config = c->getHttpConfig()->getServerConfig(c->getSockaddrToConnect().sin_port, c->getSockaddrToConnect().sin_addr.s_addr, c->getRequest().getHeaderValue("Host"));
+  LocationConfig *location = server_config->getLocationConfig(c->getRequest().getPath());
+
+  response_handler_.setServerNameHeader(location);
+
   if (!(c->getResponse().getStatusCode() == 200 ||
         c->getResponse().getStatusCode() == 201 ||
         c->getResponse().getStatusCode() == 204) &&
       c->getBodyBuf().empty()) {
-    ServerConfig *server_config = c->getHttpConfig()->getServerConfig(c->getSockaddrToConnect().sin_port, c->getSockaddrToConnect().sin_addr.s_addr, c->getRequest().getHeaderValue("Host"));
-    LocationConfig *location = server_config->getLocationConfig(c->getRequest().getPath());
-
     response_handler_.setErrorBody(location->getErrorPage());
   }
 

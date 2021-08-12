@@ -5,6 +5,7 @@
 #include <map>
 #include <string>
 #include <cstdlib> //itoa
+#include "webserv/config/LocationConfig.hpp"
 #include "webserv/webserv.hpp"
 
 namespace ft {
@@ -38,7 +39,7 @@ class Response {
   void setHttpVersion(std::string http_version);
   void setHeader(std::string key, std::string value);
   void setHeaderMsg(std::string msg);
-
+  void setServerHeader(LocationConfig *location);
   void setConnectionHeaderByStatusCode(int status_code);
 
 

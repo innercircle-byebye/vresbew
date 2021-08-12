@@ -14,11 +14,11 @@
 
 #include "webserv/config/HttpConfig.hpp"
 #include "webserv/logger/Time.hpp"
-#include "webserv/socket/Connection.hpp"
+#include "webserv/message/MimeType.hpp"
 #include "webserv/message/Request.hpp"
 #include "webserv/message/Response.hpp"
 #include "webserv/message/StatusMessage.hpp"
-#include "webserv/message/MimeType.hpp"
+#include "webserv/socket/Connection.hpp"
 
 namespace ft {
 
@@ -36,6 +36,7 @@ class ResponseHandler {
   void setResponse(Response *response, std::string *msg_body_buf);
   void setServerConfig(HttpConfig *http_config, struct sockaddr_in &addr, const std::string &host);
   void executeMethod(Request &request);
+  void setServerNameHeader(LocationConfig *location);
   void setDefaultHeader(Connection *c, Request &request);
   void makeResponseMsg();
   void makeResponseHeader();

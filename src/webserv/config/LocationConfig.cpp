@@ -64,6 +64,10 @@ bool LocationConfig::checkPrefixMatchUri(std::string request_uri) {
   return false;
 }
 
+const std::string &LocationConfig::getProgramName(void) const {
+  return this->program_name_;
+}
+
 const std::string &LocationConfig::getUri(void) const {
   return this->uri_;
 }
@@ -121,6 +125,7 @@ bool LocationConfig::checkCgiExtension(const std::string &request_uri) const {
 }
 
 void LocationConfig::init(ServerConfig *server_config) {
+  this->program_name_ = server_config->getProgramName();
   this->root_ = server_config->getRoot();
   this->index_ = server_config->getIndex();
   this->autoindex_ = server_config->getAutoindex();
@@ -342,6 +347,9 @@ int LocationConfig::getDirectiveValueCnt(std::vector<std::string>::iterator it, 
 void LocationConfig::print_status_for_debug(std::string prefix) {
   std::cout << prefix;
   std::cout << "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ LocationConfig ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~" << std::endl;
+
+  std::cout << prefix;
+  std::cout << "program_name : " << this->program_name_ << std::endl;
 
   std::cout << prefix;
   std::cout << "uri_path : " << this->uri_ << std::endl;

@@ -18,6 +18,7 @@ class LocationConfig {
  private:
   std::string uri_;
 
+  std::string program_name_;
   std::string root_;
   std::vector<std::string> index_;
   bool autoindex_;
@@ -36,6 +37,7 @@ class LocationConfig {
 
   bool checkPrefixMatchUri(std::string request_uri);
 
+  const std::string &getProgramName(void) const;
   const std::string &getUri(void) const;
   const std::string &getRoot(void) const;
   const std::vector<std::string> &getIndex(void) const;

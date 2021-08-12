@@ -17,6 +17,7 @@ class ServerConfig {
  private:
   std::vector<LocationConfig *> location_configs_;
 
+  std::string program_name_;
   std::string root_;
   std::vector<std::string> index_;
   bool autoindex_;
@@ -30,6 +31,7 @@ class ServerConfig {
   ~ServerConfig();
 
   bool isMatchServerName(std::string request_server_name);
+  const std::string &getProgramName(void) const;
   LocationConfig *getLocationConfig(std::string request_uri);
   const std::string &getRoot(void) const;
   const std::vector<std::string> &getIndex(void) const;

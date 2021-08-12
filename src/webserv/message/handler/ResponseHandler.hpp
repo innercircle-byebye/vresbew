@@ -48,11 +48,8 @@ class ResponseHandler {
 
  private:
   void setAutoindexBody(const std::string &uri);
-
-
   void setResponseStatusLine();
   void setResponseHeader();
-
   void setResponseBodyFromFile(const std::string &filepath);
 
   /*--------------------------EXECUTING METHODS--------------------------------*/
@@ -67,7 +64,6 @@ class ResponseHandler {
   // executing methods helper begin
   bool isFileExist(const std::string &path);
   int deletePathRecursive(std::string &path);
-
   int removeFile(std::string file_name);
   int removeDirectory(std::string directory_name);
   // executing methods helper end

@@ -30,23 +30,23 @@ void RequestHandler::checkMsgForStartLine(Connection *c) {
 
   if (c->interrupted == true) {
     c->setRecvPhase(MESSAGE_BODY_COMPLETE);
-  } else if ((pos = request_->getMsg().find("\r\n")) != std::string::npos)
+  } else if ((pos = request_->getMsg().find(CRLF)) != std::string::npos)
     c->setRecvPhase(MESSAGE_START_LINE_COMPLETE);
 }
 
 void RequestHandler::checkMsgForHeader(Connection *c) {
   size_t pos;
 
-  std::string temp_rn_ctrlc = "\r\n";
+  std::string temp_rn_ctrlc = CRLF;
   temp_rn_ctrlc += ctrl_c[0];
-  if ((pos = request_->getMsg().find("\r\n\r\n")) != std::string::npos)
+  if ((pos = request_->getMsg().find(CRLFCRLF)) != std::string::npos)
     c->setRecvPhase(MESSAGE_HEADER_COMPLETE);
 }
 
 /* PARSE FUNCTIONS */
 void RequestHandler::parseStartLine(Connection *c) {
   // schema://host:port/uri?query
-  size_t pos = request_->getMsg().find("\r\n");
+  size_t pos = request_->getMsg().find(CRLF);
   std::string const start_line = request_->getMsg().substr(0, pos);
   request_->getMsg().erase(0, pos + 2);
   std::vector<std::string> start_line_split = RequestHandler::splitByDelimiter(start_line, SPACE);
@@ -195,11 +195,11 @@ void RequestHandler::parseHeaderLines(Connection *c) {
     c->setRecvPhase(MESSAGE_BODY_COMPLETE);
     return;
   }
-  size_t pos = request_->getMsg().find("\r\n\r\n");
+  size_t pos = request_->getMsg().find(CRLFCRLF);
   std::string header_lines = request_->getMsg().substr(0, pos + 2);
   request_->getMsg().erase(0, pos + 4);
 
-  while ((pos = header_lines.find("\r\n")) != std::string::npos) {
+  while ((pos = header_lines.find(CRLF)) != std::string::npos) {
     std::string one_header_line = header_lines.substr(0, pos);
     if ((c->status_code_ = this->parseHeaderLine(one_header_line)) > 0) {
       c->setRecvPhase(MESSAGE_BODY_COMPLETE);
@@ -319,9 +319,9 @@ void RequestHandler::applyReturnDirectiveStatusCode(Connection *c, LocationConfi
 void RequestHandler::handleChunked(Connection *c) {
   size_t pos;
 
-  while ((pos = request_->getMsg().find("\r\n")) != std::string::npos) {
+  while ((pos = request_->getMsg().find(CRLF)) != std::string::npos) {
     if (c->chunked_checker_ == STR_SIZE) {
-      if ((pos = request_->getMsg().find("\r\n")) != std::string::npos) {
+      if ((pos = request_->getMsg().find(CRLF)) != std::string::npos) {
         if (c->client_max_body_size < c->getBodyBuf().length()) {
           c->getBodyBuf().clear();
           c->status_code_ = 413;
@@ -357,7 +357,7 @@ void RequestHandler::handleChunked(Connection *c) {
       }
     }
     if (c->chunked_checker_ == STR) {
-      if (request_->getMsg().size() >= (c->chunked_str_size_ + 2) && !request_->getMsg().substr(c->chunked_str_size_, 2).compare("\r\n")) {
+      if (request_->getMsg().size() >= (c->chunked_str_size_ + 2) && !request_->getMsg().substr(c->chunked_str_size_, 2).compare(CRLF)) {
         c->appendBodyBuf((char *)request_->getMsg().c_str(), c->chunked_str_size_);
         if (c->getBodyBuf().size() == 1000000)
           std::cout << "all in=============================>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> " << c->chunked_str_size_ << std::endl;
@@ -376,7 +376,7 @@ void RequestHandler::handleChunked(Connection *c) {
       }
     }
     if (c->chunked_checker_ == END) {
-      pos = request_->getMsg().find("\r\n");
+      pos = request_->getMsg().find(CRLF);
       if (pos != std::string::npos)
         std::cout << "pos: " << pos << std::endl;
       if (pos == 0) {

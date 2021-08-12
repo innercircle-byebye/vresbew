@@ -133,7 +133,8 @@ char **CgiHandler::setEnviron(Connection *c) {
     env_set["REQUEST_URI"] = c->getRequest().getUri();
     env_set["HTTP_HOST"] = c->getRequest().getHeaderValue("Host");
     env_set["SERVER_PORT"] = SSTR(ntohs(c->getSockaddrToConnect().sin_port));
-    env_set["SERVER_SOFTWARE"] = "versbew";
+    // env_set["SERVER_SOFTWARE"] = location->getProgramName();
+    env_set["SERVER_SOFTWARE"] = "vresbew";
     env_set["SCRIPT_NAME"] = location->getCgiPath();
   }
   char **return_value;

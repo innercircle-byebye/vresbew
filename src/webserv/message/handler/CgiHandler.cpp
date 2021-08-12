@@ -11,8 +11,24 @@ void CgiHandler::initCgiChild(Connection *c) {
   // TODO: 실패 예외처리
   pipe(c->readpipe);
 
-  if ((c->cgi_pid = fork()) == -1)
-  {
+  char **cgi_command;
+  char **env_variable;
+
+  if ((env_variable = setEnviron(c)) == NULL) {
+    Logger::logError(LOG_ALERT, "cgi process environment varible creating failed (malloc failed)");
+    c->req_status_code_ = 500;
+    c->setRecvPhase(MESSAGE_BODY_COMPLETE);
+    return;
+  }
+
+  if ((cgi_command = setCommand(location->getCgiPath(), c->getRequest().getFilePath())) == NULL) {
+    Logger::logError(LOG_ALERT, "cgi process command creating failed (malloc failed)");
+    c->req_status_code_ = 500;
+    c->setRecvPhase(MESSAGE_BODY_COMPLETE);
+    return;
+  }
+
+  if ((c->cgi_pid = fork()) == -1) {
     close(c->readpipe[0]);
     close(c->readpipe[1]);
     close(c->writepipe[0]);
@@ -20,7 +36,7 @@ void CgiHandler::initCgiChild(Connection *c) {
     Logger::logError(LOG_ALERT, "cgi process fork failed");
     c->req_status_code_ = 500;
     c->setRecvPhase(MESSAGE_BODY_COMPLETE);
-    return ;
+    return;
   }
 
   if (c->cgi_pid == 0) {
@@ -31,9 +47,7 @@ void CgiHandler::initCgiChild(Connection *c) {
     dup2(c->readpipe[1], STDOUT_FILENO);
     close(c->readpipe[1]);
 
-    execve(location->getCgiPath().c_str(),
-           setCommand(location->getCgiPath(), c->getRequest().getFilePath()),
-           setEnviron(c));
+    execve(location->getCgiPath().c_str(), cgi_command, env_variable);
   }
   close(c->writepipe[0]);
   close(c->readpipe[1]);
@@ -46,7 +60,6 @@ void CgiHandler::initCgiChild(Connection *c) {
   } else {
     size_t size = c->getBodyBuf().size();
     for (size_t i = 0; i < size; i += BUF_SIZE - 1) {
-      // std::cout << "i :" << i << std::endl;
       size_t j = std::min(size, BUF_SIZE + i - 1);
       write(c->writepipe[1], c->getBodyBuf().substr(i, j).c_str(), j - i);
       if (i == 0) {
@@ -59,7 +72,7 @@ void CgiHandler::initCgiChild(Connection *c) {
       memset(c->buffer_, 0, BUF_SIZE);
     }
     c->setStringBufferContentLength(-1);
-    c->getBodyBuf().clear();  // 뒤에서 또 쓰일걸 대비해 혹시몰라 초기화.. #2
+    c->getBodyBuf().clear();
     close(c->writepipe[1]);
   }
   c->setRecvPhase(MESSAGE_CGI_COMPLETE);

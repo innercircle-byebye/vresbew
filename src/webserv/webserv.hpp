@@ -22,7 +22,7 @@ typedef int socket_t;
 
 #define DEFAULT_CONNECTIONS 512
 #define LISTEN_BACKLOG 511
-#define BUF_SIZE 30000
+#define BUF_SIZE 32769
 #define nonblocking(s) fcntl(s, F_SETFL, O_NONBLOCK)
 #define closeSocket close
 

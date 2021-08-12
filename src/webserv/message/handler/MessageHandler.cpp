@@ -32,6 +32,14 @@ void MessageHandler::checkRequestHeader(Connection *c) {
   //client_max_body_size 셋업
   c->client_max_body_size = locationconfig_test->getClientMaxBodySize();
 
+  // std::cout << "uri: " << c->getRequest().getUri() << std::endl;
+  // std::cout << "schema: " << c->getRequest().getSchema() << std::endl;
+  // std::cout << "host: " << c->getRequest().getHost() << std::endl;
+  // std::cout << "port: " << c->getRequest().getPort() << std::endl;
+  // std::cout << "path: " << c->getRequest().getPath() << std::endl;
+  // std::cout << "filepath: " << c->getRequest().getFilePath() << std::endl;
+  // std::cout << "query_string: |" << c->getRequest().getQueryString() << "|" << std::endl;
+
   if (!c->getRequest().getHeaderValue("Content-Length").empty()) {
     c->setStringBufferContentLength(stoi(c->getRequest().getHeaderValue("Content-Length")));
     if (!c->getRequest().getMsg().empty())
@@ -140,12 +148,6 @@ void MessageHandler::executeServerSide(Connection *c) {
   }
 
   response_handler_.executeMethod(c->getRequest());
-
-  // if (c->getRequest().getMethod() == "PUT" &&
-  //     (c->getResponse().getStatusCode() == 201 || (c->getResponse().getStatusCode() == 204))) {
-  //   executePutMethod(c->getRequest().getFilePath(), c->getBodyBuf());
-  //   c->getBodyBuf().clear();
-  // }
 }
 
 void MessageHandler::setResponseMessage(Connection *c) {
@@ -154,7 +156,7 @@ void MessageHandler::setResponseMessage(Connection *c) {
         c->getResponse().getStatusCode() == 204) &&
       c->getBodyBuf().empty()) {
     ServerConfig *server_config = c->getHttpConfig()->getServerConfig(c->getSockaddrToConnect().sin_port, c->getSockaddrToConnect().sin_addr.s_addr, c->getRequest().getHeaderValue("Host"));
-    LocationConfig *location = server_config->getLocationConfig(c->getRequest().getUri());
+    LocationConfig *location = server_config->getLocationConfig(c->getRequest().getPath());
 
     response_handler_.setErrorBody(location->getErrorPage());
   }

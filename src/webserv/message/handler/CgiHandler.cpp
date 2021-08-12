@@ -4,7 +4,7 @@ namespace ft {
 
 void CgiHandler::initCgiChild(Connection *c) {
   ServerConfig *server_config = c->getHttpConfig()->getServerConfig(c->getSockaddrToConnect().sin_port, c->getSockaddrToConnect().sin_addr.s_addr, c->getRequest().getHeaderValue("Host"));
-  LocationConfig *location = server_config->getLocationConfig(c->getRequest().getUri());
+  LocationConfig *location = server_config->getLocationConfig(c->getRequest().getPath());
   std::string cgi_output_temp;
   // TODO: 실패 예외처리
   pipe(c->writepipe);
@@ -108,7 +108,7 @@ void CgiHandler::handleCgiHeader(Connection *c) {
 
 char **CgiHandler::setEnviron(Connection *c) {
   ServerConfig *server_config = c->getHttpConfig()->getServerConfig(c->getSockaddrToConnect().sin_port, c->getSockaddrToConnect().sin_addr.s_addr, c->getRequest().getHeaderValue("Host"));
-  LocationConfig *location = server_config->getLocationConfig(c->getRequest().getUri());
+  LocationConfig *location = server_config->getLocationConfig(c->getRequest().getPath());
   std::map<std::string, std::string> env_set;
   {
     if (!c->getRequest().getHeaderValue("Content-Length").empty()) {

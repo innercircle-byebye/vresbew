@@ -116,7 +116,7 @@ void MessageHandler::checkCgiProcess(Connection *c) {
   LocationConfig *locationconfig_test = serverconfig_test->getLocationConfig(c->getRequest().getPath());
 
   if (!locationconfig_test->getCgiPath().empty() &&
-      locationconfig_test->checkCgiExtension(c->getRequest().getPath())) {
+      locationconfig_test->checkCgiExtension(c->getRequest().getFilePath())) {
     CgiHandler::initCgiChild(c);
   }
 }

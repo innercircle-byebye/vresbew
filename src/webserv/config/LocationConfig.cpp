@@ -349,6 +349,9 @@ void LocationConfig::print_status_for_debug(std::string prefix) {
   std::cout << "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ LocationConfig ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~" << std::endl;
 
   std::cout << prefix;
+  std::cout << "program_name : " << this->program_name_ << std::endl;
+
+  std::cout << prefix;
   std::cout << "uri_path : " << this->uri_ << std::endl;
 
   std::cout << prefix;

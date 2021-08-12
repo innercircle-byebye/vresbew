@@ -349,6 +349,9 @@ void ServerConfig::print_status_for_debug(std::string prefix) {
   std::cout << "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ ServerConfig ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~" << std::endl;
 
   std::cout << prefix;
+  std::cout << "program_name : " << this->program_name_ << std::endl;
+
+  std::cout << prefix;
   std::cout << "listen : ";
   for (std::vector<std::string>::iterator i = this->listen_.begin(); i != this->listen_.end(); i++) {
     std::cout << *i << "  ";

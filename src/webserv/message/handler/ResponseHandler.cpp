@@ -77,11 +77,11 @@ void ResponseHandler::setResponseHeader() {
       response_->getHeaderMsg() += it->first;
       response_->getHeaderMsg() += ": ";
       response_->getHeaderMsg() += it->second;
-      response_->getHeaderMsg() += "\r\n";
+      response_->getHeaderMsg() += CRLF;
       // std::cout << "[" << it->first << "] [" << it->second << "]" << std::endl;
     }
   }
-  response_->getHeaderMsg() += "\r\n";
+  response_->getHeaderMsg() += CRLF;
 }
 
 void ResponseHandler::setStatusLineWithCode(int status_code) {
@@ -129,7 +129,7 @@ void ResponseHandler::setAutoindexBody(const std::string &uri) {
     ss << "<a href=\"" + pathname + "\">" + pathname + "</a>";
     ss << std::setw(70 - pathname.size()) << Time::getFileModifiedTime(this->stat_buffer_.st_mtime);
     std::string filesize = (S_ISDIR(this->stat_buffer_.st_mode) ? "-" : SSTR(this->stat_buffer_.st_size));
-    ss << std::right << std::setw(20) << filesize << "\r\n";
+    ss << std::right << std::setw(20) << filesize << CRLF;
   }
   ss << "</pre><hr></body>\r\n";
   ss << "</html>\r\n";

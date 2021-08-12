@@ -104,7 +104,6 @@ void Connection::clearAtChunked() {
   client_max_body_size = -1;
 }
 
-
 void Connection::appendBodyBuf(char *buffer) {
   body_buf_.append(buffer);
 }
@@ -115,7 +114,7 @@ void Connection::appendBodyBuf(char *buffer, size_t size) {
 
 // ref: Kqueue.cpp:68
 // connection 내에서 클라이언트가 보내오는 메세지를 처리하기 위해 사용되는 함수
-void  Connection::process_read_event(Kqueue *kq, SocketManager *sm) {
+void Connection::process_read_event(Kqueue *kq, SocketManager *sm) {
   if (this->listen_) {
     Connection *conn = this->eventAccept(sm);  // throw
     kq->kqueueSetEvent(conn, EVFILT_READ, EV_ADD);
@@ -124,7 +123,7 @@ void  Connection::process_read_event(Kqueue *kq, SocketManager *sm) {
     ssize_t recv_len = recv(this->fd_, this->buffer_, BUF_SIZE - 1, 0);
     if (strchr(this->buffer_, ctrl_c[0])) {
       sm->closeConnection(this);
-      return ;
+      return;
     }
     // if / else if 로 분기가 나뉘저 지지 않은 이유는
     // 클라이언트로부터 버퍼 메세지를 받아 올때 얼마만큼의 메세지가 한번에 들어 올지 알 수 없기 때문에
@@ -179,19 +178,33 @@ void  Connection::process_read_event(Kqueue *kq, SocketManager *sm) {
 // connection 내에서 클라이언트가 보내오는 메세지를 처리하기 위해 사용되는 함수
 void Connection::process_write_event(Kqueue *kq, SocketManager *sm) {
   if (this->recv_phase_ == MESSAGE_CGI_COMPLETE) {
+    // CGI 응답의 경우 getHeaderMessage에 응답 메세지 (헤더 + body) 모두 함께 들어 오게되는데
+    // 용량이 큰 응답의 경우 클라이언트로 응답을 '쪼개어' 보내주기 위해 필요한 반복문
+    // (처음에 0으로 설정된) send_len이 보내야하는 메세지의 길이까지 도달 할 때 까지
+    // BUF_SIZE 만큼 메세지를 보내주게 된다.
     if (this->send_len < this->response_.getHeaderMsg().size()) {
       size_t j = std::min(this->response_.getHeaderMsg().size(), this->send_len + BUF_SIZE - 1);
-      ssize_t real_send_len = send(this->fd_, &(this->response_.getHeaderMsg()[this->send_len]), j - this->send_len, 0);  // -1인 경우 처리?
+      ssize_t real_send_len = send(this->fd_, &(this->response_.getHeaderMsg()[this->send_len]), j - this->send_len, 0);
       this->send_len += real_send_len;
     }
+    // 해당 블럭 공통
+    // 현재 생성된 메세지 (MESSAGE_BODY_COMPLETE 혹은 MESSAGE_CGI_COMPLETE) 다 거쳐온 메세지의
+    // 속성 중 '요청 메세지' 요청의 HTTP버전 요청 값이 HTTP/1.0 이거나
+    // '응답 메세지'의 헤더 중 'connection' 헤더의 값이 'close'로 설정된 경우
+    // (보통 status_code를 따라 설정된다)
+    // 소켓메니저로부터 현재 connection 객체의 연결을 끊도록 한다.
     if (!this->response_.getHeaderValue("Connection").compare("close") ||
         !this->request_.getHttpVersion().compare("HTTP/1.0")) {
       sm->closeConnection(this);
-      return ;
+      return;
     }
     if (this->send_len >= this->response_.getHeaderMsg().size()) {
+      // 모든 메세지를 보냈을 때
+      // 현재 EVFILT_WRITE로 등록된 kevent를 삭제 하고
+      // EVFILT_READ로 이벤트를 새로 등록
       kq->kqueueSetEvent(this, EVFILT_WRITE, EV_DELETE);
       kq->kqueueSetEvent(this, EVFILT_READ, EV_ADD);
+      // connection 정보를 모두 초기화
       this->clear();
     }
   } else if (this->recv_phase_ == MESSAGE_BODY_COMPLETE) {
@@ -199,12 +212,11 @@ void Connection::process_write_event(Kqueue *kq, SocketManager *sm) {
     if (!this->response_.getHeaderValue("Connection").compare("close") ||
         !this->request_.getHttpVersion().compare("HTTP/1.0")) {
       sm->closeConnection(this);
-      return ;
+      return;
     }
     if (is_chunked_)
       this->recv_phase_ = MESSAGE_CHUNKED;
-    else
-    {
+    else {
       this->recv_phase_ = MESSAGE_START_LINE_INCOMPLETE;
       this->req_status_code_ = NOT_SET;
     }
@@ -214,7 +226,6 @@ void Connection::process_write_event(Kqueue *kq, SocketManager *sm) {
   }
   memset(this->buffer_, 0, BUF_SIZE);
 }
-
 
 /* SETTER */
 void Connection::setListen(bool listen) { listen_ = listen; }
@@ -238,7 +249,9 @@ socket_t Connection::getFd() const { return fd_; }
 Request &Connection::getRequest() { return request_; }
 Response &Connection::getResponse() { return response_; }
 HttpConfig *Connection::getHttpConfig() { return httpconfig_; }
-struct sockaddr_in &Connection::getSockaddrToConnect() { return sockaddr_to_connect_; }
+struct sockaddr_in &Connection::getSockaddrToConnect() {
+  return sockaddr_to_connect_;
+}
 int Connection::getRecvPhase() const { return recv_phase_; }
 int Connection::getStringBufferContentLength() const { return string_buffer_content_length_; }
 std::string &Connection::getBodyBuf() { return (body_buf_); }

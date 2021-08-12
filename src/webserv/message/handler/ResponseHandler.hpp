@@ -45,15 +45,11 @@ class ResponseHandler {
   void setDefaultErrorBody();
 
   std::string getAccessPath(const std::string &uri);
-  std::string getAccessPath(const std::string &uri, LocationConfig *&location);
 
  private:
   void setAutoindexBody(const std::string &uri);
-
-
   void setResponseStatusLine();
   void setResponseHeader();
-
   void setResponseBodyFromFile(const std::string &filepath);
 
   /*--------------------------EXECUTING METHODS--------------------------------*/
@@ -61,18 +57,13 @@ class ResponseHandler {
   // blocks for setResponseFields begin
   void processGetAndHeaderMethod(Request &request, LocationConfig *&location);
   void processPutMethod(Request &request);
-  void processDeleteMethod(const std::string &uri, LocationConfig *&location);
+  void processDeleteMethod(const std::string &uri);
   void processPostMethod(Request &request, LocationConfig *&location);
   // blocks for setResponseFields end
 
   // executing methods helper begin
-  bool isFileExist(const std::string &path, LocationConfig *&location);
   bool isFileExist(const std::string &path);
-  bool isPathAccessable(std::string &uri, LocationConfig *&location);
   int deletePathRecursive(std::string &path);
-
-  void findIndexForGetWhenOnlySlash(Request &request, LocationConfig *&location);
-
   int removeFile(std::string file_name);
   int removeDirectory(std::string directory_name);
   // executing methods helper end

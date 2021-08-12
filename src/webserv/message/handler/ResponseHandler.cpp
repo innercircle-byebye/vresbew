@@ -28,13 +28,13 @@ void ResponseHandler::executeMethod(Request &request) {
   else if (request.getMethod() == "POST")
     processPostMethod(request, location);
   else if (request.getMethod() == "DELETE")
-    processDeleteMethod(request.getPath(), location);
+    processDeleteMethod(request.getFilePath());
 }
 
 void ResponseHandler::setDefaultHeader(Connection *c, Request &request) {
   if (response_->getHeaderValue("Content-Length").empty())
     response_->setHeader("Content-Length",
-                         std::to_string(this->body_buf_->size()));
+                         SSTR(this->body_buf_->size()));
 
   response_->setHeader("Date", Time::getCurrentDate());
 
@@ -145,18 +145,14 @@ void ResponseHandler::setAutoindexBody(const std::string &uri) {
 // ***********blocks for setResponseFields begin*************** //
 
 void ResponseHandler::processGetAndHeaderMethod(Request &request, LocationConfig *&location) {
-
   if (location->getAutoindex() && S_ISDIR(this->stat_buffer_.st_mode)) {
     setStatusLineWithCode(200);
     setAutoindexBody(request.getPath());
     return;
   }
-
-    setStatusLineWithCode(200);
-    // body가 만들져 있지 않는 경우의 조건 추가
-    if (body_buf_->empty())
-      setResponseBodyFromFile(request.getFilePath());
-  // }
+  setStatusLineWithCode(200);
+  if (body_buf_->empty())
+    setResponseBodyFromFile(request.getFilePath());
 }
 
 void ResponseHandler::processPutMethod(Request &request) {
@@ -165,7 +161,6 @@ void ResponseHandler::processPutMethod(Request &request) {
     return;
   }
   if (!isFileExist(request.getFilePath())) {
-
     setStatusLineWithCode(201);
   } else {
     setStatusLineWithCode(204);
@@ -184,11 +179,9 @@ void ResponseHandler::processPostMethod(Request &request, LocationConfig *&locat
   setStatusLineWithCode(200);
 }
 
-void ResponseHandler::processDeleteMethod(const std::string &uri, LocationConfig *&location) {
-  (void)location;
-  if (!uri.compare("/")) {  // URI 에 "/" 만 있는 경우
-    std::string url = getAccessPath(uri);
-    if (stat(url.c_str(), &this->stat_buffer_) < 0) {
+void ResponseHandler::processDeleteMethod(const std::string &filepath) {
+  if (!filepath.compare("/")) {  // URI 에 "/" 만 있는 경우
+    if (stat(filepath.c_str(), &this->stat_buffer_) < 0) {
       setStatusLineWithCode(405);
       return;
     } else {
@@ -196,14 +189,14 @@ void ResponseHandler::processDeleteMethod(const std::string &uri, LocationConfig
         DIR *dir_ptr;
         struct dirent *item;
 
-        if (!(dir_ptr = opendir(url.c_str()))) {
+        if (!(dir_ptr = opendir(filepath.c_str()))) {
           setStatusLineWithCode(403);  // Not Allowed
           return;
         }
         while ((item = readdir(dir_ptr))) {
           if (strcmp(item->d_name, ".") == 0 || strcmp(item->d_name, "..") == 0)
             continue;
-          std::string new_path(url);
+          std::string new_path(filepath);
           new_path += item->d_name;
           if (deletePathRecursive(new_path) == -1) {
             setStatusLineWithCode(403);
@@ -212,7 +205,7 @@ void ResponseHandler::processDeleteMethod(const std::string &uri, LocationConfig
         }
         setStatusLineWithCode(403);
       } else {
-        if (remove(url.c_str()) != 0) {
+        if (remove(filepath.c_str()) != 0) {
           setStatusLineWithCode(403);
           return;
         }
@@ -220,15 +213,14 @@ void ResponseHandler::processDeleteMethod(const std::string &uri, LocationConfig
       }
     }
   } else {  // "/" 가 아닌 경우
-    std::string url = getAccessPath(uri);
-    if (stat(url.c_str(), &this->stat_buffer_) < 0) {
+    if (stat(filepath.c_str(), &this->stat_buffer_) < 0) {
       setStatusLineWithCode(404);
     } else {
       // file or directory
       if (S_ISDIR(this->stat_buffer_.st_mode)) {
         setStatusLineWithCode(409);
       } else {  // is not directory == file ?!
-        if (remove(url.c_str()) != 0) {
+        if (remove(filepath.c_str()) != 0) {
           setStatusLineWithCode(403);
           return;
         }
@@ -247,32 +239,11 @@ std::string ResponseHandler::getAccessPath(const std::string &uri) {
   return (path);
 }
 
-std::string ResponseHandler::getAccessPath(const std::string &uri, LocationConfig *&location) {
-  std::string path;
-  path = location->getRoot() + uri;
-  return (path);
-}
-
 bool ResponseHandler::isFileExist(const std::string &path) {
   if (stat(path.c_str(), &this->stat_buffer_) < 0) {
     return (false);
   }
   return (true);
-}
-bool ResponseHandler::isFileExist(const std::string &path, LocationConfig *&location) {
-  if (stat(getAccessPath(path, location).c_str(), &this->stat_buffer_) < 0) {
-    return (false);
-  }
-  return (true);
-}
-
-bool ResponseHandler::isPathAccessable(std::string &uri, LocationConfig *&location) {
-  if (stat(getAccessPath(uri, location).c_str(), &this->stat_buffer_) < 0) {
-    return (false);
-  }
-  if (stat_buffer_.st_mode & S_IRWXU)
-    return (true);
-  return (false);
 }
 
 // 함수가 불리는 시점에서는 이미 파일은 존재함
@@ -317,19 +288,6 @@ int ResponseHandler::deletePathRecursive(std::string &path) {
     return (removeFile(path));
   }
   return (0);
-}
-
-void ResponseHandler::findIndexForGetWhenOnlySlash(Request &request, LocationConfig *&location) {
-  std::vector<std::string>::const_iterator it_index;
-  std::string temp;
-  for (it_index = location->getIndex().begin(); it_index != location->getIndex().end(); it_index++) {
-    temp = request.getFilePath() + *it_index;
-    if (isFileExist(temp)) {
-      request.setFilePath(request.getFilePath() + *it_index);
-      break;
-    }
-    temp.clear();
-  }
 }
 
 int ResponseHandler::removeFile(std::string file_name) {

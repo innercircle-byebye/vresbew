@@ -21,11 +21,11 @@ class LocationConfig;
 
 class HttpConfig {
  private:
-  std::string program_name_;
   std::multimap<in_port_t, in_addr_t> must_listens_;
   std::map<in_port_t, std::map<in_addr_t, std::vector<ServerConfig *> > > server_configs_;
   std::vector<ServerConfig *> server_config_list_;
 
+  std::string program_name_;
   std::string root_;
   std::vector<std::string> index_;
   bool autoindex_;
@@ -33,7 +33,7 @@ class HttpConfig {
   std::string error_page_;
 
  public:
-  HttpConfig(std::string program_name, std::string config_file_path);
+  HttpConfig(std::string config_file_path);
   ~HttpConfig();
 
   const std::string &getProgramName(void) const;
@@ -48,8 +48,8 @@ class HttpConfig {
 
  private:
   void init(void);
-  void setProgramName(const std::string &program_name);
   std::vector<std::string> tokenizeConfigFile(const std::string &config_file_path);
+  void programNameProcess(std::vector<std::string>::iterator &it, const std::vector<std::string>::iterator &end_it, bool &check_program_name_setting);
   void rootProcess(std::vector<std::string>::iterator &it, const std::vector<std::string>::iterator &end_it, bool &check_root_setting);
   void indexProcess(std::vector<std::string>::iterator &it, const std::vector<std::string>::iterator &end_it, bool &check_index_setting);
   void autoindexProcess(std::vector<std::string>::iterator &it, const std::vector<std::string>::iterator &end_it, bool &check_autoindex_setting);

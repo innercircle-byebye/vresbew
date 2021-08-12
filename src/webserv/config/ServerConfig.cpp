@@ -57,6 +57,10 @@ bool ServerConfig::isMatchServerName(std::string request_server_name) {
   return false;
 }
 
+const std::string &ServerConfig::getProgramName(void) const {
+  return this->program_name_;
+}
+
 LocationConfig *ServerConfig::getLocationConfig(std::string request_uri) {
   for (std::vector<LocationConfig *>::iterator it = this->location_configs_.begin(); it != this->location_configs_.end(); it++) {
     if ((*it)->checkPrefixMatchUri(request_uri)) {
@@ -95,6 +99,7 @@ const std::string &ServerConfig::getErrorPage(void) const {
 }
 
 void ServerConfig::init(HttpConfig *http_config) {
+  this->program_name_ = http_config->getProgramName();
   this->root_ = http_config->getRoot();
   this->index_ = http_config->getIndex();
   this->autoindex_ = http_config->getAutoindex();

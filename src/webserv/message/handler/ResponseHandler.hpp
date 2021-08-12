@@ -45,7 +45,6 @@ class ResponseHandler {
   void setDefaultErrorBody();
 
   std::string getAccessPath(const std::string &uri);
-  std::string getAccessPath(const std::string &uri, LocationConfig *&location);
 
  private:
   void setAutoindexBody(const std::string &uri);
@@ -66,12 +65,8 @@ class ResponseHandler {
   // blocks for setResponseFields end
 
   // executing methods helper begin
-  bool isFileExist(const std::string &path, LocationConfig *&location);
   bool isFileExist(const std::string &path);
-  bool isPathAccessable(std::string &uri, LocationConfig *&location);
   int deletePathRecursive(std::string &path);
-
-  void findIndexForGetWhenOnlySlash(Request &request, LocationConfig *&location);
 
   int removeFile(std::string file_name);
   int removeDirectory(std::string directory_name);

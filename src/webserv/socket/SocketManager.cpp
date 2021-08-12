@@ -17,7 +17,6 @@ SocketManager::SocketManager(HttpConfig *httpconfig) {
     c[i].setNext(next);
     c[i].setFd(-1);
     c[i].setHttpConfig(httpconfig);
-    // c[i].passHttpConfigToMessageHandler(httpconfig);
     next = &c[i];
   }
   free_connections_ = next;

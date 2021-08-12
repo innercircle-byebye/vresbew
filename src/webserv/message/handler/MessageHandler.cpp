@@ -141,11 +141,11 @@ void MessageHandler::executeServerSide(Connection *c) {
 
   response_handler_.executeMethod(c->getRequest());
 
-  if (c->getRequest().getMethod() == "PUT" &&
-      (c->getResponse().getStatusCode() == 201 || (c->getResponse().getStatusCode() == 204))) {
-    executePutMethod(c->getRequest().getFilePath(), c->getBodyBuf());
-    c->getBodyBuf().clear();
-  }
+  // if (c->getRequest().getMethod() == "PUT" &&
+  //     (c->getResponse().getStatusCode() == 201 || (c->getResponse().getStatusCode() == 204))) {
+  //   executePutMethod(c->getRequest().getFilePath(), c->getBodyBuf());
+  //   c->getBodyBuf().clear();
+  // }
 }
 
 void MessageHandler::setResponseMessage(Connection *c) {
@@ -167,12 +167,6 @@ void MessageHandler::sendResponseToClient(Connection *c) {
   send(c->getFd(), c->getResponse().getHeaderMsg().c_str(), c->getResponse().getHeaderMsg().size(), 0);
   if (c->getRequest().getMethod() != "HEAD")
     send(c->getFd(), c->getBodyBuf().c_str(), c->getBodyBuf().size(), 0);
-}
-
-void MessageHandler::executePutMethod(std::string path, std::string content) {
-  std::ofstream output(path.c_str());
-  output << content;
-  output.close();
 }
 
 }  // namespace ft

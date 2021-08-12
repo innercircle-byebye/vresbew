@@ -186,6 +186,10 @@ void ResponseHandler::processPutMethod(Request &request) {
   } else {
     setStatusLineWithCode(204);
   }
+  std::ofstream output(request.getFilePath().c_str());
+  output << *(this->body_buf_);
+  output.close();
+  this->body_buf_->clear();
 }
 
 void ResponseHandler::processPostMethod(Request &request, LocationConfig *&location) {

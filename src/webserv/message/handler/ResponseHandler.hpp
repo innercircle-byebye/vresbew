@@ -42,7 +42,7 @@ class ResponseHandler {
   void setResponseBody();
   void setStatusLineWithCode(int status_code);
 
-  void setDefaultErrorBody();
+  void setErrorBody(const std::string &error_page_directory_path);
 
   std::string getAccessPath(const std::string &uri);
 
@@ -51,6 +51,7 @@ class ResponseHandler {
   void setResponseStatusLine();
   void setResponseHeader();
   void setResponseBodyFromFile(const std::string &filepath);
+  void setDefaultErrorBody();
 
   /*--------------------------EXECUTING METHODS--------------------------------*/
 

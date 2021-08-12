@@ -75,7 +75,7 @@ void MessageHandler::checkRequestHeader(Connection *c) {
   if (request_handler_.isAllowedMethod(locationconfig_test) == false) {
     c->status_code_ = 405;
     c->setRecvPhase(MESSAGE_BODY_COMPLETE);
-    return ;
+    return;
   }
 
   if (c->getRequest().getMethod().compare("GET") && c->getRequest().getMethod().compare("HEAD") &&
@@ -115,7 +115,6 @@ void MessageHandler::handleChunkedBody(Connection *c) {
 }
 
 void MessageHandler::handleRequestBody(Connection *c) {
-
   if (c->is_chunked_ == false) {
     if ((size_t)c->getStringBufferContentLength() <= strlen(c->buffer_)) {
       c->appendBodyBuf(c->buffer_, c->getStringBufferContentLength());
@@ -153,8 +152,12 @@ void MessageHandler::setResponseMessage(Connection *c) {
   if (!(c->getResponse().getStatusCode() == 200 ||
         c->getResponse().getStatusCode() == 201 ||
         c->getResponse().getStatusCode() == 204) &&
-      c->getBodyBuf().empty())
-    response_handler_.setDefaultErrorBody();
+      c->getBodyBuf().empty()) {
+    ServerConfig *server_config = c->getHttpConfig()->getServerConfig(c->getSockaddrToConnect().sin_port, c->getSockaddrToConnect().sin_addr.s_addr, c->getRequest().getHeaderValue("Host"));
+    LocationConfig *location = server_config->getLocationConfig(c->getRequest().getUri());
+
+    response_handler_.setErrorBody(location->getErrorPage());
+  }
 
   response_handler_.setDefaultHeader(c, c->getRequest());
   response_handler_.makeResponseHeader();

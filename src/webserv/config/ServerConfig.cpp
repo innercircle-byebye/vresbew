@@ -43,7 +43,9 @@ ServerConfig::ServerConfig(std::vector<std::string> tokens, HttpConfig *http_con
 }
 
 ServerConfig::~ServerConfig(void) {
-  std::cout << "~ServerConfig() 호출~~~" << std::endl;
+  for (std::vector<LocationConfig *>::iterator it = this->location_configs_.begin(); it != this->location_configs_.end(); it++) {
+    delete (*it);
+  }
 }
 
 bool ServerConfig::isMatchServerName(std::string request_server_name) {

@@ -53,9 +53,7 @@ LocationConfig::LocationConfig(std::vector<std::string> tokens, ServerConfig *se
   }
 }
 
-LocationConfig::~LocationConfig(void) {
-  std::cout << "~LocationConfig() 호출~~~" << std::endl;
-}
+LocationConfig::~LocationConfig(void) {}
 
 bool LocationConfig::checkPrefixMatchUri(std::string request_uri) {
   if (this->uri_.length() <= request_uri.length()) {
@@ -341,8 +339,7 @@ int LocationConfig::getDirectiveValueCnt(std::vector<std::string>::iterator it, 
 }
 
 // ############## for debug ###################
-void LocationConfig::print_status_for_debug(std::string prefix)
-{
+void LocationConfig::print_status_for_debug(std::string prefix) {
   std::cout << prefix;
   std::cout << "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ LocationConfig ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~" << std::endl;
 
@@ -414,8 +411,7 @@ void LocationConfig::print_status_for_debug(std::string prefix)
   std::cout << "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~" << std::endl;
 }
 
-const std::set<std::string> &LocationConfig::getLimitExcept(void) const
-{
+const std::set<std::string> &LocationConfig::getLimitExcept(void) const {
   return this->limit_except_;
 }
 }  // namespace ft

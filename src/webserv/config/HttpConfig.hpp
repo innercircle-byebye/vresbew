@@ -21,15 +21,15 @@ class LocationConfig;
 
 class HttpConfig {
  private:
-  std::string program_name;
-  std::multimap<in_port_t, in_addr_t> must_listens;
-  std::map<in_port_t, std::map<in_addr_t, std::vector<ServerConfig *> > > server_configs;
+  std::string program_name_;
+  std::multimap<in_port_t, in_addr_t> must_listens_;
+  std::map<in_port_t, std::map<in_addr_t, std::vector<ServerConfig *> > > server_configs_;
 
-  std::string root;
-  std::vector<std::string> index;
-  bool autoindex;
-  unsigned long client_max_body_size;
-  std::string error_page;
+  std::string root_;
+  std::vector<std::string> index_;
+  bool autoindex_;
+  unsigned long client_max_body_size_;
+  std::string error_page_;
 
  public:
   HttpConfig(std::string program_name, std::string config_file_path);

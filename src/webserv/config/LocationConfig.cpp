@@ -2,7 +2,7 @@
 namespace ft {
 
 LocationConfig::LocationConfig(ServerConfig *server_config) {
-  this->uri = "/";
+  this->uri_ = "/";
   init(server_config);
 }
 
@@ -12,7 +12,7 @@ LocationConfig::LocationConfig(std::vector<std::string> tokens, ServerConfig *se
   std::vector<std::string>::iterator it = tokens.begin();
   const std::vector<std::string>::iterator end_it = tokens.end();
   it++;
-  this->uri = *(it);
+  this->uri_ = *(it);
   it += 2;
 
   bool check_root_setting = false;
@@ -58,8 +58,8 @@ LocationConfig::~LocationConfig(void) {
 }
 
 bool LocationConfig::checkPrefixMatchUri(std::string request_uri) {
-  if (this->uri.length() <= request_uri.length()) {
-    if (request_uri.compare(0, this->uri.length(), this->uri) == 0) {
+  if (this->uri_.length() <= request_uri.length()) {
+    if (request_uri.compare(0, this->uri_.length(), this->uri_) == 0) {
       return true;
     }
   }
@@ -67,47 +67,47 @@ bool LocationConfig::checkPrefixMatchUri(std::string request_uri) {
 }
 
 const std::string &LocationConfig::getUri(void) const {
-  return this->uri;
+  return this->uri_;
 }
 
 const std::string &LocationConfig::getRoot(void) const {
-  return this->root;
+  return this->root_;
 }
 
 const std::vector<std::string> &LocationConfig::getIndex(void) const {
-  return this->index;
+  return this->index_;
 }
 
 const bool &LocationConfig::getAutoindex(void) const {
-  return this->autoindex;
+  return this->autoindex_;
 }
 
 const unsigned long &LocationConfig::getClientMaxBodySize(void) const {
-  return this->client_max_body_size;
+  return this->client_max_body_size_;
 }
 
 const std::string &LocationConfig::getErrorPage(void) const {
-  return this->error_page;
+  return this->error_page_;
 }
 
 int LocationConfig::getReturnCode(void) const {
-  return this->return_code;
+  return this->return_code_;
 }
 
 const std::string &LocationConfig::getReturnValue(void) const {
-  return this->return_value;
+  return this->return_value_;
 }
 
 const std::string &LocationConfig::getCgiPath(void) const {
-  return this->cgi_path;
+  return this->cgi_path_;
 }
 
 bool LocationConfig::checkReturn(void) const {
-  return this->return_code != -1;
+  return this->return_code_ != -1;
 }
 
 bool LocationConfig::checkAcceptedMethod(const std::string &request_method) const {
-  if (this->limit_except.size() == 0 || this->limit_except.count(request_method) == 1)
+  if (this->limit_except_.size() == 0 || this->limit_except_.count(request_method) == 1)
     return true;
   // if (!request_method.compare("HEAD") && this->limit_except.count("GET") == 1)
   //   return true;
@@ -115,7 +115,7 @@ bool LocationConfig::checkAcceptedMethod(const std::string &request_method) cons
 }
 
 bool LocationConfig::checkCgiExtension(const std::string &request_uri) const {
-  for (std::vector<std::string>::const_iterator i = this->cgi.begin(); i != this->cgi.end(); i++) {
+  for (std::vector<std::string>::const_iterator i = this->cgi_.begin(); i != this->cgi_.end(); i++) {
     if (request_uri.rfind(*i) + i->length() == request_uri.length())  // request_uri의 suffix가 *i인지 확인
       return true;
   }
@@ -123,14 +123,14 @@ bool LocationConfig::checkCgiExtension(const std::string &request_uri) const {
 }
 
 void LocationConfig::init(ServerConfig *server_config) {
-  this->root = server_config->getRoot();
-  this->index = server_config->getIndex();
-  this->autoindex = server_config->getAutoindex();
-  this->client_max_body_size = server_config->getClientMaxBodySize();
-  this->error_page = server_config->getErrorPage();
-  this->return_code = -1;
-  this->return_value = "";
-  this->cgi_path = "";
+  this->root_ = server_config->getRoot();
+  this->index_ = server_config->getIndex();
+  this->autoindex_ = server_config->getAutoindex();
+  this->client_max_body_size_ = server_config->getClientMaxBodySize();
+  this->error_page_ = server_config->getErrorPage();
+  this->return_code_ = -1;
+  this->return_value_ = "";
+  this->cgi_path_ = "";
 }
 
 void LocationConfig::rootProcess(std::vector<std::string>::iterator &it, const std::vector<std::string>::iterator &end_it, bool &check_root_setting) {
@@ -140,7 +140,7 @@ void LocationConfig::rootProcess(std::vector<std::string>::iterator &it, const s
   if (check_root_setting == true)
     throw std::runtime_error("webserv: [emerg] \"root\" directive is duplicate");
 
-  this->root = *(it + 1);
+  this->root_ = *(it + 1);
   check_root_setting = true;
 
   it += 3;
@@ -152,13 +152,13 @@ void LocationConfig::indexProcess(std::vector<std::string>::iterator &it, const 
     throw std::runtime_error("webserv: [emerg] invalid number of arguments in \"index\" directive");
 
   if (check_index_setting == false) {
-    this->index.clear();
+    this->index_.clear();
     check_index_setting = true;
   }
 
   it++;
   for (; *it != ";"; it++)
-    this->index.push_back(*it);
+    this->index_.push_back(*it);
   it++;
 }
 
@@ -172,9 +172,9 @@ void LocationConfig::autoindexProcess(std::vector<std::string>::iterator &it, co
     throw std::runtime_error("webserv: [emerg] invalid value \"" + *(it + 1) + "\" in \"autoindex\" directive, it must be \"on\" or \"off\"");
 
   if (*(it + 1) == "on")
-    this->autoindex = true;
+    this->autoindex_ = true;
   else
-    this->autoindex = false;
+    this->autoindex_ = false;
 
   check_autoindex_setting = true;
   it += 3;
@@ -210,13 +210,13 @@ void LocationConfig::clientMaxBodySizeProcess(std::vector<std::string>::iterator
       throw std::runtime_error("webserv: [emerg] \"client_max_body_size\" directive invalid value");
   }
 
-  this->client_max_body_size = strtoul(size_str.c_str(), NULL, 0);
-  if (this->client_max_body_size > LONG_MAX) {
+  this->client_max_body_size_ = strtoul(size_str.c_str(), NULL, 0);
+  if (this->client_max_body_size_ > LONG_MAX) {
     throw std::runtime_error("webserv: [emerg] \"client_max_body_size\" directive invalid value");
   }
   for (int i = 0; i < num_of_mutifly_by_2; i++) {
-    this->client_max_body_size *= 2;
-    if (this->client_max_body_size > LONG_MAX) {
+    this->client_max_body_size_ *= 2;
+    if (this->client_max_body_size_ > LONG_MAX) {
       throw std::runtime_error("webserv: [emerg] \"client_max_body_size\" directive invalid value");
     }
   }
@@ -232,7 +232,7 @@ void LocationConfig::errorPageProcess(std::vector<std::string>::iterator &it, co
   if (check_error_page_setting == true)
     throw std::runtime_error("webserv: [emerg] \"error_page\" directive is duplicate");
 
-  this->error_page = *(it + 1);
+  this->error_page_ = *(it + 1);
   check_error_page_setting = true;
   it += 3;
 }
@@ -249,7 +249,7 @@ void LocationConfig::limitExceptProcess(std::vector<std::string>::iterator &it, 
     if (*it != "GET" && *it != "HEAD" && *it != "POST" && *it != "PUT" && *it != "DELETE") {
       throw std::runtime_error("webserv: [emerg] invalid method \"" + (*it) + "\"");
     }
-    this->limit_except.insert(*it);
+    this->limit_except_.insert(*it);
     it++;
   }
 
@@ -271,8 +271,8 @@ void LocationConfig::returnProcess(std::vector<std::string>::iterator &it, const
 
   if (directiveValueCnt == 1) {
     if ((*(it + 1)).find("http://") == 0 || (*(it + 1)).find("https://") == 0) {
-      this->return_code = 302;
-      this->return_value = *(it + 1);
+      this->return_code_ = 302;
+      this->return_value_ = *(it + 1);
     } else {
       std::string &code = *(it + 1);
       if (code.size() > 3)
@@ -281,7 +281,7 @@ void LocationConfig::returnProcess(std::vector<std::string>::iterator &it, const
         if (!isdigit(*i))
           throw std::runtime_error("webserv: [emerg] invalid return code \"" + code + "\"");
       }
-      this->return_code = atoi(code.c_str());
+      this->return_code_ = atoi(code.c_str());
     }
   } else if (directiveValueCnt == 2) {
     std::string &code = *(it + 1);
@@ -291,8 +291,8 @@ void LocationConfig::returnProcess(std::vector<std::string>::iterator &it, const
       if (!isdigit(*i))
         throw std::runtime_error("webserv: [emerg] invalid return code \"" + code + "\"");
     }
-    this->return_code = atoi(code.c_str());
-    this->return_value = *(it + 2);
+    this->return_code_ = atoi(code.c_str());
+    this->return_value_ = *(it + 2);
   }
   it += directiveValueCnt + 2;
 }
@@ -311,7 +311,7 @@ void LocationConfig::cgiProcess(std::vector<std::string>::iterator &it, const st
   for (; *it != ";"; it++) {
     if (it->find(".") != 0)
       throw std::runtime_error("webserv: [emerg] invalid cgi extention \"" + (*it) + "\"");
-    this->cgi.push_back(*it);
+    this->cgi_.push_back(*it);
   }
   it++;
   check_cgi_setting = true;
@@ -325,7 +325,7 @@ void LocationConfig::cgiPathProcess(std::vector<std::string>::iterator &it, cons
   if (directiveValueCnt != 1)
     throw std::runtime_error("webserv: [emerg] invalid number of arguments in \"cgi_path\" directive");
 
-  this->cgi_path = *(it + 1);
+  this->cgi_path_ = *(it + 1);
   it += 3;
   check_cgi_path_setting = true;
 }
@@ -347,39 +347,39 @@ void LocationConfig::print_status_for_debug(std::string prefix)
   std::cout << "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ LocationConfig ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~" << std::endl;
 
   std::cout << prefix;
-  std::cout << "uri_path : " << this->uri << std::endl;
+  std::cout << "uri_path : " << this->uri_ << std::endl;
 
   std::cout << prefix;
-  std::cout << "root : " << this->root << std::endl;
+  std::cout << "root : " << this->root_ << std::endl;
 
   std::cout << prefix;
   std::cout << "index : ";
-  for (std::vector<std::string>::iterator i = this->index.begin(); i != this->index.end(); i++) {
+  for (std::vector<std::string>::iterator i = this->index_.begin(); i != this->index_.end(); i++) {
     std::cout << *i << " ";
   }
   std::cout << std::endl;
 
   std::cout << prefix;
-  std::cout << "autoindex : " << this->autoindex << std::endl;
+  std::cout << "autoindex : " << this->autoindex_ << std::endl;
 
   std::cout << prefix;
-  std::cout << "client_max_body_size : " << this->client_max_body_size << std::endl;
+  std::cout << "client_max_body_size : " << this->client_max_body_size_ << std::endl;
 
   std::cout << prefix;
-  std::cout << "error_page : " << this->error_page << std::endl;
+  std::cout << "error_page : " << this->error_page_ << std::endl;
 
   std::cout << prefix;
   std::cout << "limit_except : ";
-  for (std::set<std::string>::iterator i = this->limit_except.begin(); i != this->limit_except.end(); i++) {
+  for (std::set<std::string>::iterator i = this->limit_except_.begin(); i != this->limit_except_.end(); i++) {
     std::cout << *i << " ";
   }
   std::cout << std::endl;
 
   std::cout << prefix;
-  std::cout << "return_code : " << this->return_code << std::endl;
+  std::cout << "return_code : " << this->return_code_ << std::endl;
 
   std::cout << prefix;
-  std::cout << "return_value : " << this->return_value << std::endl;
+  std::cout << "return_value : " << this->return_value_ << std::endl;
 
   std::cout << prefix;
   std::cout << "checkReturn() : ";
@@ -391,13 +391,13 @@ void LocationConfig::print_status_for_debug(std::string prefix)
 
   std::cout << prefix;
   std::cout << "cgi : ";
-  for (std::vector<std::string>::iterator i = this->cgi.begin(); i != this->cgi.end(); i++) {
+  for (std::vector<std::string>::iterator i = this->cgi_.begin(); i != this->cgi_.end(); i++) {
     std::cout << *i << " ";
   }
   std::cout << std::endl;
 
   std::cout << prefix;
-  std::cout << "cgi_path : " << this->cgi_path << std::endl;
+  std::cout << "cgi_path : " << this->cgi_path_ << std::endl;
 
   std::cout << prefix;
   std::cout << " - checkCgiExtention - " << std::endl;
@@ -416,6 +416,6 @@ void LocationConfig::print_status_for_debug(std::string prefix)
 
 const std::set<std::string> &LocationConfig::getLimitExcept(void) const
 {
-  return this->limit_except;
+  return this->limit_except_;
 }
 }  // namespace ft

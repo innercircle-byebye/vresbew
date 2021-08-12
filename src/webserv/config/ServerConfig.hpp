@@ -15,15 +15,15 @@ class HttpConfig;
 
 class ServerConfig {
  private:
-  std::vector<LocationConfig *> location_configs;
+  std::vector<LocationConfig *> location_configs_;
 
-  std::string root;
-  std::vector<std::string> index;
-  bool autoindex;
-  unsigned long client_max_body_size;
-  std::string error_page;
-  std::vector<std::string> listen;
-  std::vector<std::string> server_name;
+  std::string root_;
+  std::vector<std::string> index_;
+  bool autoindex_;
+  unsigned long client_max_body_size_;
+  std::string error_page_;
+  std::vector<std::string> listen_;
+  std::vector<std::string> server_name_;
 
  public:
   ServerConfig(std::vector<std::string> tokens, HttpConfig *http_config);

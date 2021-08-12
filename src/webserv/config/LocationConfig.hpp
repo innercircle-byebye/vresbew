@@ -15,18 +15,18 @@ class ServerConfig;
 
 class LocationConfig {
  private:
-  std::string uri;
+  std::string uri_;
 
-  std::string root;
-  std::vector<std::string> index;
-  bool autoindex;
-  unsigned long client_max_body_size;
-  std::string error_page;
-  int return_code;
-  std::string return_value;
-  std::set<std::string> limit_except;
-  std::vector<std::string> cgi;
-  std::string cgi_path;
+  std::string root_;
+  std::vector<std::string> index_;
+  bool autoindex_;
+  unsigned long client_max_body_size_;
+  std::string error_page_;
+  int return_code_;
+  std::string return_value_;
+  std::set<std::string> limit_except_;
+  std::vector<std::string> cgi_;
+  std::string cgi_path_;
 
  public:
   LocationConfig(ServerConfig *server_config);

@@ -47,7 +47,7 @@ ServerConfig::~ServerConfig(void) {
 }
 
 bool ServerConfig::isMatchServerName(std::string request_server_name) {
-  for (std::vector<std::string>::iterator it = this->server_name.begin(); it != this->server_name.end(); it++) {
+  for (std::vector<std::string>::iterator it = this->server_name_.begin(); it != this->server_name_.end(); it++) {
     if (*it == request_server_name) {
       return true;
     }
@@ -56,7 +56,7 @@ bool ServerConfig::isMatchServerName(std::string request_server_name) {
 }
 
 LocationConfig *ServerConfig::getLocationConfig(std::string request_uri) {
-  for (std::vector<LocationConfig *>::iterator it = this->location_configs.begin(); it != this->location_configs.end(); it++) {
+  for (std::vector<LocationConfig *>::iterator it = this->location_configs_.begin(); it != this->location_configs_.end(); it++) {
     if ((*it)->checkPrefixMatchUri(request_uri)) {
       return *it;
     }
@@ -65,41 +65,41 @@ LocationConfig *ServerConfig::getLocationConfig(std::string request_uri) {
 }
 
 const std::vector<std::string> &ServerConfig::getListen(void) const {
-  return this->listen;
+  return this->listen_;
 }
 
 const std::vector<std::string> &ServerConfig::getServerName(void) const {
-  return this->server_name;
+  return this->server_name_;
 }
 
 const std::string &ServerConfig::getRoot(void) const {
-  return this->root;
+  return this->root_;
 }
 
 const std::vector<std::string> &ServerConfig::getIndex(void) const {
-  return this->index;
+  return this->index_;
 }
 
 const bool &ServerConfig::getAutoindex(void) const {
-  return this->autoindex;
+  return this->autoindex_;
 }
 
 const unsigned long &ServerConfig::getClientMaxBodySize(void) const {
-  return this->client_max_body_size;
+  return this->client_max_body_size_;
 }
 
 const std::string &ServerConfig::getErrorPage(void) const {
-  return this->error_page;
+  return this->error_page_;
 }
 
 void ServerConfig::init(HttpConfig *http_config) {
-  this->root = http_config->getRoot();
-  this->index = http_config->getIndex();
-  this->autoindex = http_config->getAutoindex();
-  this->client_max_body_size = http_config->getClientMaxBodySize();
-  this->error_page = http_config->getErrorPage();
-  this->listen.push_back("0.0.0.0:80");
-  this->server_name.push_back("");
+  this->root_ = http_config->getRoot();
+  this->index_ = http_config->getIndex();
+  this->autoindex_ = http_config->getAutoindex();
+  this->client_max_body_size_ = http_config->getClientMaxBodySize();
+  this->error_page_ = http_config->getErrorPage();
+  this->listen_.push_back("0.0.0.0:80");
+  this->server_name_.push_back("");
 }
 
 void ServerConfig::rootProcess(std::vector<std::string>::iterator &it, const std::vector<std::string>::iterator &end_it, bool &check_root_setting) {
@@ -109,7 +109,7 @@ void ServerConfig::rootProcess(std::vector<std::string>::iterator &it, const std
   if (check_root_setting == true)
     throw std::runtime_error("webserv: [emerg] \"root\" directive is duplicate");
 
-  this->root = *(it + 1);
+  this->root_ = *(it + 1);
   check_root_setting = true;
 
   it += 3;
@@ -121,13 +121,13 @@ void ServerConfig::indexProcess(std::vector<std::string>::iterator &it, const st
     throw std::runtime_error("webserv: [emerg] invalid number of arguments in \"index\" directive");
 
   if (check_index_setting == false) {
-    this->index.clear();
+    this->index_.clear();
     check_index_setting = true;
   }
 
   it++;
   for (; *it != ";"; it++)
-    this->index.push_back(*it);
+    this->index_.push_back(*it);
   it++;
 }
 
@@ -141,9 +141,9 @@ void ServerConfig::autoindexProcess(std::vector<std::string>::iterator &it, cons
     throw std::runtime_error("webserv: [emerg] invalid value \"" + *(it + 1) + "\" in \"autoindex\" directive, it must be \"on\" or \"off\"");
 
   if (*(it + 1) == "on")
-    this->autoindex = true;
+    this->autoindex_ = true;
   else
-    this->autoindex = false;
+    this->autoindex_ = false;
 
   check_autoindex_setting = true;
   it += 3;
@@ -179,13 +179,13 @@ void ServerConfig::clientMaxBodySizeProcess(std::vector<std::string>::iterator &
       throw std::runtime_error("webserv: [emerg] \"client_max_body_size\" directive invalid value");
   }
 
-  this->client_max_body_size = strtoul(size_str.c_str(), NULL, 0);
-  if (this->client_max_body_size > LONG_MAX) {
+  this->client_max_body_size_ = strtoul(size_str.c_str(), NULL, 0);
+  if (this->client_max_body_size_ > LONG_MAX) {
     throw std::runtime_error("webserv: [emerg] \"client_max_body_size\" directive invalid value");
   }
   for (int i = 0; i < num_of_mutifly_by_2; i++) {
-    this->client_max_body_size *= 2;
-    if (this->client_max_body_size > LONG_MAX) {
+    this->client_max_body_size_ *= 2;
+    if (this->client_max_body_size_ > LONG_MAX) {
       throw std::runtime_error("webserv: [emerg] \"client_max_body_size\" directive invalid value");
     }
   }
@@ -201,7 +201,7 @@ void ServerConfig::errorPageProcess(std::vector<std::string>::iterator &it, cons
   if (check_error_page_setting == true)
     throw std::runtime_error("webserv: [emerg] \"error_page\" directive is duplicate");
 
-  this->error_page = *(it + 1);
+  this->error_page_ = *(it + 1);
   check_error_page_setting = true;
   it += 3;
 }
@@ -213,7 +213,7 @@ void ServerConfig::listenProcess(std::vector<std::string>::iterator &it, const s
   }
 
   if (check_listen_setting == false) {
-    listen.clear();
+    listen_.clear();
     check_listen_setting = true;
   }
 
@@ -253,7 +253,7 @@ void ServerConfig::listenProcess(std::vector<std::string>::iterator &it, const s
   if (num == 0 || num > 65535 || *tmp != '\0')
     throw std::runtime_error("webserv: [emerg] host not found in \"" + *(it + 1) + "\" of the \"listen\" directive");
 
-  this->listen.push_back(listen_value);
+  this->listen_.push_back(listen_value);
   it += 3;
 }
 
@@ -264,13 +264,13 @@ void ServerConfig::serverNameProcess(std::vector<std::string>::iterator &it, con
   }
 
   if (check_server_name_setting == false) {
-    this->server_name.clear();
+    this->server_name_.clear();
     check_server_name_setting = true;
   }
 
   it++;
   for (; *it != ";"; it++)
-    this->server_name.push_back(*it);
+    this->server_name_.push_back(*it);
   it++;
 }
 void ServerConfig::locationProcess(std::vector<std::string>::iterator &it, const std::vector<std::string>::iterator &end_it, std::vector<std::vector<std::string> > &locations_tokens) {
@@ -311,15 +311,15 @@ void ServerConfig::createLocationConfig(std::vector<std::vector<std::string> > &
       throw std::runtime_error("nginx: [emerg] duplicate location \"" + new_location->getUri() + "\"");
     location_uri_set.insert(new_location->getUri());
 
-    this->location_configs.push_back(new_location);
+    this->location_configs_.push_back(new_location);
   }
 
   if (location_uri_set.count("/") == 0) {
     LocationConfig *default_location = new LocationConfig(this);
-    this->location_configs.push_back(default_location);
+    this->location_configs_.push_back(default_location);
   }
 
-  std::sort(this->location_configs.begin(), this->location_configs.end(), this->compareUriForDescendingOrderByLength);
+  std::sort(this->location_configs_.begin(), this->location_configs_.end(), this->compareUriForDescendingOrderByLength);
 }
 
 int ServerConfig::getDirectiveValueCnt(std::vector<std::string>::iterator it, std::vector<std::string>::iterator end_it, std::string terminator) const {
@@ -343,42 +343,42 @@ void ServerConfig::print_status_for_debug(std::string prefix) {
 
   std::cout << prefix;
   std::cout << "listen : ";
-  for (std::vector<std::string>::iterator i = this->listen.begin(); i != this->listen.end(); i++) {
+  for (std::vector<std::string>::iterator i = this->listen_.begin(); i != this->listen_.end(); i++) {
     std::cout << *i << "  ";
   }
   std::cout << std::endl;
 
   std::cout << prefix;
   std::cout << "server_name : ";
-  for (std::vector<std::string>::iterator i = this->server_name.begin(); i != this->server_name.end(); i++) {
+  for (std::vector<std::string>::iterator i = this->server_name_.begin(); i != this->server_name_.end(); i++) {
     std::cout << *i << "  ";
   }
   std::cout << std::endl;
 
   std::cout << prefix;
-  std::cout << "root : " << this->root << std::endl;
+  std::cout << "root : " << this->root_ << std::endl;
 
   std::cout << prefix;
   std::cout << "index : ";
-  for (std::vector<std::string>::iterator i = this->index.begin(); i != this->index.end(); i++) {
+  for (std::vector<std::string>::iterator i = this->index_.begin(); i != this->index_.end(); i++) {
     std::cout << *i << " ";
   }
   std::cout << std::endl;
 
   std::cout << prefix;
-  std::cout << "autoindex : " << this->autoindex << std::endl;
+  std::cout << "autoindex : " << this->autoindex_ << std::endl;
 
   std::cout << prefix;
-  std::cout << "client_max_body_size : " << this->client_max_body_size << std::endl;
+  std::cout << "client_max_body_size : " << this->client_max_body_size_ << std::endl;
 
   std::cout << prefix;
-  std::cout << "error_page : " << this->error_page << std::endl;
+  std::cout << "error_page : " << this->error_page_ << std::endl;
 
   std::cout << prefix;
   std::cout << "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~" << std::endl;
 }
 
 const std::vector<LocationConfig *> &ServerConfig::getLocationConfigs(void) const {
-  return this->location_configs;
+  return this->location_configs_;
 }
 }  // namespace ft

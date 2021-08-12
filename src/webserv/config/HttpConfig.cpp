@@ -53,19 +53,19 @@ HttpConfig::~HttpConfig() {
 }
 
 const std::string &HttpConfig::getProgramName(void) const {
-  return this->program_name;
+  return this->program_name_;
 }
 
 ServerConfig *HttpConfig::getServerConfig(in_port_t port, in_addr_t ip_addr, std::string server_name) {
-  if (this->server_configs.find(port) == this->server_configs.end())
+  if (this->server_configs_.find(port) == this->server_configs_.end())
     return NULL;
 
   std::vector<ServerConfig *> *server_list = NULL;
 
-  if (this->server_configs[port].find(ip_addr) != this->server_configs[port].end()) {
-    server_list = &this->server_configs[port][ip_addr];
-  } else if (this->server_configs[port].find(inet_addr("0.0.0.0")) != this->server_configs[port].end()) {
-    server_list = &this->server_configs[port][inet_addr("0.0.0.0")];
+  if (this->server_configs_[port].find(ip_addr) != this->server_configs_[port].end()) {
+    server_list = &this->server_configs_[port][ip_addr];
+  } else if (this->server_configs_[port].find(inet_addr("0.0.0.0")) != this->server_configs_[port].end()) {
+    server_list = &this->server_configs_[port][inet_addr("0.0.0.0")];
   }
 
   if (server_list == NULL) {
@@ -94,43 +94,43 @@ LocationConfig *HttpConfig::getLocationConfig(in_port_t port, in_addr_t ip_addr,
 }
 
 const std::multimap<in_port_t, in_addr_t> &HttpConfig::getMustListens(void) const {
-  return this->must_listens;
+  return this->must_listens_;
 }
 
 const std::string &HttpConfig::getRoot(void) const {
-  return this->root;
+  return this->root_;
 }
 
 const std::vector<std::string> &HttpConfig::getIndex(void) const {
-  return this->index;
+  return this->index_;
 }
 
 const bool &HttpConfig::getAutoindex(void) const {
-  return this->autoindex;
+  return this->autoindex_;
 }
 
 const unsigned long &HttpConfig::getClientMaxBodySize(void) const {
-  return this->client_max_body_size;
+  return this->client_max_body_size_;
 }
 
 const std::string &HttpConfig::getErrorPage(void) const {
-  return this->error_page;
+  return this->error_page_;
 }
 
 void HttpConfig::init(void) {
-  this->root = "html";
-  this->index.push_back("index.html");
-  this->autoindex = false;
-  this->client_max_body_size = 1000000;
-  this->error_page = "";
+  this->root_ = "html";
+  this->index_.push_back("index.html");
+  this->autoindex_ = false;
+  this->client_max_body_size_ = 1000000;
+  this->error_page_ = "";
 }
 
 void HttpConfig::setProgramName(const std::string &program_name) {
   size_t program_name_start_pos;
   if ((program_name_start_pos = program_name.rfind('/')) != std::string::npos)
-    this->program_name = program_name.substr(program_name_start_pos + 1);
+    this->program_name_ = program_name.substr(program_name_start_pos + 1);
   else
-    this->program_name = program_name;
+    this->program_name_ = program_name;
 }
 
 std::vector<std::string> HttpConfig::tokenizeConfigFile(const std::string &config_file_path) {
@@ -147,7 +147,7 @@ void HttpConfig::rootProcess(std::vector<std::string>::iterator &it, const std::
   if (check_root_setting == true)
     throw std::runtime_error("webserv: [emerg] \"root\" directive is duplicate");
 
-  this->root = *(it + 1);
+  this->root_ = *(it + 1);
   check_root_setting = true;
 
   it += 3;
@@ -159,13 +159,13 @@ void HttpConfig::indexProcess(std::vector<std::string>::iterator &it, const std:
     throw std::runtime_error("webserv: [emerg] invalid number of arguments in \"index\" directive");
 
   if (check_index_setting == false) {
-    this->index.clear();
+    this->index_.clear();
     check_index_setting = true;
   }
 
   it++;
   for (; *it != ";"; it++)
-    this->index.push_back(*it);
+    this->index_.push_back(*it);
   it++;
 }
 
@@ -179,9 +179,9 @@ void HttpConfig::autoindexProcess(std::vector<std::string>::iterator &it, const 
     throw std::runtime_error("webserv: [emerg] invalid value \"" + *(it + 1) + "\" in \"autoindex\" directive, it must be \"on\" or \"off\"");
 
   if (*(it + 1) == "on")
-    this->autoindex = true;
+    this->autoindex_ = true;
   else
-    this->autoindex = false;
+    this->autoindex_ = false;
 
   check_autoindex_setting = true;
   it += 3;
@@ -217,13 +217,13 @@ void HttpConfig::clientMaxBodySizeProcess(std::vector<std::string>::iterator &it
       throw std::runtime_error("webserv: [emerg] \"client_max_body_size\" directive invalid value");
   }
 
-  this->client_max_body_size = strtoul(size_str.c_str(), NULL, 0);
-  if (this->client_max_body_size > LONG_MAX) {
+  this->client_max_body_size_ = strtoul(size_str.c_str(), NULL, 0);
+  if (this->client_max_body_size_ > LONG_MAX) {
     throw std::runtime_error("webserv: [emerg] \"client_max_body_size\" directive invalid value");
   }
   for (int i = 0; i < num_of_mutifly_by_2; i++) {
-    this->client_max_body_size *= 2;
-    if (this->client_max_body_size > LONG_MAX) {
+    this->client_max_body_size_ *= 2;
+    if (this->client_max_body_size_ > LONG_MAX) {
       throw std::runtime_error("webserv: [emerg] \"client_max_body_size\" directive invalid value");
     }
   }
@@ -239,7 +239,7 @@ void HttpConfig::errorPageProcess(std::vector<std::string>::iterator &it, const 
   if (check_error_page_setting == true)
     throw std::runtime_error("webserv: [emerg] \"error_page\" directive is duplicate");
   
-  this->error_page = *(it + 1);
+  this->error_page_ = *(it + 1);
   check_error_page_setting = true;
   it += 3;
 }
@@ -283,18 +283,18 @@ void HttpConfig::createServerConfig(std::vector<std::vector<std::string> > &serv
       in_addr_t ip_addr = inet_addr(ip_addr_str.c_str());
       in_port_t port = htons(atoi(port_str.c_str()));
 
-      this->server_configs[port][ip_addr].push_back(new_server);
+      this->server_configs_[port][ip_addr].push_back(new_server);
       setMustListens(ip_addr, port);
     }
   }
 }
 
 void HttpConfig::setMustListens(in_addr_t ip_addr, in_port_t port) {
-  if (this->must_listens.find(port) == this->must_listens.end() || this->must_listens.find(port)->second != inet_addr("0.0.0.0")) {
+  if (this->must_listens_.find(port) == this->must_listens_.end() || this->must_listens_.find(port)->second != inet_addr("0.0.0.0")) {
     if (ip_addr == inet_addr("0.0.0.0")) {
-      this->must_listens.erase(port);
+      this->must_listens_.erase(port);
     }
-    this->must_listens.insert(std::pair<in_port_t, in_addr_t>(port, ip_addr));
+    this->must_listens_.insert(std::pair<in_port_t, in_addr_t>(port, ip_addr));
   }
 }
 
@@ -313,7 +313,7 @@ void HttpConfig::print_all_server_location_for_debug(void)
 {
   this->print_status_for_debug("");
 
-  for (std::map<in_port_t, std::map<in_addr_t, std::vector<ServerConfig *> > >::iterator it = server_configs.begin(); it != server_configs.end(); it++) {
+  for (std::map<in_port_t, std::map<in_addr_t, std::vector<ServerConfig *> > >::iterator it = server_configs_.begin(); it != server_configs_.end(); it++) {
     in_port_t port = it->first;
     std::map<in_addr_t, std::vector<ServerConfig *> > addr_server_map = it->second;
 
@@ -344,26 +344,26 @@ void HttpConfig::print_status_for_debug(std::string prefix) {
   std::cout << "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ HttpConfig ~~~~~~~~~~~~~~~~~~~~~~~~~" << std::endl;
 
   std::cout << prefix;
-  std::cout << "program_name : " << this->program_name << std::endl;
+  std::cout << "program_name : " << this->program_name_ << std::endl;
 
   std::cout << prefix;
-  std::cout << "root : " << this->root << std::endl;
+  std::cout << "root : " << this->root_ << std::endl;
 
   std::cout << prefix;
   std::cout << "index : ";
-  for (std::vector<std::string>::iterator i = this->index.begin(); i != this->index.end(); i++) {
+  for (std::vector<std::string>::iterator i = this->index_.begin(); i != this->index_.end(); i++) {
     std::cout << *i << " ";
   }
   std::cout << std::endl;
 
   std::cout << prefix;
-  std::cout << "autoindex : " << this->autoindex << std::endl;
+  std::cout << "autoindex : " << this->autoindex_ << std::endl;
 
   std::cout << prefix;
-  std::cout << "client_max_body_size : " << this->client_max_body_size << std::endl;
+  std::cout << "client_max_body_size : " << this->client_max_body_size_ << std::endl;
 
   std::cout << prefix;
-  std::cout << "error_page : " << this->error_page << std::endl;
+  std::cout << "error_page : " << this->error_page_ << std::endl;
   std::cout << prefix;
   std::cout << "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~" << std::endl;
 }

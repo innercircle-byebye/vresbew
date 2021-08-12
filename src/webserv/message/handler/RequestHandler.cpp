@@ -50,11 +50,11 @@ void RequestHandler::parseStartLine(Connection *c) {
   request_->getMsg().erase(0, pos + CRLF_LEN);
   std::vector<std::string> start_line_split = RequestHandler::splitByDelimiter(start_line, SPACE);
 
-  if ((c->status_code_ = (start_line_split.size() == 3) ? -1 : 400) > 0) {
+  if ((c->req_status_code_ = (start_line_split.size() == 3) ? NOT_SET : 400) != NOT_SET) {
     c->setRecvPhase(MESSAGE_BODY_COMPLETE);
     return;
   }
-  if ((c->status_code_ = (RequestHandler::isValidMethod(start_line_split[0])) ? -1 : 400) > 0) {
+  if ((c->req_status_code_ = (RequestHandler::isValidMethod(start_line_split[0])) ? NOT_SET : 400) != NOT_SET) {
     c->setRecvPhase(MESSAGE_BODY_COMPLETE);
     return;
   }
@@ -63,12 +63,12 @@ void RequestHandler::parseStartLine(Connection *c) {
   request_->setUri(start_line_split[1]);
   start_line_split[1].append(" ");
 
-  if ((c->status_code_ = (parseUri(start_line_split[1]) == PARSE_VALID_URI) ? -1 : 400) > 0) {
+  if ((c->req_status_code_ = (parseUri(start_line_split[1]) == PARSE_VALID_URI) ? NOT_SET : 400) != NOT_SET) {
     c->setRecvPhase(MESSAGE_BODY_COMPLETE);
     return;
   }
 
-  if ((c->status_code_ = checkHttpVersionErrorCode(start_line_split[2])) > 0) {
+  if ((c->req_status_code_ = checkHttpVersionErrorCode(start_line_split[2])) != NOT_SET) {
     c->setRecvPhase(MESSAGE_BODY_COMPLETE);
     return;
   }
@@ -191,12 +191,12 @@ int RequestHandler::parseUri(std::string uri_str) {
 
 void RequestHandler::parseHeaderLines(Connection *c) {
   size_t pos = request_->getMsg().find(CRLFCRLF);
-  std::string header_lines = request_->getMsg().substr(0, pos + 2);
+  std::string header_lines = request_->getMsg().substr(0, pos + CRLF_LEN);
   request_->getMsg().erase(0, pos + CRLFCRLF_LEN);
 
   while ((pos = header_lines.find(CRLF)) != std::string::npos) {
     std::string one_header_line = header_lines.substr(0, pos);
-    if ((c->status_code_ = this->parseHeaderLine(one_header_line)) > 0) {
+    if ((c->req_status_code_ = this->parseHeaderLine(one_header_line)) != NOT_SET) {
       c->setRecvPhase(MESSAGE_BODY_COMPLETE);
       return;
     }
@@ -204,7 +204,7 @@ void RequestHandler::parseHeaderLines(Connection *c) {
   }
 }
 
-// 실패 시 c->status_code_에 에러 코드가 발생 하도록
+// 실패 시 c->req_status_code_에 에러 코드가 발생 하도록
 int RequestHandler::parseHeaderLine(std::string &one_header_line) {
   std::vector<std::string> key_and_value = RequestHandler::splitByDelimiter(one_header_line, SPACE);
 
@@ -224,7 +224,7 @@ int RequestHandler::parseHeaderLine(std::string &one_header_line) {
   if (!key.compare("Host") && !request_->getHost().empty())
     value = request_->getHost();
   this->request_->setHeader(key, value);
-  return (-1);
+  return (NOT_SET);
 }
 
 /* UTILS */
@@ -244,7 +244,7 @@ int RequestHandler::checkHttpVersionErrorCode(std::string const &http_version) {
   if (http_version.compare(0, 5, "HTTP/") != 0)
     return (400);  // 400 Bad request
   else if (!http_version.compare(5, 3, "1.1") || !http_version.compare(5, 3, "1.0"))
-    return (-1);
+    return (NOT_SET);
   return (505);
 }
 
@@ -298,7 +298,7 @@ void RequestHandler::applyReturnDirectiveStatusCode(Connection *c, LocationConfi
   if (location->getReturnCode() == 301 || location->getReturnCode() == 302 ||
       location->getReturnCode() == 303 || location->getReturnCode() == 307 ||
       location->getReturnCode() == 308) {
-    c->status_code_ = location->getReturnCode();
+    c->req_status_code_ = location->getReturnCode();
     if (!location->getReturnValue().empty())
       c->getResponse().setHeader("Location", location->getReturnValue());
     else
@@ -308,7 +308,7 @@ void RequestHandler::applyReturnDirectiveStatusCode(Connection *c, LocationConfi
   if (!location->getReturnValue().empty()) {
     c->setBodyBuf(location->getReturnValue());
   }
-  c->status_code_ = location->getReturnCode();
+  c->req_status_code_ = location->getReturnCode();
 }
 
 void RequestHandler::handleChunked(Connection *c) {
@@ -319,7 +319,7 @@ void RequestHandler::handleChunked(Connection *c) {
       if ((pos = request_->getMsg().find(CRLF)) != std::string::npos) {
         if (c->client_max_body_size < c->getBodyBuf().length()) {
           c->getBodyBuf().clear();
-          c->status_code_ = 413;
+          c->req_status_code_ = 413;
           c->setRecvPhase(MESSAGE_BODY_COMPLETE);
           c->is_chunked_ = false;
           return;
@@ -329,7 +329,7 @@ void RequestHandler::handleChunked(Connection *c) {
           for (size_t i = 0; i < pos; ++i) {
             if (request_->getMsg()[i] != '0') {
               c->getBodyBuf().clear();
-              c->status_code_ = 400;
+              c->req_status_code_ = 400;
               c->setRecvPhase(MESSAGE_BODY_COMPLETE);
               c->is_chunked_ = false;
               return;
@@ -345,14 +345,14 @@ void RequestHandler::handleChunked(Connection *c) {
     }
     if (c->chunked_checker_ == STR) {
       // 조건문 확인 부탁드립니다
-      if (request_->getMsg().size() >= (c->chunked_str_size_ + 2) && !request_->getMsg().substr(c->chunked_str_size_, 2).compare(CRLF)) {
+      if (request_->getMsg().size() >= (c->chunked_str_size_ + 2) && !request_->getMsg().compare(c->chunked_str_size_, 2, CRLF)) {
         c->appendBodyBuf((char *)request_->getMsg().c_str(), c->chunked_str_size_);
-        request_->getMsg().erase(0, c->chunked_str_size_ + 2);
+        request_->getMsg().erase(0, c->chunked_str_size_ + CRLF_LEN);
         c->chunked_checker_ = STR_SIZE;
       }
       if (request_->getMsg().size() >= c->chunked_str_size_ + 4) {
         c->getBodyBuf().clear();
-        c->status_code_ = 400;
+        c->req_status_code_ = 400;
         c->setRecvPhase(MESSAGE_BODY_COMPLETE);
         return;
       }
@@ -360,9 +360,9 @@ void RequestHandler::handleChunked(Connection *c) {
     if (c->chunked_checker_ == END) {
       if ((pos = request_->getMsg().find(CRLF)) == 0) {
         request_->getMsg().clear();
-        if (c->status_code_ > 0) {
+        if (c->req_status_code_ != NOT_SET) {
           c->setRecvPhase(MESSAGE_START_LINE_INCOMPLETE);
-          c->status_code_ = -1;
+          c->req_status_code_ = NOT_SET;
         } else
           c->setRecvPhase(MESSAGE_BODY_COMPLETE);
 

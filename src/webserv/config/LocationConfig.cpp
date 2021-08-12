@@ -101,7 +101,7 @@ const std::string &LocationConfig::getCgiPath(void) const {
 }
 
 bool LocationConfig::checkReturn(void) const {
-  return this->return_code_ != -1;
+  return this->return_code_ != NOT_SET;
 }
 
 bool LocationConfig::checkAcceptedMethod(const std::string &request_method) const {
@@ -126,7 +126,7 @@ void LocationConfig::init(ServerConfig *server_config) {
   this->autoindex_ = server_config->getAutoindex();
   this->client_max_body_size_ = server_config->getClientMaxBodySize();
   this->error_page_ = server_config->getErrorPage();
-  this->return_code_ = -1;
+  this->return_code_ = NOT_SET;
   this->return_value_ = "";
   this->cgi_path_ = "";
 }

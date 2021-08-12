@@ -68,7 +68,7 @@ void CgiHandler::handleCgiHeader(Connection *c) {
   {
     size_t pos = c->temp.find(CRLFCRLF);
     cgi_output_response_header = c->temp.substr(0, pos + CRLF_LEN);
-    c->temp.erase(0, pos + 4);
+    c->temp.erase(0, pos + CRLFCRLF_LEN);
     while ((pos = cgi_output_response_header.find(CRLF)) != std::string::npos) {
       std::string one_header_line = cgi_output_response_header.substr(0, pos);
       std::vector<std::string> key_and_value = MessageHandler::request_handler_.splitByDelimiter(one_header_line, SPACE);
@@ -80,7 +80,7 @@ void CgiHandler::handleCgiHeader(Connection *c) {
       value = key_and_value[1];
       if (key.compare("Status") == 0) {
         MessageHandler::response_handler_.setStatusLineWithCode(stoi(value));
-        c->status_code_ = stoi(value);
+        c->req_status_code_ = stoi(value);
       }
       if (key.compare("Status") != 0)
         c->getResponse().setHeader(key, value);
@@ -168,8 +168,8 @@ void CgiHandler::receiveCgiBody(Connection *c) {
 }
 
 void CgiHandler::setupCgiMessage(Connection *c) {
-  if (c->status_code_ < 0 && !c->getResponse().getHeaderValue("X-Powered-By").compare("PHP/8.0.7")) {
-    c->status_code_ = 200;
+  if (c->req_status_code_ == NOT_SET && !c->getResponse().getHeaderValue("X-Powered-By").compare("PHP/8.0.7")) {
+    c->req_status_code_ = 200;
     MessageHandler::response_handler_.setStatusLineWithCode(200);
   }
   if (c->getRequest().getHeaderValue("Content-Length").empty())

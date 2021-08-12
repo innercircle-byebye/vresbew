@@ -8,7 +8,7 @@ Connection::Connection()
   memset(buffer_, 0, BUF_SIZE);
 
   recv_phase_ = MESSAGE_START_LINE_INCOMPLETE;
-  status_code_ = -1;
+  req_status_code_ = NOT_SET;
   body_buf_ = "";
   string_buffer_content_length_ = -1;
   chunked_checker_ = STR_SIZE;
@@ -59,7 +59,7 @@ void Connection::clear() {
   body_buf_.clear();
   recv_phase_ = MESSAGE_START_LINE_INCOMPLETE;
   string_buffer_content_length_ = -1;
-  status_code_ = -1;
+  req_status_code_ = NOT_SET;
   chunked_checker_ = STR_SIZE;
   chunked_str_size_ = 0;
   is_chunked_ = false;
@@ -109,7 +109,7 @@ void  Connection::process_read_event(Kqueue *kq, SocketManager *sm) {
     else if (this->recv_phase_ == MESSAGE_BODY_INCOMING)
       MessageHandler::handleRequestBody(this);
     if (this->recv_phase_ == MESSAGE_BODY_COMPLETE) {
-      if (this->status_code_ < 0)
+      if (this->req_status_code_ == NOT_SET)
         MessageHandler::checkCgiProcess(this);
       if (this->recv_phase_ == MESSAGE_CGI_COMPLETE) {
         CgiHandler::handleCgiHeader(this);
@@ -154,7 +154,7 @@ void Connection::process_write_event(Kqueue *kq, SocketManager *sm) {
     else
     {
       this->recv_phase_ = MESSAGE_START_LINE_INCOMPLETE;
-      this->status_code_ = -1;
+      this->req_status_code_ = NOT_SET;
     }
     kq->kqueueSetEvent(this, EVFILT_WRITE, EV_DELETE);
     kq->kqueueSetEvent(this, EVFILT_READ, EV_ADD);

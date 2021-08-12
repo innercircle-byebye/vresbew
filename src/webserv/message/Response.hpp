@@ -5,6 +5,7 @@
 #include <map>
 #include <string>
 #include <cstdlib> //itoa
+#include "webserv/webserv.hpp"
 
 namespace ft {
 class Response {

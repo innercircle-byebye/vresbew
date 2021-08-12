@@ -8,6 +8,7 @@
 
 #include "webserv/config/LocationConfig.hpp"
 #include "webserv/config/ServerConfig.hpp"
+#include "webserv/webserv.hpp"
 
 namespace ft {
 
@@ -50,7 +51,7 @@ class LocationConfig {
   bool checkCgiExtension(const std::string &request_uri) const;
 
  private:
-  void init(ServerConfig* server_config);
+  void init(ServerConfig *server_config);
   void rootProcess(std::vector<std::string>::iterator &it, const std::vector<std::string>::iterator &end_it, bool &check_root_setting);
   void indexProcess(std::vector<std::string>::iterator &it, const std::vector<std::string>::iterator &end_it, bool &check_index_setting);
   void autoindexProcess(std::vector<std::string>::iterator &it, const std::vector<std::string>::iterator &end_it, bool &check_autoindex_setting);

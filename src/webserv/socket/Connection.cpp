@@ -8,8 +8,7 @@ Connection::Connection()
   memset(buffer_, 0, BUF_SIZE);
 
   recv_phase_ = MESSAGE_START_LINE_INCOMPLETE;
-  interrupted = false;
-  status_code_ = -1;
+  req_status_code_ = NOT_SET;
   body_buf_ = "";
   string_buffer_content_length_ = -1;
   chunked_checker_ = STR_SIZE;
@@ -60,8 +59,7 @@ void Connection::clear() {
   body_buf_.clear();
   recv_phase_ = MESSAGE_START_LINE_INCOMPLETE;
   string_buffer_content_length_ = -1;
-  status_code_ = -1;
-  interrupted = false;
+  req_status_code_ = NOT_SET;
   chunked_checker_ = STR_SIZE;
   chunked_str_size_ = 0;
   is_chunked_ = false;
@@ -75,7 +73,6 @@ void Connection::clearAtChunked() {
   response_.clear();
   body_buf_.clear();
   string_buffer_content_length_ = -1;
-  interrupted = false;
   chunked_str_size_ = 0;
   temp.clear();
   send_len = 0;
@@ -94,7 +91,7 @@ void  Connection::process_read_event(Kqueue *kq, SocketManager *sm) {
     Connection *conn = this->eventAccept(sm);  // throw
     kq->kqueueSetEvent(conn, EVFILT_READ, EV_ADD);
   } else {
-    ssize_t recv_len = recv(this->fd_, this->buffer_, BUF_SIZE, 0);
+    ssize_t recv_len = recv(this->fd_, this->buffer_, BUF_SIZE - 1, 0);
     if (strchr(this->buffer_, ctrl_c[0])) {
       sm->closeConnection(this);
       return ;
@@ -112,7 +109,7 @@ void  Connection::process_read_event(Kqueue *kq, SocketManager *sm) {
     else if (this->recv_phase_ == MESSAGE_BODY_INCOMING)
       MessageHandler::handleRequestBody(this);
     if (this->recv_phase_ == MESSAGE_BODY_COMPLETE) {
-      if (this->status_code_ < 0)
+      if (this->req_status_code_ == NOT_SET)
         MessageHandler::checkCgiProcess(this);
       if (this->recv_phase_ == MESSAGE_CGI_COMPLETE) {
         CgiHandler::handleCgiHeader(this);
@@ -131,7 +128,7 @@ void  Connection::process_read_event(Kqueue *kq, SocketManager *sm) {
 void Connection::process_write_event(Kqueue *kq, SocketManager *sm) {
   if (this->recv_phase_ == MESSAGE_CGI_COMPLETE) {
     if (this->send_len < this->response_.getHeaderMsg().size()) {
-      size_t j = std::min(this->response_.getHeaderMsg().size(), this->send_len + BUF_SIZE);
+      size_t j = std::min(this->response_.getHeaderMsg().size(), this->send_len + BUF_SIZE - 1);
       ssize_t real_send_len = send(this->fd_, &(this->response_.getHeaderMsg()[this->send_len]), j - this->send_len, 0);  // -1인 경우 처리?
       this->send_len += real_send_len;
     }
@@ -157,7 +154,7 @@ void Connection::process_write_event(Kqueue *kq, SocketManager *sm) {
     else
     {
       this->recv_phase_ = MESSAGE_START_LINE_INCOMPLETE;
-      this->status_code_ = -1;
+      this->req_status_code_ = NOT_SET;
     }
     kq->kqueueSetEvent(this, EVFILT_WRITE, EV_DELETE);
     kq->kqueueSetEvent(this, EVFILT_READ, EV_ADD);

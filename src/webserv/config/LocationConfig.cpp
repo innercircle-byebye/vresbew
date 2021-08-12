@@ -53,9 +53,7 @@ LocationConfig::LocationConfig(std::vector<std::string> tokens, ServerConfig *se
   }
 }
 
-LocationConfig::~LocationConfig(void) {
-  std::cout << "~LocationConfig() 호출~~~" << std::endl;
-}
+LocationConfig::~LocationConfig(void) {}
 
 bool LocationConfig::checkPrefixMatchUri(std::string request_uri) {
   if (this->uri_.length() <= request_uri.length()) {
@@ -103,7 +101,7 @@ const std::string &LocationConfig::getCgiPath(void) const {
 }
 
 bool LocationConfig::checkReturn(void) const {
-  return this->return_code_ != -1;
+  return this->return_code_ != NOT_SET;
 }
 
 bool LocationConfig::checkAcceptedMethod(const std::string &request_method) const {
@@ -128,7 +126,7 @@ void LocationConfig::init(ServerConfig *server_config) {
   this->autoindex_ = server_config->getAutoindex();
   this->client_max_body_size_ = server_config->getClientMaxBodySize();
   this->error_page_ = server_config->getErrorPage();
-  this->return_code_ = -1;
+  this->return_code_ = NOT_SET;
   this->return_value_ = "";
   this->cgi_path_ = "";
 }
@@ -341,8 +339,7 @@ int LocationConfig::getDirectiveValueCnt(std::vector<std::string>::iterator it, 
 }
 
 // ############## for debug ###################
-void LocationConfig::print_status_for_debug(std::string prefix)
-{
+void LocationConfig::print_status_for_debug(std::string prefix) {
   std::cout << prefix;
   std::cout << "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ LocationConfig ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~" << std::endl;
 
@@ -414,8 +411,7 @@ void LocationConfig::print_status_for_debug(std::string prefix)
   std::cout << "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~" << std::endl;
 }
 
-const std::set<std::string> &LocationConfig::getLimitExcept(void) const
-{
+const std::set<std::string> &LocationConfig::getLimitExcept(void) const {
   return this->limit_except_;
 }
 }  // namespace ft

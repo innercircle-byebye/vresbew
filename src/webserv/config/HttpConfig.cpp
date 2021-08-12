@@ -49,7 +49,9 @@ HttpConfig::HttpConfig(std::string program_name, std::string config_file_path) {
 }
 
 HttpConfig::~HttpConfig() {
-  std::cout << "~HttpConfig() 호출~~~" << std::endl;
+  for (std::vector<ServerConfig *>::iterator it = this->server_config_list_.begin(); it != this->server_config_list_.end(); it++) {
+    delete (*it);
+  }
 }
 
 const std::string &HttpConfig::getProgramName(void) const {
@@ -238,7 +240,7 @@ void HttpConfig::errorPageProcess(std::vector<std::string>::iterator &it, const 
     throw std::runtime_error("webserv: [emerg] invalid number of arguments in \"error_page\" directive");
   if (check_error_page_setting == true)
     throw std::runtime_error("webserv: [emerg] \"error_page\" directive is duplicate");
-  
+
   this->error_page_ = *(it + 1);
   check_error_page_setting = true;
   it += 3;
@@ -274,6 +276,7 @@ void HttpConfig::createServerConfig(std::vector<std::vector<std::string> > &serv
   std::vector<std::vector<std::string> >::iterator server_it = servers_tokens.begin();
   for (; server_it != servers_tokens.end(); server_it++) {
     ServerConfig *new_server = new ServerConfig(*server_it, this);
+    this->server_config_list_.push_back(new_server);
 
     for (std::vector<std::string>::const_iterator i = new_server->getListen().begin(); i != new_server->getListen().end(); i++) {
       std::size_t pos = (*i).find(':');
@@ -309,8 +312,7 @@ int HttpConfig::getDirectiveValueCnt(std::vector<std::string>::iterator it, std:
 }
 
 // ############## for debug ###################
-void HttpConfig::print_all_server_location_for_debug(void)
-{
+void HttpConfig::print_all_server_location_for_debug(void) {
   this->print_status_for_debug("");
 
   for (std::map<in_port_t, std::map<in_addr_t, std::vector<ServerConfig *> > >::iterator it = server_configs_.begin(); it != server_configs_.end(); it++) {

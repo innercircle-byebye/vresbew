@@ -24,6 +24,7 @@ class HttpConfig {
   std::string program_name_;
   std::multimap<in_port_t, in_addr_t> must_listens_;
   std::map<in_port_t, std::map<in_addr_t, std::vector<ServerConfig *> > > server_configs_;
+  std::vector<ServerConfig *> server_config_list_;
 
   std::string root_;
   std::vector<std::string> index_;

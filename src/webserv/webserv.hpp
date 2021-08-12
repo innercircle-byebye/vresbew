@@ -22,7 +22,7 @@ typedef int socket_t;
 
 #define DEFAULT_CONNECTIONS 512
 #define LISTEN_BACKLOG 511
-#define BUF_SIZE 30000
+#define BUF_SIZE 32769
 #define nonblocking(s) fcntl(s, F_SETFL, O_NONBLOCK)
 #define closeSocket close
 
@@ -46,6 +46,8 @@ typedef int socket_t;
 #define CRLFCRLF "\r\n\r\n"
 #define CRLF_LEN 2
 #define CRLFCRLF_LEN 4
+
+#define NOT_SET -1
 
 // in_addr_t inet_addr2(const char *cp) { return inet_addr(strcmp(cp, "localhost") == 0 ? "127.0.0.1" : cp); }
 

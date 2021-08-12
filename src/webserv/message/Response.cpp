@@ -2,6 +2,7 @@
 
 namespace ft {
 Response::Response() {
+  status_code_ = NOT_SET;
   this->http_version_ = "HTTP/1.1";
   this->initHeaders();
 }
@@ -11,7 +12,7 @@ Response::~Response() {
 }
 
 void Response::clear() {
-  status_code_ = 0;
+  status_code_ = NOT_SET;
   status_message_.clear();
 
   headers_.clear();

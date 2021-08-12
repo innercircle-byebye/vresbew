@@ -38,19 +38,20 @@ void CgiHandler::initCgiChild(Connection *c) {
 
   if (c->getBodyBuf().size() == 0) {  //자식 프로세스로 보낼 c->body_buf_ 가 비어있는 경우 파이프 닫음
     close(c->writepipe[1]);
-    read(c->readpipe[0], c->buffer_, BUF_SIZE);
+    read(c->readpipe[0], c->buffer_, BUF_SIZE - 1);
     c->temp.append(c->buffer_);
   } else {
     size_t size = c->getBodyBuf().size();
-    for (size_t i = 0; i < size; i += BUF_SIZE) {
-      size_t j = std::min(size, BUF_SIZE + i);
+    for (size_t i = 0; i < size; i += BUF_SIZE - 1) {
+      // std::cout << "i :" << i << std::endl;
+      size_t j = std::min(size, BUF_SIZE + i - 1);
       write(c->writepipe[1], c->getBodyBuf().substr(i, j).c_str(), j - i);
       if (i == 0) {
-        read(c->readpipe[0], c->buffer_, BUF_SIZE);
+        read(c->readpipe[0], c->buffer_, BUF_SIZE - 1);
         c->temp.append(c->buffer_);
         memset(c->buffer_, 0, BUF_SIZE);
       }
-      read(c->readpipe[0], c->buffer_, BUF_SIZE);
+      read(c->readpipe[0], c->buffer_, BUF_SIZE - 1);
       c->temp.append(c->buffer_);
       memset(c->buffer_, 0, BUF_SIZE);
     }
@@ -155,7 +156,7 @@ char **CgiHandler::setCommand(std::string command, std::string path) {
 void CgiHandler::receiveCgiBody(Connection *c) {
   size_t nbytes;
   if (c->getRecvPhase() == MESSAGE_CGI_COMPLETE) {
-    while ((nbytes = read(c->readpipe[0], c->buffer_, BUF_SIZE))) {
+    while ((nbytes = read(c->readpipe[0], c->buffer_, BUF_SIZE - 1))) {
       c->appendBodyBuf(c->buffer_);
       memset(c->buffer_, 0, nbytes);
     }
@@ -181,6 +182,11 @@ void CgiHandler::setupCgiMessage(Connection *c) {
   c->getResponse().setHeader("Content-Type", "text/html; charset=utf-8");
 
   MessageHandler::response_handler_.makeResponseHeader();
+
+  // std::cout << "========header============" << std::endl;
+  // std::cout << c->getResponse().getHeaderMsg() << std::endl;
+  // std::cout << "========header============" << std::endl;
+
   if (!c->temp.empty())
     c->getResponse().getHeaderMsg().append(c->temp);
 

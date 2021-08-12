@@ -10,7 +10,7 @@ int main(int argc, char *argv[]) {
     config_file_name = ((argc == 1) ? "./config/config_tester.conf" : argv[1]);
 
     try {
-      ft::HttpConfig *httpconfig = new ft::HttpConfig(argv[0], config_file_name);
+      ft::HttpConfig *httpconfig = new ft::HttpConfig(config_file_name);
       ft::Cycle cycle(httpconfig);
 
       cycle.webservCycle();

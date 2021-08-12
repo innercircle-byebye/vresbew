@@ -1,8 +1,7 @@
 #include "webserv/config/HttpConfig.hpp"
 
 namespace ft {
-HttpConfig::HttpConfig(std::string program_name, std::string config_file_path) {
-  setProgramName(program_name);
+HttpConfig::HttpConfig(std::string config_file_path) {
   init();
 
   std::vector<std::string> tokens = tokenizeConfigFile(config_file_path);
@@ -17,6 +16,7 @@ HttpConfig::HttpConfig(std::string program_name, std::string config_file_path) {
   it++;
 
   std::vector<std::vector<std::string> > servers_tokens;
+  bool check_program_name_setting = false;
   bool check_root_setting = false;
   bool check_index_setting = false;
   bool check_autoindex_setting = false;
@@ -24,7 +24,9 @@ HttpConfig::HttpConfig(std::string program_name, std::string config_file_path) {
   bool check_error_page_setting = false;
 
   while (it != end_it && *it != "}") {
-    if (*it == "root")
+    if (*it == "program_name")
+      programNameProcess(it, end_it, check_program_name_setting);
+    else if (*it == "root")
       rootProcess(it, end_it, check_root_setting);
     else if (*it == "index")
       indexProcess(it, end_it, check_index_setting);
@@ -120,6 +122,7 @@ const std::string &HttpConfig::getErrorPage(void) const {
 }
 
 void HttpConfig::init(void) {
+  this->program_name_ = "webserv";
   this->root_ = "html";
   this->index_.push_back("index.html");
   this->autoindex_ = false;
@@ -127,19 +130,24 @@ void HttpConfig::init(void) {
   this->error_page_ = "";
 }
 
-void HttpConfig::setProgramName(const std::string &program_name) {
-  size_t program_name_start_pos;
-  if ((program_name_start_pos = program_name.rfind('/')) != std::string::npos)
-    this->program_name_ = program_name.substr(program_name_start_pos + 1);
-  else
-    this->program_name_ = program_name;
-}
-
 std::vector<std::string> HttpConfig::tokenizeConfigFile(const std::string &config_file_path) {
   std::ifstream ifs(config_file_path);
   std::string content((std::istreambuf_iterator<char>(ifs)), (std::istreambuf_iterator<char>()));
   ft::Tokenizer tokenizer;
   return tokenizer.parse(content);
+}
+
+void HttpConfig::programNameProcess(std::vector<std::string>::iterator &it, const std::vector<std::string>::iterator &end_it, bool &check_program_name_setting) {
+  int directiveValueCnt = getDirectiveValueCnt(it, end_it, ";");
+  if (directiveValueCnt != 1)
+    throw std::runtime_error("webserv: [emerg] invalid number of arguments in \"program_name\" directive");
+  if (check_program_name_setting == true)
+    throw std::runtime_error("webserv: [emerg] \"program_name\" directive is duplicate");
+
+  this->program_name_ = *(it + 1);
+  check_program_name_setting = true;
+
+  it += 3;
 }
 
 void HttpConfig::rootProcess(std::vector<std::string>::iterator &it, const std::vector<std::string>::iterator &end_it, bool &check_root_setting) {

@@ -21,6 +21,7 @@ void ResponseHandler::setServerConfig(HttpConfig *http_config, struct sockaddr_i
 
 void ResponseHandler::executeMethod(Request &request) {
   LocationConfig *location = this->server_config_->getLocationConfig(request.getPath());
+  stat(request.getFilePath().c_str(), &this->stat_buffer_);
   if (request.getMethod() == "GET" || request.getMethod() == "HEAD")
     processGetAndHeaderMethod(request, location);
   else if (request.getMethod() == "PUT")
@@ -166,7 +167,10 @@ void ResponseHandler::setAutoindexBody(const std::string &uri) {
 // ***********blocks for setResponseFields begin*************** //
 
 void ResponseHandler::processGetAndHeaderMethod(Request &request, LocationConfig *&location) {
+
   if (location->getAutoindex() && S_ISDIR(this->stat_buffer_.st_mode)) {
+    std::cout << "ccc" << std::endl;
+
     setStatusLineWithCode(200);
     setAutoindexBody(request.getPath());
     return;

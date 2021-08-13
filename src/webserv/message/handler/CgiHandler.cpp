@@ -90,7 +90,7 @@ void CgiHandler::initCgiChild(Connection *c) {
           write_end = true;
         }
       }
-      if (write_len_ < BUF_SIZE) {
+      if (write_len_ == (ssize_t)c->getBodyBuf().size()) {
         read_len_2_ = read(c->readpipe[0], c->buffer_, BUF_SIZE - 1);
         if (read_len_2_ == -1) {
           close(c->readpipe[0]);

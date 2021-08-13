@@ -237,8 +237,11 @@ void CgiHandler::setupCgiMessage(Connection *c) {
     c->getResponse().setHeader("Content-Length", SSTR(c->temp.size()));
 
   MessageHandler::response_handler_.setDefaultHeader(c, c->getRequest());
-  c->getResponse().setHeader("Content-Length", SSTR(c->temp.size()));
   MessageHandler::response_handler_.makeResponseHeader();
+
+  std::cout << "------------header------------------" <<std::endl;
+  std::cout <<  c->getResponse().getHeaderMsg().append(c->temp) << std::endl;
+  std::cout << "------------header------------------" <<std::endl;
 
   if (!c->temp.empty())
     c->getResponse().getHeaderMsg().append(c->temp);

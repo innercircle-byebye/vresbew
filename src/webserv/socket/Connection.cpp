@@ -96,11 +96,7 @@ void Connection::process_read_event(Kqueue *kq, SocketManager *sm) {
     kq->kqueueSetEvent(conn, EVFILT_READ, EV_ADD);
   } else {
     ssize_t recv_len = recv(this->fd_, this->buffer_, BUF_SIZE - 1, 0);
-    if (recv_len < 0) {
-      this->recv_phase_ = MESSAGE_BODY_COMPLETE;
-      this->req_status_code_ = 503;
-    }
-    if (strchr(this->buffer_, ctrl_c[0])) {
+    if (recv_len <= 0 || strchr(this->buffer_, ctrl_c[0])) {
       sm->closeConnection(this);
       return;
     }

@@ -108,10 +108,10 @@ void MessageHandler::checkCgiProcess(Connection *c) {
   }
 }
 
-void MessageHandler::handleChunkedBody(Connection *c) {
+bool MessageHandler::handleChunkedBody(Connection *c) {
   request_handler_.setRequest(&c->getRequest());
 
-  request_handler_.handleChunked(c);
+  return request_handler_.handleChunked(c);
 }
 
 void MessageHandler::handleRequestBody(Connection *c) {

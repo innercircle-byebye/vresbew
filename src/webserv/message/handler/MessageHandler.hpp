@@ -30,7 +30,7 @@ class MessageHandler {
   static void handleRequestHeader(Connection *c);
   static void checkRequestHeader(Connection *c);
   static void handleRequestBody(Connection *c);
-  static void handleChunkedBody(Connection *c);
+  static bool handleChunkedBody(Connection *c);
 
   static void executeServerSide(Connection *c);
   static void checkCgiProcess(Connection *c);

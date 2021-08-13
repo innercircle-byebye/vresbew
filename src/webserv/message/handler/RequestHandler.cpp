@@ -307,7 +307,7 @@ void RequestHandler::applyReturnDirectiveStatusCode(Connection *c, LocationConfi
   c->req_status_code_ = location->getReturnCode();
 }
 
-void RequestHandler::handleChunked(Connection *c) {
+bool RequestHandler::handleChunked(Connection *c) {
   size_t pos;
 
   while ((pos = request_->getMsg().find(CRLF)) != std::string::npos) {
@@ -318,17 +318,23 @@ void RequestHandler::handleChunked(Connection *c) {
           c->req_status_code_ = 413;
           c->setRecvPhase(MESSAGE_BODY_COMPLETE);
           c->is_chunked_ = false;
-          return;
+          return true;
         }
         c->chunked_str_size_ = (size_t)strtoul(request_->getMsg().substr(0, pos).c_str(), NULL, 16);
+        if (c->req_status_code_ != NOT_SET && c->chunked_str_size_ != 0)
+          return false;
         if (c->chunked_str_size_ == 0) {
           for (size_t i = 0; i < pos; ++i) {
             if (request_->getMsg()[i] != '0') {
-              c->getBodyBuf().clear();
-              c->req_status_code_ = 400;
-              c->setRecvPhase(MESSAGE_BODY_COMPLETE);
-              c->is_chunked_ = false;
-              return;
+              if (c->req_status_code_ == NOT_SET) {
+                c->getBodyBuf().clear();
+                c->req_status_code_ = 400;
+                c->setRecvPhase(MESSAGE_BODY_COMPLETE);
+                c->is_chunked_ = false;
+                return true;
+              }
+              else
+                return false;
             }
           }
         }
@@ -350,7 +356,7 @@ void RequestHandler::handleChunked(Connection *c) {
         c->getBodyBuf().clear();
         c->req_status_code_ = 400;
         c->setRecvPhase(MESSAGE_BODY_COMPLETE);
-        return;
+        return true;
       }
     }
     if (c->chunked_checker_ == END) {
@@ -368,6 +374,7 @@ void RequestHandler::handleChunked(Connection *c) {
         request_->getMsg().erase(0, pos + CRLF_LEN);
     }
   }
+  return true;
 }
 
 void RequestHandler::setupUriStruct(ServerConfig *server, LocationConfig *location) {

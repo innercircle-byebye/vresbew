@@ -14,17 +14,17 @@
 
 #include "webserv/config/HttpConfig.hpp"
 #include "webserv/logger/Time.hpp"
-#include "webserv/socket/Connection.hpp"
+#include "webserv/message/MimeType.hpp"
 #include "webserv/message/Request.hpp"
 #include "webserv/message/Response.hpp"
 #include "webserv/message/StatusMessage.hpp"
-#include "webserv/message/MimeType.hpp"
+#include "webserv/socket/Connection.hpp"
 
 namespace ft {
 
 class ResponseHandler {
   Response *response_;
-  ServerConfig *server_config_;
+  LocationConfig *location_config_;
   std::string *body_buf_;
 
   struct stat stat_buffer_;
@@ -34,8 +34,9 @@ class ResponseHandler {
   ~ResponseHandler();
 
   void setResponse(Response *response, std::string *msg_body_buf);
-  void setServerConfig(HttpConfig *http_config, struct sockaddr_in &addr, const std::string &host);
+  void setLocationConfig(LocationConfig *location_config);
   void executeMethod(Request &request);
+  void setServerNameHeader(void);
   void setDefaultHeader(Connection *c, Request &request);
   void makeResponseMsg();
   void makeResponseHeader();
@@ -47,7 +48,7 @@ class ResponseHandler {
   std::string getAccessPath(const std::string &uri);
 
  private:
-  void setAutoindexBody(const std::string &uri);
+  void setAutoindexBody(const std::string &uri, const std::string &filepath);
   void setResponseStatusLine();
   void setResponseHeader();
   void setResponseBodyFromFile(const std::string &filepath);

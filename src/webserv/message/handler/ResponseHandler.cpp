@@ -15,19 +15,23 @@ void ResponseHandler::setResponse(Response *response, std::string *body_buf) {
   body_buf_ = body_buf;
 }
 
-void ResponseHandler::setServerConfig(HttpConfig *http_config, struct sockaddr_in &addr, const std::string &host) {
-  this->server_config_ = http_config->getServerConfig(addr.sin_port, addr.sin_addr.s_addr, host);
+void ResponseHandler::setLocationConfig(LocationConfig *location_config) {
+  this->location_config_ = location_config;
+}
+
+void ResponseHandler::setServerNameHeader(void) {
+  response_->setHeader("Server", location_config_->getProgramName());
 }
 
 void ResponseHandler::executeMethod(Request &request) {
-  LocationConfig *location = this->server_config_->getLocationConfig(request.getPath());
   stat(request.getFilePath().c_str(), &this->stat_buffer_);
+
   if (request.getMethod() == "GET" || request.getMethod() == "HEAD")
-    processGetAndHeaderMethod(request, location);
+    processGetAndHeaderMethod(request, location_config_);
   else if (request.getMethod() == "PUT")
     processPutMethod(request);
   else if (request.getMethod() == "POST")
-    processPostMethod(request, location);
+    processPostMethod(request, location_config_);
   else if (request.getMethod() == "DELETE")
     processDeleteMethod(request);
 }
@@ -123,9 +127,8 @@ void ResponseHandler::setDefaultErrorBody() {
   body_buf_->append("</html>\r\n");
 }
 
-void ResponseHandler::setAutoindexBody(const std::string &uri) {
+void ResponseHandler::setAutoindexBody(const std::string &uri, const std::string &filepath) {
   std::stringstream ss;
-  std::string url = getAccessPath(uri);
   DIR *dir_ptr;
   struct dirent *item;
 
@@ -134,7 +137,7 @@ void ResponseHandler::setAutoindexBody(const std::string &uri) {
   ss << "<body>\r\n";
   ss << "<h1>Index of " + uri + "</h1><hr><pre>";
   ss << "<a href=\"../\">../</a>\r\n";
-  if (!(dir_ptr = opendir(url.c_str()))) {
+  if (!(dir_ptr = opendir(filepath.c_str()))) {
     // Logger::logError();
     return;
   }
@@ -142,7 +145,7 @@ void ResponseHandler::setAutoindexBody(const std::string &uri) {
     if (strcmp(item->d_name, ".") == 0 || strcmp(item->d_name, "..") == 0)
       continue;
     std::string pathname = std::string(item->d_name);
-    if (stat((url + pathname).c_str(), &this->stat_buffer_) < 0) {
+    if (stat((filepath + pathname).c_str(), &this->stat_buffer_) < 0) {
       // Logger::logError();
       return;
     }
@@ -167,12 +170,9 @@ void ResponseHandler::setAutoindexBody(const std::string &uri) {
 // ***********blocks for setResponseFields begin*************** //
 
 void ResponseHandler::processGetAndHeaderMethod(Request &request, LocationConfig *&location) {
-
   if (location->getAutoindex() && S_ISDIR(this->stat_buffer_.st_mode)) {
-    std::cout << "ccc" << std::endl;
-
     setStatusLineWithCode(200);
-    setAutoindexBody(request.getPath());
+    setAutoindexBody(request.getPath(), request.getFilePath());
     return;
   }
   setStatusLineWithCode(200);
@@ -265,13 +265,6 @@ void ResponseHandler::processDeleteMethod(Request &request) {
 }
 
 // ***********blocks for setResponseFields end*************** //
-
-std::string ResponseHandler::getAccessPath(const std::string &uri) {
-  LocationConfig *location = this->server_config_->getLocationConfig(uri);
-  std::string path;
-  path = location->getRoot() + uri;
-  return (path);
-}
 
 bool ResponseHandler::isFileExist(const std::string &path) {
   if (stat(path.c_str(), &this->stat_buffer_) < 0) {

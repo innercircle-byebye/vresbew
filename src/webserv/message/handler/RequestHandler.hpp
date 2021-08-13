@@ -40,14 +40,15 @@ class RequestHandler {
   static std::vector<std::string> splitByDelimiter(std::string const &str, char delimiter);
 
   void setupUriStruct(ServerConfig *server, LocationConfig *location);
-  bool isHostHeaderExist();
-  bool isUriFileExist(LocationConfig *location);
-  bool isUriDirectory(LocationConfig *location);
+  bool isHostHeaderExist(void);
+  bool isUriFileExist(void);
+  bool isUriDirectory(void);
   bool isAllowedMethod(LocationConfig *location);
-  void applyReturnDirectiveStatusCode(Connection *c, LocationConfig *location);
-  bool handleChunked(Connection *c);
 
-  void findIndexForGetWhenOnlySlash(LocationConfig *&location);
+  void applyReturnDirectiveStatusCode(Connection *c);
+  void handleChunked(Connection *c);
+
+  void findIndexForGetWhenOnlySlash(LocationConfig *location);
 
  private:
   void checkMsgForStartLine(Connection *c);

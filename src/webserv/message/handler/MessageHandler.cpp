@@ -20,17 +20,17 @@ void MessageHandler::handleRequestHeader(Connection *c) {
 }
 
 void MessageHandler::checkRequestHeader(Connection *c) {
-  ServerConfig *serverconfig_test = c->getHttpConfig()->getServerConfig(c->getSockaddrToConnect().sin_port, c->getSockaddrToConnect().sin_addr.s_addr, c->getRequest().getHeaderValue("Host"));
-  LocationConfig *locationconfig_test = serverconfig_test->getLocationConfig(c->getRequest().getPath());
+  c->setServerConfig(c->getRequest().getHeaderValue("Host"));
+  c->setLocationConfig(c->getRequest().getPath());
 
   // 있어야되는지??
   request_handler_.setRequest(&c->getRequest());
 
   //t_uri uri_struct 전체 셋업하는 부분으로...
-  request_handler_.setupUriStruct(serverconfig_test, locationconfig_test);
+  request_handler_.setupUriStruct(c->getServerConfig(), c->getLocationConfig());
 
   //client_max_body_size 셋업
-  c->client_max_body_size = locationconfig_test->getClientMaxBodySize();
+  c->client_max_body_size = c->getLocationConfig()->getClientMaxBodySize();
 
   if (!c->getRequest().getHeaderValue("Content-Length").empty()) {
     c->setStringBufferContentLength(stoi(c->getRequest().getHeaderValue("Content-Length")));
@@ -45,35 +45,37 @@ void MessageHandler::checkRequestHeader(Connection *c) {
     return;
   }
 
-  if (locationconfig_test->checkReturn()) {
-    request_handler_.applyReturnDirectiveStatusCode(c, locationconfig_test);
+  if (c->getLocationConfig()->checkReturn()) {
+    request_handler_.applyReturnDirectiveStatusCode(c);
     c->setRecvPhase(MESSAGE_BODY_COMPLETE);
     return;
   }
   if (*(c->getRequest().getFilePath().rbegin()) == '/') {
-    request_handler_.findIndexForGetWhenOnlySlash(locationconfig_test);
-    if (*(c->getRequest().getFilePath().rbegin()) == '/' && locationconfig_test->getAutoindex() == false) {
+    request_handler_.findIndexForGetWhenOnlySlash(c->getLocationConfig());
+    if (*(c->getRequest().getFilePath().rbegin()) == '/' &&
+        c->getLocationConfig()->getAutoindex() == false) {
       c->req_status_code_ = 404;
       c->setRecvPhase(MESSAGE_BODY_COMPLETE);
       return;
     }
   }
 
-  if (request_handler_.isUriFileExist(locationconfig_test) == false &&
+  if (request_handler_.isUriFileExist() == false &&
       c->getRequest().getMethod() != "PUT" && c->getRequest().getMethod() != "POST") {
     c->req_status_code_ = 404;
     c->setRecvPhase(MESSAGE_BODY_COMPLETE);
     return;
   }
 
-  if (request_handler_.isUriDirectory(locationconfig_test) == true &&
-      c->getRequest().getMethod().compare("DELETE") && locationconfig_test->getAutoindex() == false ) {
+  if (request_handler_.isUriDirectory() == true &&
+      c->getRequest().getMethod().compare("DELETE") &&
+      c->getLocationConfig()->getAutoindex() == false) {
     c->req_status_code_ = 301;
     c->setRecvPhase(MESSAGE_BODY_COMPLETE);
     return;
   }
 
-  if (request_handler_.isAllowedMethod(locationconfig_test) == false) {
+  if (request_handler_.isAllowedMethod(c->getLocationConfig()) == false) {
     c->req_status_code_ = 405;
     c->setRecvPhase(MESSAGE_BODY_COMPLETE);
     return;
@@ -95,15 +97,12 @@ void MessageHandler::checkRequestHeader(Connection *c) {
     c->setRecvPhase(MESSAGE_BODY_COMPLETE);
   else
     c->setRecvPhase(MESSAGE_BODY_INCOMING);
-  c->client_max_body_size = locationconfig_test->getClientMaxBodySize();
+  c->client_max_body_size = c->getLocationConfig()->getClientMaxBodySize();
 }
 
 void MessageHandler::checkCgiProcess(Connection *c) {
-  ServerConfig *serverconfig_test = c->getHttpConfig()->getServerConfig(c->getSockaddrToConnect().sin_port, c->getSockaddrToConnect().sin_addr.s_addr, c->getRequest().getHeaderValue("Host"));
-  LocationConfig *locationconfig_test = serverconfig_test->getLocationConfig(c->getRequest().getPath());
-
-  if (!locationconfig_test->getCgiPath().empty() &&
-      locationconfig_test->checkCgiExtension(c->getRequest().getFilePath())) {
+  if (!c->getLocationConfig()->getCgiPath().empty() &&
+      c->getLocationConfig()->checkCgiExtension(c->getRequest().getFilePath())) {
     CgiHandler::initCgiChild(c);
   }
 }
@@ -132,10 +131,12 @@ void MessageHandler::executeServerSide(Connection *c) {
   request_handler_.setRequest(&c->getRequest());
 
   response_handler_.setResponse(&c->getResponse(), &c->getBodyBuf());
-  response_handler_.setServerConfig(c->getHttpConfig(), c->getSockaddrToConnect(), c->getRequest().getHeaderValue("Host"));
+  response_handler_.setLocationConfig(c->getLocationConfig());
+  response_handler_.setServerNameHeader();
 
   if (c->req_status_code_ != NOT_SET) {
     response_handler_.setStatusLineWithCode(c->req_status_code_);
+    c->getBodyBuf().clear();
     return;
   }
 
@@ -147,10 +148,7 @@ void MessageHandler::setResponseMessage(Connection *c) {
         c->getResponse().getStatusCode() == 201 ||
         c->getResponse().getStatusCode() == 204) &&
       c->getBodyBuf().empty()) {
-    ServerConfig *server_config = c->getHttpConfig()->getServerConfig(c->getSockaddrToConnect().sin_port, c->getSockaddrToConnect().sin_addr.s_addr, c->getRequest().getHeaderValue("Host"));
-    LocationConfig *location = server_config->getLocationConfig(c->getRequest().getPath());
-
-    response_handler_.setErrorBody(location->getErrorPage());
+    response_handler_.setErrorBody(c->getLocationConfig()->getErrorPage());
   }
 
   response_handler_.setDefaultHeader(c, c->getRequest());

@@ -27,7 +27,7 @@ void Response::initHeaders() {
   this->headers_["Last-Modified"] = "";
   this->headers_["Location"] = "";
   this->headers_["Retry-After"] = "";
-  this->headers_["Server"] = "vresbew";
+  this->headers_["Server"] = "";
   this->headers_["Transfer-Encoding"] = "";
   this->headers_["WWW-Authenticate"] = "";
   this->headers_["Content-Language"] = "";

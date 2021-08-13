@@ -3,8 +3,6 @@
 namespace ft {
 
 void CgiHandler::initCgiChild(Connection *c) {
-  ServerConfig *server_config = c->getHttpConfig()->getServerConfig(c->getSockaddrToConnect().sin_port, c->getSockaddrToConnect().sin_addr.s_addr, c->getRequest().getHeaderValue("Host"));
-  LocationConfig *location = server_config->getLocationConfig(c->getRequest().getPath());
   std::string cgi_output_temp;
   // TODO: 실패 예외처리
   pipe(c->writepipe);
@@ -21,7 +19,7 @@ void CgiHandler::initCgiChild(Connection *c) {
     return;
   }
 
-  if ((cgi_command = setCommand(location->getCgiPath(), c->getRequest().getFilePath())) == NULL) {
+  if ((cgi_command = setCommand(c->getLocationConfig()->getCgiPath(), c->getRequest().getFilePath())) == NULL) {
     Logger::logError(LOG_ALERT, "cgi process command creating failed (malloc failed)");
     c->req_status_code_ = 500;
     c->setRecvPhase(MESSAGE_BODY_COMPLETE);
@@ -47,7 +45,7 @@ void CgiHandler::initCgiChild(Connection *c) {
     dup2(c->readpipe[1], STDOUT_FILENO);
     close(c->readpipe[1]);
 
-    execve(location->getCgiPath().c_str(), cgi_command, env_variable);
+    execve(c->getLocationConfig()->getCgiPath().c_str(), cgi_command, env_variable);
   }
   close(c->writepipe[0]);
   close(c->readpipe[1]);
@@ -107,8 +105,6 @@ void CgiHandler::handleCgiHeader(Connection *c) {
 }
 
 char **CgiHandler::setEnviron(Connection *c) {
-  ServerConfig *server_config = c->getHttpConfig()->getServerConfig(c->getSockaddrToConnect().sin_port, c->getSockaddrToConnect().sin_addr.s_addr, c->getRequest().getHeaderValue("Host"));
-  LocationConfig *location = server_config->getLocationConfig(c->getRequest().getPath());
   std::map<std::string, std::string> env_set;
   {
     if (!c->getRequest().getHeaderValue("Content-Length").empty()) {
@@ -133,9 +129,8 @@ char **CgiHandler::setEnviron(Connection *c) {
     env_set["REQUEST_URI"] = c->getRequest().getUri();
     env_set["HTTP_HOST"] = c->getRequest().getHeaderValue("Host");
     env_set["SERVER_PORT"] = SSTR(ntohs(c->getSockaddrToConnect().sin_port));
-    // env_set["SERVER_SOFTWARE"] = location->getProgramName();
-    env_set["SERVER_SOFTWARE"] = "vresbew";
-    env_set["SCRIPT_NAME"] = location->getCgiPath();
+    env_set["SERVER_SOFTWARE"] = c->getLocationConfig()->getProgramName();
+    env_set["SCRIPT_NAME"] = c->getLocationConfig()->getCgiPath();
   }
   char **return_value;
   std::string temp;

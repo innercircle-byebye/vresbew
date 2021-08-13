@@ -256,7 +256,7 @@ std::vector<std::string> RequestHandler::splitByDelimiter(std::string const &str
   return vc;
 }
 
-bool RequestHandler::isHostHeaderExist() {
+bool RequestHandler::isHostHeaderExist(void) {
   if (request_->getHttpVersion().compare("HTTP/1.1") == 0 &&
       !request_->getHeaderValue("Host").empty()) {
     return (true);
@@ -266,8 +266,7 @@ bool RequestHandler::isHostHeaderExist() {
   return (false);
 }
 
-bool RequestHandler::isUriFileExist(LocationConfig *location) {
-  (void)location;
+bool RequestHandler::isUriFileExist(void) {
   struct stat stat_buffer_;
 
   if (stat(request_->getFilePath().c_str(), &stat_buffer_) < 0) {
@@ -276,8 +275,7 @@ bool RequestHandler::isUriFileExist(LocationConfig *location) {
   return (true);
 }
 
-bool RequestHandler::isUriDirectory(LocationConfig *location) {
-  (void)location;
+bool RequestHandler::isUriDirectory(void) {
   struct stat stat_buffer_;
 
   stat(request_->getFilePath().c_str(), &stat_buffer_);
@@ -290,21 +288,21 @@ bool RequestHandler::isAllowedMethod(LocationConfig *location) {
   return (location->checkAcceptedMethod(request_->getMethod()));
 }
 
-void RequestHandler::applyReturnDirectiveStatusCode(Connection *c, LocationConfig *location) {
-  if (location->getReturnCode() == 301 || location->getReturnCode() == 302 ||
-      location->getReturnCode() == 303 || location->getReturnCode() == 307 ||
-      location->getReturnCode() == 308) {
-    c->req_status_code_ = location->getReturnCode();
-    if (!location->getReturnValue().empty())
-      c->getResponse().setHeader("Location", location->getReturnValue());
+void RequestHandler::applyReturnDirectiveStatusCode(Connection *c) {
+  if (c->getLocationConfig()->getReturnCode() == 301 || c->getLocationConfig()->getReturnCode() == 302 ||
+      c->getLocationConfig()->getReturnCode() == 303 || c->getLocationConfig()->getReturnCode() == 307 ||
+      c->getLocationConfig()->getReturnCode() == 308) {
+    c->req_status_code_ = c->getLocationConfig()->getReturnCode();
+    if (!c->getLocationConfig()->getReturnValue().empty())
+      c->getResponse().setHeader("Location", c->getLocationConfig()->getReturnValue());
     else
       c->getResponse().setHeader("Location", " ");
     return;
   }
-  if (!location->getReturnValue().empty()) {
-    c->setBodyBuf(location->getReturnValue());
+  if (!c->getLocationConfig()->getReturnValue().empty()) {
+    c->setBodyBuf(c->getLocationConfig()->getReturnValue());
   }
-  c->req_status_code_ = location->getReturnCode();
+  c->req_status_code_ = c->getLocationConfig()->getReturnCode();
 }
 
 bool RequestHandler::handleChunked(Connection *c) {
@@ -396,7 +394,7 @@ void RequestHandler::setupUriStruct(ServerConfig *server, LocationConfig *locati
   request_->setFilePath(filepath);
 }
 
-void RequestHandler::findIndexForGetWhenOnlySlash(LocationConfig *&location) {
+void RequestHandler::findIndexForGetWhenOnlySlash(LocationConfig *location) {
   std::vector<std::string>::const_iterator it_index;
   std::string temp;
   for (it_index = location->getIndex().begin(); it_index != location->getIndex().end(); it_index++) {

@@ -19,100 +19,6 @@ void MessageHandler::handleRequestHeader(Connection *c) {
   request_handler_.processByRecvPhase(c);
 }
 
-void MessageHandler::checkRequestHeader(Connection *c) {
-  c->setServerConfig(c->getRequest().getHeaderValue("Host"));
-  c->setLocationConfig(c->getRequest().getPath());
-
-  // 있어야되는지??
-  request_handler_.setRequest(&c->getRequest());
-
-  //t_uri uri_struct 전체 셋업하는 부분으로...
-  request_handler_.setupUriStruct(c->getServerConfig(), c->getLocationConfig());
-
-  //client_max_body_size 셋업
-  c->client_max_body_size = c->getLocationConfig()->getClientMaxBodySize();
-
-  if (!c->getRequest().getHeaderValue("Content-Length").empty()) {
-    c->setStringBufferContentLength(stoi(c->getRequest().getHeaderValue("Content-Length")));
-    if (!c->getRequest().getMsg().empty())
-      c->setBodyBuf(c->getRequest().getMsg());
-  } else if (c->getRequest().getMethod().compare("HEAD") && c->getRequest().getMethod().compare("GET") && c->getRequest().getMethod().compare("DELETE"))
-    c->is_chunked_ = true;
-
-  if (request_handler_.isHostHeaderExist() == false) {
-    c->req_status_code_ = 400;
-    c->setRecvPhase(MESSAGE_BODY_COMPLETE);
-    return;
-  }
-
-  if (c->getLocationConfig()->checkReturn()) {
-    request_handler_.applyReturnDirectiveStatusCode(c);
-    c->setRecvPhase(MESSAGE_BODY_COMPLETE);
-    return;
-  }
-  if (*(c->getRequest().getFilePath().rbegin()) == '/') {
-    request_handler_.findIndexForGetWhenOnlySlash(c->getLocationConfig());
-    if (*(c->getRequest().getFilePath().rbegin()) == '/' &&
-        c->getLocationConfig()->getAutoindex() == false) {
-      c->req_status_code_ = 404;
-      c->setRecvPhase(MESSAGE_BODY_COMPLETE);
-      return;
-    }
-  }
-
-  if (request_handler_.isUriFileExist() == false &&
-      c->getRequest().getMethod() != "PUT" && c->getRequest().getMethod() != "POST") {
-    c->req_status_code_ = 404;
-    c->setRecvPhase(MESSAGE_BODY_COMPLETE);
-    return;
-  }
-
-  if (request_handler_.isUriDirectory() == true &&
-      c->getRequest().getMethod().compare("DELETE") &&
-      c->getLocationConfig()->getAutoindex() == false) {
-    c->req_status_code_ = 301;
-    c->setRecvPhase(MESSAGE_BODY_COMPLETE);
-    return;
-  }
-
-  if (request_handler_.isAllowedMethod(c->getLocationConfig()) == false) {
-    c->req_status_code_ = 405;
-    c->setRecvPhase(MESSAGE_BODY_COMPLETE);
-    return;
-  }
-
-  if (c->getRequest().getMethod().compare("GET") && c->getRequest().getMethod().compare("HEAD") && c->getRequest().getMethod().compare("DELETE") &&
-      c->getRequest().getHeaderValue("Content-Length").empty() && !c->getRequest().getHeaderValue("Transfer-Encoding").compare("chunked")) {
-    c->setRecvPhase(MESSAGE_CHUNKED);
-    c->is_chunked_ = true;
-  } else if (c->getRequest().getMethod() == "GET" || c->getRequest().getMethod() == "DELETE") {
-    c->is_chunked_ = false;
-    c->getBodyBuf().clear();
-    c->setStringBufferContentLength(-1);
-    c->setRecvPhase(MESSAGE_BODY_COMPLETE);
-  } else if (c->is_chunked_ == true)
-    c->setRecvPhase(MESSAGE_BODY_COMPLETE);
-  else if (c->is_chunked_ == false && c->getStringBufferContentLength() != -1 &&
-           (c->getStringBufferContentLength() <= (int)c->getBodyBuf().size()))
-    c->setRecvPhase(MESSAGE_BODY_COMPLETE);
-  else
-    c->setRecvPhase(MESSAGE_BODY_INCOMING);
-  c->client_max_body_size = c->getLocationConfig()->getClientMaxBodySize();
-}
-
-void MessageHandler::checkCgiProcess(Connection *c) {
-  if (!c->getLocationConfig()->getCgiPath().empty() &&
-      c->getLocationConfig()->checkCgiExtension(c->getRequest().getFilePath())) {
-    CgiHandler::initCgiChild(c);
-  }
-}
-
-bool MessageHandler::handleChunkedBody(Connection *c) {
-  request_handler_.setRequest(&c->getRequest());
-
-  return request_handler_.handleChunked(c);
-}
-
 void MessageHandler::handleRequestBody(Connection *c) {
   if (c->is_chunked_ == false) {
     if ((size_t)c->getStringBufferContentLength() <= strlen(c->buffer_)) {
@@ -125,6 +31,83 @@ void MessageHandler::handleRequestBody(Connection *c) {
     }
   } else
     c->setRecvPhase(MESSAGE_BODY_COMPLETE);
+}
+
+bool MessageHandler::handleChunked(Connection *c) {
+  size_t pos;
+
+  while ((pos = c->getRequest().getMsg().find(CRLF)) != std::string::npos) {
+    if (c->chunked_checker_ == STR_SIZE) {
+      if ((pos = c->getRequest().getMsg().find(CRLF)) != std::string::npos) {
+        if (c->client_max_body_size < c->getBodyBuf().length()) {
+          c->getBodyBuf().clear();
+          c->req_status_code_ = 413;
+          c->setRecvPhase(MESSAGE_BODY_COMPLETE);
+          c->is_chunked_ = false;
+          return true;
+        }
+        c->chunked_str_size_ = (size_t)strtoul(c->getRequest().getMsg().substr(0, pos).c_str(), NULL, 16);
+        if (c->req_status_code_ != NOT_SET && c->chunked_str_size_ != 0)
+          return false;
+        if (c->chunked_str_size_ == 0) {
+          for (size_t i = 0; i < pos; ++i) {
+            if (c->getRequest().getMsg()[i] != '0') {
+              if (c->req_status_code_ == NOT_SET) {
+                c->getBodyBuf().clear();
+                c->req_status_code_ = 400;
+                c->setRecvPhase(MESSAGE_BODY_COMPLETE);
+                c->is_chunked_ = false;
+                return true;
+              }
+              else
+                return false;
+            }
+          }
+        }
+        c->getRequest().getMsg().erase(0, pos + 2);
+        if (c->chunked_str_size_ == 0)
+          c->chunked_checker_ = END;
+        else
+          c->chunked_checker_ = STR;
+      }
+    }
+    if (c->chunked_checker_ == STR) {
+      // 조건문 확인 부탁드립니다
+      if (c->getRequest().getMsg().size() >= (c->chunked_str_size_ + 2) && !c->getRequest().getMsg().compare(c->chunked_str_size_, 2, CRLF)) {
+        c->appendBodyBuf((char *)c->getRequest().getMsg().c_str(), c->chunked_str_size_);
+        c->getRequest().getMsg().erase(0, c->chunked_str_size_ + CRLF_LEN);
+        c->chunked_checker_ = STR_SIZE;
+      }
+      if (c->getRequest().getMsg().size() >= c->chunked_str_size_ + 4) {
+        c->getBodyBuf().clear();
+        c->req_status_code_ = 400;
+        c->setRecvPhase(MESSAGE_BODY_COMPLETE);
+        return true;
+      }
+    }
+    if (c->chunked_checker_ == END) {
+      if ((pos = c->getRequest().getMsg().find(CRLF)) == 0) {
+        c->getRequest().getMsg().clear();
+        if (c->req_status_code_ != NOT_SET) {
+          c->setRecvPhase(MESSAGE_START_LINE_INCOMPLETE);
+          c->req_status_code_ = NOT_SET;
+        } else
+          c->setRecvPhase(MESSAGE_BODY_COMPLETE);
+
+        c->is_chunked_ = false;
+        c->chunked_checker_ = STR_SIZE;
+      } else if (pos != std::string::npos)
+        c->getRequest().getMsg().erase(0, pos + CRLF_LEN);
+    }
+  }
+  return true;
+}
+
+void MessageHandler::checkCgiProcess(Connection *c) {
+  if (!c->getLocationConfig()->getCgiPath().empty() &&
+      c->getLocationConfig()->checkCgiExtension(c->getRequest().getFilePath())) {
+    CgiHandler::initCgiChild(c);
+  }
 }
 
 void MessageHandler::executeServerSide(Connection *c) {

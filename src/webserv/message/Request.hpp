@@ -20,6 +20,8 @@ typedef struct s_uri {
 struct Request {
  private:
   std::string msg_;
+
+  // start line
   std::string method_;
   std::string uri_;
   t_uri uri_struct_;
@@ -27,10 +29,6 @@ struct Request {
 
   // header
   std::map<std::string, std::string> headers_;
-
-  // TODO: t_uri 구조체가 있으면 필요 없음 (삭제 해도 됨)
-  // entity body
-  std::string entity_body_;
 
  public:
   Request();
@@ -51,7 +49,6 @@ struct Request {
   const std::map<std::string, std::string> &getHeaders() const;
   const std::string &getHeaderValue(const std::string &key);
 
-  void setMsg(std::string msg);
   void setMethod(std::string method);
   void setSchema(std::string schema);
   void setHost(std::string host);

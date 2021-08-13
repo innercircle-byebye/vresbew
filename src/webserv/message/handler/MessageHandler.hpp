@@ -15,8 +15,8 @@
 
 namespace ft {
 
-class RequestHandler;
 class ResponseHandler;
+class RequestHandler;
 
 class MessageHandler {
  private:
@@ -28,13 +28,12 @@ class MessageHandler {
   static RequestHandler request_handler_;
 
   static void handleRequestHeader(Connection *c);
-  static void checkRequestHeader(Connection *c);
   static void handleRequestBody(Connection *c);
-  static bool handleChunkedBody(Connection *c);
+  static bool handleChunked(Connection *c);
+
+  static void checkCgiProcess(Connection *c);
 
   static void executeServerSide(Connection *c);
-  static void checkCgiProcess(Connection *c);
-  static void setResponseHeader(Connection *c);
   static void setResponseMessage(Connection *c);
   static void sendResponseToClient(Connection *c);
 

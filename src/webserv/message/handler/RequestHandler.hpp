@@ -34,21 +34,10 @@ class RequestHandler {
   ~RequestHandler();
 
   void setRequest(Request *request);
-
   void appendMsg(const char *buffer);
   void processByRecvPhase(Connection *c);
+
   static std::vector<std::string> splitByDelimiter(std::string const &str, char delimiter);
-
-  void setupUriStruct(ServerConfig *server, LocationConfig *location);
-  bool isHostHeaderExist(void);
-  bool isUriFileExist(void);
-  bool isUriDirectory(void);
-  bool isAllowedMethod(LocationConfig *location);
-
-  void applyReturnDirectiveStatusCode(Connection *c);
-  bool handleChunked(Connection *c);
-
-  void findIndexForGetWhenOnlySlash(LocationConfig *location);
 
  private:
   void checkMsgForStartLine(Connection *c);
@@ -58,15 +47,20 @@ class RequestHandler {
   int parseUri(std::string uri_str);
   void parseHeaderLines(Connection *c);
   int parseHeaderLine(std::string &one_header_line);
-  void parseEntityBody();
 
-  static bool isValidHeaderKey(std::string const &key);
-  static bool isValidMethod(std::string const &method);
+  void checkRequestHeader(Connection *c);
 
-  int checkHttpVersionErrorCode(std::string const &http_version);
-  void checkCgiRequest(Connection *c);
-
+  void setupUriStruct(ServerConfig *server, LocationConfig *location);
+  bool isHostHeaderExist(void);
+  bool isUriFileExist(void);
+  bool isUriDirectory(void);
+  bool isAllowedMethod(LocationConfig *location);
+  void applyReturnDirectiveStatusCode(Connection *c);
+  void findIndexForGetWhenOnlySlash(LocationConfig *location);
   bool isFileExist(const std::string &path);
+
+  static bool isValidMethod(std::string const &method);
+  static int checkHttpVersionErrorCode(std::string const &http_version);
 };
 }  // namespace ft
 #endif

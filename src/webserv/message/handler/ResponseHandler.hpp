@@ -48,7 +48,7 @@ class ResponseHandler {
   std::string getAccessPath(const std::string &uri);
 
  private:
-  void setAutoindexBody(const std::string &uri);
+  void setAutoindexBody(const std::string &uri, const std::string &filepath);
   void setResponseStatusLine();
   void setResponseHeader();
   void setResponseBodyFromFile(const std::string &filepath);

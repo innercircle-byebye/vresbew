@@ -127,9 +127,8 @@ void ResponseHandler::setDefaultErrorBody() {
   body_buf_->append("</html>\r\n");
 }
 
-void ResponseHandler::setAutoindexBody(const std::string &uri) {
+void ResponseHandler::setAutoindexBody(const std::string &uri, const std::string &filepath) {
   std::stringstream ss;
-  std::string url = getAccessPath(uri);
   DIR *dir_ptr;
   struct dirent *item;
 
@@ -138,7 +137,7 @@ void ResponseHandler::setAutoindexBody(const std::string &uri) {
   ss << "<body>\r\n";
   ss << "<h1>Index of " + uri + "</h1><hr><pre>";
   ss << "<a href=\"../\">../</a>\r\n";
-  if (!(dir_ptr = opendir(url.c_str()))) {
+  if (!(dir_ptr = opendir(filepath.c_str()))) {
     // Logger::logError();
     return;
   }
@@ -146,7 +145,7 @@ void ResponseHandler::setAutoindexBody(const std::string &uri) {
     if (strcmp(item->d_name, ".") == 0 || strcmp(item->d_name, "..") == 0)
       continue;
     std::string pathname = std::string(item->d_name);
-    if (stat((url + pathname).c_str(), &this->stat_buffer_) < 0) {
+    if (stat((filepath + pathname).c_str(), &this->stat_buffer_) < 0) {
       // Logger::logError();
       return;
     }
@@ -172,10 +171,8 @@ void ResponseHandler::setAutoindexBody(const std::string &uri) {
 
 void ResponseHandler::processGetAndHeaderMethod(Request &request, LocationConfig *&location) {
   if (location->getAutoindex() && S_ISDIR(this->stat_buffer_.st_mode)) {
-    std::cout << "ccc" << std::endl;
-
     setStatusLineWithCode(200);
-    setAutoindexBody(request.getPath());
+    setAutoindexBody(request.getPath(), request.getFilePath());
     return;
   }
   setStatusLineWithCode(200);

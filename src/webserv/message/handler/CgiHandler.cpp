@@ -264,7 +264,6 @@ void CgiHandler::setupCgiMessage(Connection *c) {
   if (!c->temp.empty())
     c->getResponse().getHeaderMsg().append(c->temp);
 
-  std::cout << c->temp << std::endl;
 
   close(c->readpipe[0]);
   close(c->readpipe[1]);

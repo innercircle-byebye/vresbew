@@ -35,23 +35,18 @@ class ResponseHandler {
 
   void setResponse(Response *response, std::string *msg_body_buf);
   void setLocationConfig(LocationConfig *location_config);
-  void executeMethod(Request &request);
   void setServerNameHeader(void);
   void setDefaultHeader(Connection *c, Request &request);
-  void makeResponseMsg();
+  void executeMethod(Request &request);
+
   void makeResponseHeader();
-  void setResponseBody();
   void setStatusLineWithCode(int status_code);
 
   void setErrorBody(const std::string &error_page_directory_path);
 
-  std::string getAccessPath(const std::string &uri);
-
  private:
-  void setAutoindexBody(const std::string &uri, const std::string &filepath);
   void setResponseStatusLine();
   void setResponseHeader();
-  void setResponseBodyFromFile(const std::string &filepath);
   void setDefaultErrorBody();
 
   /*--------------------------EXECUTING METHODS--------------------------------*/
@@ -61,17 +56,21 @@ class ResponseHandler {
   void processPutMethod(Request &request);
   void processDeleteMethod(Request &request);
   void processPostMethod(Request &request, LocationConfig *&location);
+
+  void setAutoindexBody(const std::string &uri, const std::string &filepath);
+  void setResponseBodyFromFile(const std::string &filepath);
   // blocks for setResponseFields end
 
   // executing methods helper begin
   bool isFileExist(const std::string &path);
   int deletePathRecursive(std::string &path);
-  int removeFile(std::string file_name);
-  int removeDirectory(std::string directory_name);
+  static int removeFile(std::string file_name);
+  static int removeDirectory(std::string directory_name);
   // executing methods helper end
 
   void createLocationHeaderFor201(Connection *c, Request &request);
   void createLocationHeaderFor301(Request &request);
+
   /*--------------------------EXECUTING METHODS END--------------------------------*/
 };
 }  // namespace ft

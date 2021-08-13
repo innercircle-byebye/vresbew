@@ -11,6 +11,7 @@
 namespace ft {
 class Response {
  private:
+  // status line
   int status_code_;
   std::string status_message_;
   std::string http_version_;
@@ -19,13 +20,13 @@ class Response {
 
   std::string header_msg_;
 
+  void initHeaders();
+
  public:
   Response();
   ~Response();
 
   void clear();
-
-  void initHeaders();
 
   const int &getStatusCode() const;
   const std::string &getStatusMessage() const;
@@ -38,11 +39,8 @@ class Response {
   void setStatusMessage(std::string status_message);
   void setHttpVersion(std::string http_version);
   void setHeader(std::string key, std::string value);
-  void setHeaderMsg(std::string msg);
+
   void setConnectionHeaderByStatusCode(int status_code);
-
-
- private:
 };
 }  // namespace ft
 #endif

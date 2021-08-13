@@ -23,19 +23,6 @@ void ResponseHandler::setServerNameHeader(void) {
   response_->setHeader("Server", location_config_->getProgramName());
 }
 
-void ResponseHandler::executeMethod(Request &request) {
-  stat(request.getFilePath().c_str(), &this->stat_buffer_);
-
-  if (request.getMethod() == "GET" || request.getMethod() == "HEAD")
-    processGetAndHeaderMethod(request, location_config_);
-  else if (request.getMethod() == "PUT")
-    processPutMethod(request);
-  else if (request.getMethod() == "POST")
-    processPostMethod(request, location_config_);
-  else if (request.getMethod() == "DELETE")
-    processDeleteMethod(request);
-}
-
 void ResponseHandler::setDefaultHeader(Connection *c, Request &request) {
   if (response_->getHeaderValue("Content-Length").empty())
     response_->setHeader("Content-Length",
@@ -58,6 +45,20 @@ void ResponseHandler::setDefaultHeader(Connection *c, Request &request) {
   if (response_->getStatusCode() == 301)
     createLocationHeaderFor301(request);
 }
+
+void ResponseHandler::executeMethod(Request &request) {
+  stat(request.getFilePath().c_str(), &this->stat_buffer_);
+
+  if (request.getMethod() == "GET" || request.getMethod() == "HEAD")
+    processGetAndHeaderMethod(request, location_config_);
+  else if (request.getMethod() == "PUT")
+    processPutMethod(request);
+  else if (request.getMethod() == "POST")
+    processPostMethod(request, location_config_);
+  else if (request.getMethod() == "DELETE")
+    processDeleteMethod(request);
+}
+
 /*-----------------------MAKING RESPONSE MESSAGE-----------------------------*/
 
 void ResponseHandler::makeResponseHeader() {
@@ -125,40 +126,6 @@ void ResponseHandler::setDefaultErrorBody() {
   body_buf_->append("<hr><center>" + response_->getHeaderValue("Server") + "</center>\r\n");
   body_buf_->append("</body>\r\n");
   body_buf_->append("</html>\r\n");
-}
-
-void ResponseHandler::setAutoindexBody(const std::string &uri, const std::string &filepath) {
-  std::stringstream ss;
-  DIR *dir_ptr;
-  struct dirent *item;
-
-  ss << "<html>\r\n";
-  ss << "<head><title>Index of " + uri + "</title></head>\r\n";
-  ss << "<body>\r\n";
-  ss << "<h1>Index of " + uri + "</h1><hr><pre>";
-  ss << "<a href=\"../\">../</a>\r\n";
-  if (!(dir_ptr = opendir(filepath.c_str()))) {
-    // Logger::logError();
-    return;
-  }
-  while ((item = readdir(dir_ptr))) {
-    if (strcmp(item->d_name, ".") == 0 || strcmp(item->d_name, "..") == 0)
-      continue;
-    std::string pathname = std::string(item->d_name);
-    if (stat((filepath + pathname).c_str(), &this->stat_buffer_) < 0) {
-      // Logger::logError();
-      return;
-    }
-    if (S_ISDIR(this->stat_buffer_.st_mode))
-      pathname += "/";
-    ss << "<a href=\"" + pathname + "\">" + pathname + "</a>";
-    ss << std::setw(70 - pathname.size()) << Time::getFileModifiedTime(this->stat_buffer_.st_mtime);
-    std::string filesize = (S_ISDIR(this->stat_buffer_.st_mode) ? "-" : SSTR(this->stat_buffer_.st_size));
-    ss << std::right << std::setw(20) << filesize << CRLF;
-  }
-  ss << "</pre><hr></body>\r\n";
-  ss << "</html>\r\n";
-  body_buf_->append(ss.str());
 }
 
 // making response message end
@@ -264,13 +231,38 @@ void ResponseHandler::processDeleteMethod(Request &request) {
   }
 }
 
-// ***********blocks for setResponseFields end*************** //
+void ResponseHandler::setAutoindexBody(const std::string &uri, const std::string &filepath) {
+  std::stringstream ss;
+  DIR *dir_ptr;
+  struct dirent *item;
 
-bool ResponseHandler::isFileExist(const std::string &path) {
-  if (stat(path.c_str(), &this->stat_buffer_) < 0) {
-    return (false);
+  ss << "<html>\r\n";
+  ss << "<head><title>Index of " + uri + "</title></head>\r\n";
+  ss << "<body>\r\n";
+  ss << "<h1>Index of " + uri + "</h1><hr><pre>";
+  ss << "<a href=\"../\">../</a>\r\n";
+  if (!(dir_ptr = opendir(filepath.c_str()))) {
+    // Logger::logError();
+    return;
   }
-  return (true);
+  while ((item = readdir(dir_ptr))) {
+    if (strcmp(item->d_name, ".") == 0 || strcmp(item->d_name, "..") == 0)
+      continue;
+    std::string pathname = std::string(item->d_name);
+    if (stat((filepath + pathname).c_str(), &this->stat_buffer_) < 0) {
+      // Logger::logError();
+      return;
+    }
+    if (S_ISDIR(this->stat_buffer_.st_mode))
+      pathname += "/";
+    ss << "<a href=\"" + pathname + "\">" + pathname + "</a>";
+    ss << std::setw(70 - pathname.size()) << Time::getFileModifiedTime(this->stat_buffer_.st_mtime);
+    std::string filesize = (S_ISDIR(this->stat_buffer_.st_mode) ? "-" : SSTR(this->stat_buffer_.st_size));
+    ss << std::right << std::setw(20) << filesize << CRLF;
+  }
+  ss << "</pre><hr></body>\r\n";
+  ss << "</html>\r\n";
+  body_buf_->append(ss.str());
 }
 
 // 함수가 불리는 시점에서는 이미 파일은 존재함
@@ -283,6 +275,15 @@ void ResponseHandler::setResponseBodyFromFile(const std::string &filepath) {
 
   body_buf_->assign((std::istreambuf_iterator<char>(file)),
                     std::istreambuf_iterator<char>());
+}
+
+// ***********blocks for setResponseFields end*************** //
+
+bool ResponseHandler::isFileExist(const std::string &path) {
+  if (stat(path.c_str(), &this->stat_buffer_) < 0) {
+    return (false);
+  }
+  return (true);
 }
 
 int ResponseHandler::deletePathRecursive(std::string &path) {

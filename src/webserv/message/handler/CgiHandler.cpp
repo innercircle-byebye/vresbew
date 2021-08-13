@@ -104,6 +104,7 @@ void CgiHandler::initCgiChild(Connection *c) {
           }
           c->temp.append(c->buffer_);
           memset(c->buffer_, 0, BUF_SIZE);
+          read_len_2_ = 0;
         }
         read_len_2_ = read(c->readpipe[0], c->buffer_, BUF_SIZE - 1);
         std::cout << "read_len_2:[" << read_len_2_ << "]" << std::endl;
@@ -119,7 +120,7 @@ void CgiHandler::initCgiChild(Connection *c) {
         if (read_len_2_ == 0)
           read_end = true;
       }
-      if (read_end != write_end || (read_len_2_ != write_len_)) {
+      if (read_end != write_end) {
         close(c->readpipe[0]);
         close(c->readpipe[1]);
         close(c->writepipe[0]);

@@ -36,7 +36,7 @@ void MessageHandler::checkRequestHeader(Connection *c) {
     c->setStringBufferContentLength(stoi(c->getRequest().getHeaderValue("Content-Length")));
     if (!c->getRequest().getMsg().empty())
       c->setBodyBuf(c->getRequest().getMsg());
-  } else if (c->getRequest().getMethod().compare("HEAD") && c->getRequest().getMethod().compare("GET"))
+  } else if (c->getRequest().getMethod().compare("HEAD") && c->getRequest().getMethod().compare("GET") && c->getRequest().getMethod().compare("DELETE"))
     c->is_chunked_ = true;
 
   if (request_handler_.isHostHeaderExist() == false) {
@@ -79,11 +79,11 @@ void MessageHandler::checkRequestHeader(Connection *c) {
     return;
   }
 
-  if (c->getRequest().getMethod().compare("GET") && c->getRequest().getMethod().compare("HEAD") &&
+  if (c->getRequest().getMethod().compare("GET") && c->getRequest().getMethod().compare("HEAD") && c->getRequest().getMethod().compare("DELETE") &&
       c->getRequest().getHeaderValue("Content-Length").empty() && !c->getRequest().getHeaderValue("Transfer-Encoding").compare("chunked")) {
     c->setRecvPhase(MESSAGE_CHUNKED);
     c->is_chunked_ = true;
-  } else if (c->getRequest().getMethod() == "GET") {
+  } else if (c->getRequest().getMethod() == "GET" || c->getRequest().getMethod() == "DELETE") {
     c->is_chunked_ = false;
     c->getBodyBuf().clear();
     c->setStringBufferContentLength(-1);
@@ -108,10 +108,10 @@ void MessageHandler::checkCgiProcess(Connection *c) {
   }
 }
 
-void MessageHandler::handleChunkedBody(Connection *c) {
+bool MessageHandler::handleChunkedBody(Connection *c) {
   request_handler_.setRequest(&c->getRequest());
 
-  request_handler_.handleChunked(c);
+  return request_handler_.handleChunked(c);
 }
 
 void MessageHandler::handleRequestBody(Connection *c) {

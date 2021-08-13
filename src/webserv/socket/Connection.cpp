@@ -98,7 +98,7 @@ void Connection::process_read_event(Kqueue *kq, SocketManager *sm) {
     kq->kqueueSetEvent(conn, EVFILT_READ, EV_ADD);
   } else {
     ssize_t recv_len = recv(this->fd_, this->buffer_, BUF_SIZE - 1, 0);
-    if (strchr(this->buffer_, ctrl_c[0])) {
+    if (recv_len <= 0 || strchr(this->buffer_, ctrl_c[0])) {
       sm->closeConnection(this);
       return;
     }
@@ -111,13 +111,11 @@ void Connection::process_read_event(Kqueue *kq, SocketManager *sm) {
     if (this->recv_phase_ == MESSAGE_HEADER_COMPLETE)
       MessageHandler::checkRequestHeader(this);
     if (this->recv_phase_ == MESSAGE_CHUNKED) {
-      if (!MessageHandler::handleChunkedBody(this))
-      {
+      if (!MessageHandler::handleChunkedBody(this)) {
         sm->closeConnection(this);
-        return ;
+        return;
       }
-    }
-    else if (this->recv_phase_ == MESSAGE_BODY_INCOMING)
+    } else if (this->recv_phase_ == MESSAGE_BODY_INCOMING)
       MessageHandler::handleRequestBody(this);
     if (this->recv_phase_ == MESSAGE_BODY_COMPLETE) {
       if (this->req_status_code_ == NOT_SET)
@@ -141,6 +139,10 @@ void Connection::process_write_event(Kqueue *kq, SocketManager *sm) {
     if (this->send_len < this->response_.getHeaderMsg().size()) {
       size_t j = std::min(this->response_.getHeaderMsg().size(), this->send_len + BUF_SIZE - 1);
       ssize_t real_send_len = send(this->fd_, &(this->response_.getHeaderMsg()[this->send_len]), j - this->send_len, 0);  // -1인 경우 처리?
+      if (real_send_len == -1) {
+        sm->closeConnection(this);
+        return;
+      }
       this->send_len += real_send_len;
     }
     if (!this->response_.getHeaderValue("Connection").compare("close") ||
@@ -154,7 +156,10 @@ void Connection::process_write_event(Kqueue *kq, SocketManager *sm) {
       this->clear();
     }
   } else if (this->recv_phase_ == MESSAGE_BODY_COMPLETE) {
-    MessageHandler::sendResponseToClient(this);
+    if (MessageHandler::sendResponseToClient(this) == false) {
+      sm->closeConnection(this);
+      return;
+    }
     if (!this->response_.getHeaderValue("Connection").compare("close") ||
         !this->request_.getHttpVersion().compare("HTTP/1.0")) {
       sm->closeConnection(this);

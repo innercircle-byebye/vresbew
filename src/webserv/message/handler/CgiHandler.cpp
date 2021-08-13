@@ -90,22 +90,22 @@ void CgiHandler::initCgiChild(Connection *c) {
           write_end = true;
         }
       }
-      if (read_end == false) {
-        if (i == 0) {
-          read_len_2_ = read(c->readpipe[0], c->buffer_, BUF_SIZE - 1);
-          if (read_len_2_ == -1) {
-            close(c->readpipe[0]);
-            close(c->readpipe[1]);
-            close(c->writepipe[0]);
-            close(c->writepipe[1]);
-            c->req_status_code_ = 503;
-            c->setRecvPhase(MESSAGE_BODY_COMPLETE);
-            return;
-          }
-          c->temp.append(c->buffer_);
-          memset(c->buffer_, 0, BUF_SIZE);
-          read_len_2_ = 0;
+      if (i == 0) {
+        read_len_2_ = read(c->readpipe[0], c->buffer_, BUF_SIZE - 1);
+        if (read_len_2_ == -1) {
+          close(c->readpipe[0]);
+          close(c->readpipe[1]);
+          close(c->writepipe[0]);
+          close(c->writepipe[1]);
+          c->req_status_code_ = 503;
+          c->setRecvPhase(MESSAGE_BODY_COMPLETE);
+          return;
         }
+        c->temp.append(c->buffer_);
+        memset(c->buffer_, 0, BUF_SIZE);
+        read_len_2_ = 0;
+      }
+      if (read_end == false) {
         read_len_2_ = read(c->readpipe[0], c->buffer_, BUF_SIZE - 1);
         std::cout << "read_len_2:[" << read_len_2_ << "]" << std::endl;
         if (read_len_2_ == -1) {
@@ -228,7 +228,6 @@ char **CgiHandler::setCommand(std::string command, std::string path) {
   return (return_value);
 }
 
-
 void CgiHandler::setupCgiMessage(Connection *c) {
   if (c->req_status_code_ == NOT_SET && !c->getResponse().getHeaderValue("X-Powered-By").compare("PHP/8.0.7")) {
     c->req_status_code_ = 200;
@@ -240,9 +239,9 @@ void CgiHandler::setupCgiMessage(Connection *c) {
   MessageHandler::response_handler_.setDefaultHeader(c, c->getRequest());
   MessageHandler::response_handler_.makeResponseHeader();
 
-  std::cout << "------------header------------------" <<std::endl;
-  std::cout <<  c->getResponse().getHeaderMsg().append(c->temp) << std::endl;
-  std::cout << "------------header------------------" <<std::endl;
+  std::cout << "------------header------------------" << std::endl;
+  std::cout << c->getResponse().getHeaderMsg().append(c->temp) << std::endl;
+  std::cout << "------------header------------------" << std::endl;
 
   if (!c->temp.empty())
     c->getResponse().getHeaderMsg().append(c->temp);

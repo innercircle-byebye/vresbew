@@ -65,6 +65,7 @@ void CgiHandler::initCgiChild(Connection *c) {
         return;
       }
       c->temp.append(c->buffer_);
+      memset(c->buffer_, 0, BUF_SIZE);
     }
   } else {
     ssize_t read_len_2_ = 0;

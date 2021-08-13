@@ -136,7 +136,8 @@ void MessageHandler::executeServerSide(Connection *c) {
 
   if (c->req_status_code_ != NOT_SET) {
     response_handler_.setStatusLineWithCode(c->req_status_code_);
-    c->getBodyBuf().clear();
+    if (c->getLocationConfig()->getReturnValue().empty())
+      c->getBodyBuf().clear();
     return;
   }
 
@@ -158,7 +159,7 @@ void MessageHandler::setResponseMessage(Connection *c) {
 bool MessageHandler::sendResponseToClient(Connection *c) {
   if (send(c->getFd(), c->getResponse().getHeaderMsg().c_str(), c->getResponse().getHeaderMsg().size(), 0) == -1)
     return false;
-  if (c->getRequest().getMethod() != "HEAD"){
+  if (c->getRequest().getMethod() != "HEAD") {
     if (send(c->getFd(), c->getBodyBuf().c_str(), c->getBodyBuf().size(), 0) == -1)
       return false;
   }

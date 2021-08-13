@@ -35,7 +35,7 @@ class MessageHandler {
 
   static void executeServerSide(Connection *c);
   static void setResponseMessage(Connection *c);
-  static void sendResponseToClient(Connection *c);
+  static bool sendResponseToClient(Connection *c);
 
 };
 }  // namespace ft

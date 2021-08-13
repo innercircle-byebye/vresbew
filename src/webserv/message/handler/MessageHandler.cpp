@@ -138,10 +138,14 @@ void MessageHandler::setResponseMessage(Connection *c) {
   response_handler_.makeResponseHeader();
 }
 
-void MessageHandler::sendResponseToClient(Connection *c) {
-  send(c->getFd(), c->getResponse().getHeaderMsg().c_str(), c->getResponse().getHeaderMsg().size(), 0);
-  if (c->getRequest().getMethod() != "HEAD")
-    send(c->getFd(), c->getBodyBuf().c_str(), c->getBodyBuf().size(), 0);
+bool MessageHandler::sendResponseToClient(Connection *c) {
+  if (send(c->getFd(), c->getResponse().getHeaderMsg().c_str(), c->getResponse().getHeaderMsg().size(), 0) == -1)
+    return false;
+  if (c->getRequest().getMethod() != "HEAD"){
+    if (send(c->getFd(), c->getBodyBuf().c_str(), c->getBodyBuf().size(), 0) == -1)
+      return false;
+  }
+  return true;
 }
 
 }  // namespace ft

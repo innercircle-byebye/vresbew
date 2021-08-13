@@ -36,7 +36,7 @@ class MessageHandler {
   static void checkCgiProcess(Connection *c);
   static void setResponseHeader(Connection *c);
   static void setResponseMessage(Connection *c);
-  static bool sendResponseToClient(Connection *c);
+  static void sendResponseToClient(Connection *c);
 
 };
 }  // namespace ft

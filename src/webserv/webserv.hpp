@@ -26,10 +26,6 @@ typedef int socket_t;
 #define nonblocking(s) fcntl(s, F_SETFL, O_NONBLOCK)
 #define closeSocket close
 
-#define WEBSERV_CONTINUE 1
-#define WEBSERV_OK 0
-#define WEBSERV_ERROR -1
-
 #define LOG_STDERR 0
 #define LOG_EMERG 1
 #define LOG_ALERT 2

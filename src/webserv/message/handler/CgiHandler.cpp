@@ -76,9 +76,9 @@ void CgiHandler::initCgiChild(Connection *c) {
       ssize_t j = std::min(size, BUF_SIZE + i - 1);
       if (write_end == false) {
         write_len_ = write(c->writepipe[1], &(c->getBodyBuf()[i]), j - i);
-        std::cout << "write_len:[" << write_len_ << "]" << std::endl;
+        // std::cout << "write_len:[" << write_len_ << "]" << std::endl;
         if (write_len_ == -1) {
-          std::cout << "aaaa" << std::endl;
+          // std::cout << "aaaa" << std::endl;
           close(c->readpipe[0]);
           close(c->readpipe[1]);
           close(c->writepipe[0]);
@@ -91,17 +91,18 @@ void CgiHandler::initCgiChild(Connection *c) {
         }
       }
       if (write_len_ == (ssize_t)c->getBodyBuf().size()) {
-        read_len_2_ = read(c->readpipe[0], c->buffer_, BUF_SIZE - 1);
-        if (read_len_2_ == -1) {
-          close(c->readpipe[0]);
-          close(c->readpipe[1]);
-          close(c->writepipe[0]);
-          close(c->writepipe[1]);
-          c->req_status_code_ = 503;
-          c->setRecvPhase(MESSAGE_BODY_COMPLETE);
-          return;
+        while ((read_len_2_ = read(c->readpipe[0], c->buffer_, BUF_SIZE - 1)) != 0) {
+          if (read_len_2_ == -1) {
+            close(c->readpipe[0]);
+            close(c->readpipe[1]);
+            close(c->writepipe[0]);
+            close(c->writepipe[1]);
+            c->req_status_code_ = 503;
+            c->setRecvPhase(MESSAGE_BODY_COMPLETE);
+            return;
+          }
+          c->temp.append(c->buffer_);
         }
-        c->temp.append(c->buffer_);
         memset(c->buffer_, 0, BUF_SIZE);
         break;
       } else {
@@ -122,7 +123,7 @@ void CgiHandler::initCgiChild(Connection *c) {
         }
         if (read_end == false) {
           read_len_2_ = read(c->readpipe[0], c->buffer_, BUF_SIZE - 1);
-          std::cout << "read_len_2:[" << read_len_2_ << "]" << std::endl;
+          // std::cout << "read_len_2:[" << read_len_2_ << "]" << std::endl;
           if (read_len_2_ == -1) {
             close(c->readpipe[0]);
             close(c->readpipe[1]);
@@ -255,9 +256,13 @@ void CgiHandler::setupCgiMessage(Connection *c) {
   MessageHandler::response_handler_.setDefaultHeader(c, c->getRequest());
   MessageHandler::response_handler_.makeResponseHeader();
 
+  std::cout << "=========header==============" << std::endl;
+  std::cout << c->getResponse().getHeaderMsg() << std::endl;
+  std::cout <<"temp_size:["<< c->temp.size() << "]" <<std::endl;
+  std::cout << "=========header==============" << std::endl;
+
   if (!c->temp.empty())
     c->getResponse().getHeaderMsg().append(c->temp);
-
   c->send_len = 0;
   close(c->readpipe[0]);
   close(c->readpipe[1]);

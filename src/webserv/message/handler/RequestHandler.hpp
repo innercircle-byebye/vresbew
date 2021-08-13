@@ -46,7 +46,7 @@ class RequestHandler {
   bool isAllowedMethod(LocationConfig *location);
 
   void applyReturnDirectiveStatusCode(Connection *c);
-  void handleChunked(Connection *c);
+  bool handleChunked(Connection *c);
 
   void findIndexForGetWhenOnlySlash(LocationConfig *location);
 

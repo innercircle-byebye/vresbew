@@ -108,8 +108,13 @@ void Connection::process_read_event(Kqueue *kq, SocketManager *sm) {
     }
     if (this->recv_phase_ == MESSAGE_HEADER_COMPLETE)
       MessageHandler::checkRequestHeader(this);
-    if (this->recv_phase_ == MESSAGE_CHUNKED)
-      MessageHandler::handleChunkedBody(this);
+    if (this->recv_phase_ == MESSAGE_CHUNKED) {
+      if (!MessageHandler::handleChunkedBody(this))
+      {
+        sm->closeConnection(this);
+        return ;
+      }
+    }
     else if (this->recv_phase_ == MESSAGE_BODY_INCOMING)
       MessageHandler::handleRequestBody(this);
     if (this->recv_phase_ == MESSAGE_BODY_COMPLETE) {

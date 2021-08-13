@@ -44,6 +44,7 @@ class RequestHandler {
   bool isUriFileExist(void);
   bool isUriDirectory(void);
   bool isAllowedMethod(LocationConfig *location);
+
   void applyReturnDirectiveStatusCode(Connection *c);
   void handleChunked(Connection *c);
 

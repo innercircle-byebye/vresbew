@@ -65,6 +65,7 @@ void CgiHandler::initCgiChild(Connection *c) {
         return;
       }
       c->temp.append(c->buffer_);
+      memset(c->buffer_, 0, BUF_SIZE);
     }
   } else {
     ssize_t read_len_2_ = 0;
@@ -256,6 +257,10 @@ void CgiHandler::setupCgiMessage(Connection *c) {
   MessageHandler::response_handler_.setDefaultHeader(c, c->getRequest());
   c->getResponse().setHeader("Content-Length", SSTR(c->temp.size()));
   MessageHandler::response_handler_.makeResponseHeader();
+
+  std::cout << "===========header=========" << std::endl;
+  std::cout << c->getResponse().getHeaderMsg() << std::endl;
+  std::cout << "===========header=========" << std::endl;
 
   if (!c->temp.empty())
     c->getResponse().getHeaderMsg().append(c->temp);

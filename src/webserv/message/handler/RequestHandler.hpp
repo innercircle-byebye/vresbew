@@ -44,10 +44,10 @@ class RequestHandler {
   bool isUriFileExist(LocationConfig *location);
   bool isUriDirectory(LocationConfig *location);
   bool isAllowedMethod(LocationConfig *location);
-  void applyReturnDirectiveStatusCode(Connection *c, LocationConfig *location);
+  void applyReturnDirectiveStatusCode(Connection *c);
   void handleChunked(Connection *c);
 
-  void findIndexForGetWhenOnlySlash(LocationConfig *&location);
+  void findIndexForGetWhenOnlySlash(LocationConfig *location);
 
  private:
   void checkMsgForStartLine(Connection *c);

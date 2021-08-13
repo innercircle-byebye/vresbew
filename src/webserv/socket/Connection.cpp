@@ -197,7 +197,10 @@ Connection *Connection::getNext() const { return next_; }
 socket_t Connection::getFd() const { return fd_; }
 Request &Connection::getRequest() { return request_; }
 Response &Connection::getResponse() { return response_; }
+
 HttpConfig *Connection::getHttpConfig() { return httpconfig_; }
+ServerConfig *Connection::getServerConfig() { return serverconfig_; }
+LocationConfig *Connection::getLocationConfig() { return locationconfig_; }
 struct sockaddr_in &Connection::getSockaddrToConnect() {
   return sockaddr_to_connect_;
 }

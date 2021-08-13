@@ -37,8 +37,6 @@ void ResponseHandler::executeMethod(Request &request) {
 }
 
 void ResponseHandler::setDefaultHeader(Connection *c, Request &request) {
-  LocationConfig *location = this->server_config_->getLocationConfig(request.getPath());
-  response_->setHeader("Server", location->getProgramName());
   if (response_->getHeaderValue("Content-Length").empty())
     response_->setHeader("Content-Length",
                          SSTR(this->body_buf_->size()));

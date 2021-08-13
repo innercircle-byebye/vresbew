@@ -100,7 +100,10 @@ class Connection {
   struct sockaddr_in getServerSockaddr() const;
   Request &getRequest();
   Response &getResponse();
+
   HttpConfig *getHttpConfig();
+  ServerConfig *getServerConfig();
+  LocationConfig *getLocationConfig();
   struct sockaddr_in &getSockaddrToConnect();
 
   // 이전

@@ -290,21 +290,21 @@ bool RequestHandler::isAllowedMethod(LocationConfig *location) {
   return (location->checkAcceptedMethod(request_->getMethod()));
 }
 
-void RequestHandler::applyReturnDirectiveStatusCode(Connection *c, LocationConfig *location) {
-  if (location->getReturnCode() == 301 || location->getReturnCode() == 302 ||
-      location->getReturnCode() == 303 || location->getReturnCode() == 307 ||
-      location->getReturnCode() == 308) {
-    c->req_status_code_ = location->getReturnCode();
-    if (!location->getReturnValue().empty())
-      c->getResponse().setHeader("Location", location->getReturnValue());
+void RequestHandler::applyReturnDirectiveStatusCode(Connection *c) {
+  if (c->getLocationConfig()->getReturnCode() == 301 || c->getLocationConfig()->getReturnCode() == 302 ||
+      c->getLocationConfig()->getReturnCode() == 303 || c->getLocationConfig()->getReturnCode() == 307 ||
+      c->getLocationConfig()->getReturnCode() == 308) {
+    c->req_status_code_ = c->getLocationConfig()->getReturnCode();
+    if (!c->getLocationConfig()->getReturnValue().empty())
+      c->getResponse().setHeader("Location", c->getLocationConfig()->getReturnValue());
     else
       c->getResponse().setHeader("Location", " ");
     return;
   }
-  if (!location->getReturnValue().empty()) {
-    c->setBodyBuf(location->getReturnValue());
+  if (!c->getLocationConfig()->getReturnValue().empty()) {
+    c->setBodyBuf(c->getLocationConfig()->getReturnValue());
   }
-  c->req_status_code_ = location->getReturnCode();
+  c->req_status_code_ = c->getLocationConfig()->getReturnCode();
 }
 
 void RequestHandler::handleChunked(Connection *c) {
@@ -389,7 +389,7 @@ void RequestHandler::setupUriStruct(ServerConfig *server, LocationConfig *locati
   request_->setFilePath(filepath);
 }
 
-void RequestHandler::findIndexForGetWhenOnlySlash(LocationConfig *&location) {
+void RequestHandler::findIndexForGetWhenOnlySlash(LocationConfig *location) {
   std::vector<std::string>::const_iterator it_index;
   std::string temp;
   for (it_index = location->getIndex().begin(); it_index != location->getIndex().end(); it_index++) {

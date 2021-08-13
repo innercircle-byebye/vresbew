@@ -96,7 +96,6 @@ void MessageHandler::checkRequestHeader(Connection *c) {
   else
     c->setRecvPhase(MESSAGE_BODY_INCOMING);
   c->client_max_body_size = locationconfig_test->getClientMaxBodySize();
-  std::cout << "is_chunked : " << c->is_chunked_ << std::endl;
 }
 
 void MessageHandler::checkCgiProcess(Connection *c) {

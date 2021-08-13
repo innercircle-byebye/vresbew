@@ -105,13 +105,13 @@ void Connection::process_read_event(Kqueue *kq, SocketManager *sm) {
     if (this->recv_phase_ == MESSAGE_START_LINE_INCOMPLETE ||
         this->recv_phase_ == MESSAGE_START_LINE_COMPLETE ||
         this->recv_phase_ == MESSAGE_HEADER_INCOMPLETE ||
+        this->recv_phase_ == MESSAGE_HEADER_COMPLETE ||
         this->recv_phase_ == MESSAGE_CHUNKED) {
       MessageHandler::handleRequestHeader(this);
     }
-    if (this->recv_phase_ == MESSAGE_HEADER_COMPLETE)
-      MessageHandler::checkRequestHeader(this);
     if (this->recv_phase_ == MESSAGE_CHUNKED) {
-      if (!MessageHandler::handleChunkedBody(this)) {
+      if (!MessageHandler::handleChunked(this))
+      {
         sm->closeConnection(this);
         return;
       }
@@ -178,31 +178,6 @@ void Connection::process_write_event(Kqueue *kq, SocketManager *sm) {
   memset(this->buffer_, 0, BUF_SIZE);
 }
 
-/* SETTER */
-void Connection::setListen(bool listen) { listen_ = listen; }
-void Connection::setNext(Connection *next) { next_ = next; }
-void Connection::setFd(socket_t fd) { fd_ = fd; }
-void Connection::setType(int type) { type_ = type; }
-void Connection::setListening(Listening *listening) { listening_ = listening; }
-void Connection::setSockaddrToConnectPort(in_port_t port) { sockaddr_to_connect_.sin_port = port; }
-void Connection::setSockaddrToConnectIP(in_addr_t ipaddr) { sockaddr_to_connect_.sin_addr.s_addr = ipaddr; }
-
-void Connection::setHttpConfig(HttpConfig *httpconfig) { httpconfig_ = httpconfig; }
-void Connection::setServerConfig(const std::string &host_header) {
-  serverconfig_ = httpconfig_->getServerConfig(sockaddr_to_connect_.sin_port,
-                                               sockaddr_to_connect_.sin_addr.s_addr,
-                                               host_header);
-}
-void Connection::setLocationConfig(const std::string &path) {
-  locationconfig_ = serverconfig_->getLocationConfig(path);
-}
-
-void Connection::setStringBufferContentLength(int string_buffer_content_length) {
-  string_buffer_content_length_ = string_buffer_content_length;
-}
-void Connection::setRecvPhase(int recv_phase) { recv_phase_ = recv_phase; }
-void Connection::setBodyBuf(std::string body_buf) { body_buf_ = body_buf; }
-
 /* GETTER */
 bool Connection::getListen() const { return listen_; }
 Connection *Connection::getNext() const { return next_; }
@@ -219,5 +194,29 @@ struct sockaddr_in &Connection::getSockaddrToConnect() {
 int Connection::getRecvPhase() const { return recv_phase_; }
 int Connection::getStringBufferContentLength() const { return string_buffer_content_length_; }
 std::string &Connection::getBodyBuf() { return (body_buf_); }
+
+/* SETTER */
+void Connection::setListen(bool listen) { listen_ = listen; }
+void Connection::setNext(Connection *next) { next_ = next; }
+void Connection::setFd(socket_t fd) { fd_ = fd; }
+void Connection::setType(int type) { type_ = type; }
+void Connection::setListening(Listening *listening) { listening_ = listening; }
+void Connection::setSockaddrToConnectPort(in_port_t port) { sockaddr_to_connect_.sin_port = port; }
+void Connection::setSockaddrToConnectIP(in_addr_t ipaddr) { sockaddr_to_connect_.sin_addr.s_addr = ipaddr; }
+void Connection::setHttpConfig(HttpConfig *httpconfig) { httpconfig_ = httpconfig; }
+void Connection::setServerConfig(const std::string &host_header) {
+  serverconfig_ = httpconfig_->getServerConfig(sockaddr_to_connect_.sin_port,
+                                               sockaddr_to_connect_.sin_addr.s_addr,
+                                               host_header);
+}
+void Connection::setLocationConfig(const std::string &path) {
+  locationconfig_ = serverconfig_->getLocationConfig(path);
+}
+
+void Connection::setStringBufferContentLength(int string_buffer_content_length) {
+  string_buffer_content_length_ = string_buffer_content_length;
+}
+void Connection::setRecvPhase(int recv_phase) { recv_phase_ = recv_phase; }
+void Connection::setBodyBuf(std::string body_buf) { body_buf_ = body_buf; }
 
 }  // namespace ft

@@ -22,8 +22,7 @@ enum MessageFromBufferStatus {
   MESSAGE_CGI_INCOMING,
   MESSAGE_CGI_COMPLETE,
   MESSAGE_BODY_INCOMING,
-  MESSAGE_BODY_COMPLETE,
-  MESSAGE_CHUNKED_REMAINDER
+  MESSAGE_BODY_COMPLETE
 };
 
 enum ChunkedMessageStatus {
@@ -80,8 +79,25 @@ class Connection {
   void clear();
   void clearAtChunked();
 
+  void appendBodyBuf(char *buffer);
+  void appendBodyBuf(char *buffer, size_t size);
+
   void process_read_event(Kqueue *kq, SocketManager *sm);
   void process_write_event(Kqueue *kq, SocketManager *sm);
+
+  bool getListen() const;
+  Connection *getNext() const;
+  socket_t getFd() const;
+  struct sockaddr_in getServerSockaddr() const;
+  Request &getRequest();
+  Response &getResponse();
+  HttpConfig *getHttpConfig();
+  ServerConfig *getServerConfig();
+  LocationConfig *getLocationConfig();
+  struct sockaddr_in &getSockaddrToConnect();
+  int getRecvPhase() const;
+  int getStringBufferContentLength() const;
+  std::string &getBodyBuf();
 
   void setListen(bool listen);
   void setNext(Connection *next);
@@ -93,29 +109,10 @@ class Connection {
   void setHttpConfig(HttpConfig *httpconfig);
   void setServerConfig(const std::string &host_header);
   void setLocationConfig(const std::string &path);
-
-  bool getListen() const;
-  Connection *getNext() const;
-  socket_t getFd() const;
-  struct sockaddr_in getServerSockaddr() const;
-  Request &getRequest();
-  Response &getResponse();
-
-  HttpConfig *getHttpConfig();
-  ServerConfig *getServerConfig();
-  LocationConfig *getLocationConfig();
-  struct sockaddr_in &getSockaddrToConnect();
-
-  // 이전
-  int getRecvPhase() const;
-  int getStringBufferContentLength() const;
   void setRecvPhase(int recv_phase);
   void setStringBufferContentLength(int buffer_content_length);
-
-  std::string &getBodyBuf();
   void setBodyBuf(std::string body_buf_);
-  void appendBodyBuf(char *buffer);
-  void appendBodyBuf(char *buffer, size_t size);
+
 };
 }  // namespace ft
 #endif

@@ -20,8 +20,10 @@ void RequestHandler::processByRecvPhase(Connection *c) {
     parseStartLine(c);
   if (c->getRecvPhase() == MESSAGE_HEADER_INCOMPLETE)
     checkMsgForHeader(c);
-  if (c->getRecvPhase() == MESSAGE_HEADER_COMPLETE)
+  if (c->getRecvPhase() == MESSAGE_HEADER_COMPLETE) {
     parseHeaderLines(c);
+    checkRequestHeader(c);
+  }
 }
 
 /* CHECK FUNCTIONS */
@@ -223,37 +225,103 @@ int RequestHandler::parseHeaderLine(std::string &one_header_line) {
   return (NOT_SET);
 }
 
+void RequestHandler::checkRequestHeader(Connection *c) {
+  c->setServerConfig(c->getRequest().getHeaderValue("Host"));
+  c->setLocationConfig(c->getRequest().getPath());
+
+  //t_uri uri_struct 전체 셋업하는 부분으로...
+  setupUriStruct(c->getServerConfig(), c->getLocationConfig());
+
+  //client_max_body_size 셋업
+  c->client_max_body_size = c->getLocationConfig()->getClientMaxBodySize();
+
+  if (!c->getRequest().getHeaderValue("Content-Length").empty()) {
+    c->setStringBufferContentLength(stoi(c->getRequest().getHeaderValue("Content-Length")));
+    if (!c->getRequest().getMsg().empty())
+      c->setBodyBuf(c->getRequest().getMsg());
+  } else if (c->getRequest().getMethod().compare("HEAD") && c->getRequest().getMethod().compare("GET") && c->getRequest().getMethod().compare("DELETE"))
+    c->is_chunked_ = true;
+
+  if (isHostHeaderExist() == false) {
+    c->req_status_code_ = 400;
+    c->setRecvPhase(MESSAGE_BODY_COMPLETE);
+    return;
+  }
+
+  if (c->getLocationConfig()->checkReturn()) {
+    applyReturnDirectiveStatusCode(c);
+    c->setRecvPhase(MESSAGE_BODY_COMPLETE);
+    return;
+  }
+  if (*(c->getRequest().getFilePath().rbegin()) == '/') {
+    findIndexForGetWhenOnlySlash(c->getLocationConfig());
+    if (*(c->getRequest().getFilePath().rbegin()) == '/' &&
+        c->getLocationConfig()->getAutoindex() == false) {
+      c->req_status_code_ = 404;
+      c->setRecvPhase(MESSAGE_BODY_COMPLETE);
+      return;
+    }
+  }
+
+  if (isUriFileExist() == false &&
+      c->getRequest().getMethod() != "PUT" && c->getRequest().getMethod() != "POST") {
+    c->req_status_code_ = 404;
+    c->setRecvPhase(MESSAGE_BODY_COMPLETE);
+    return;
+  }
+
+  if (isUriDirectory() == true &&
+      c->getRequest().getMethod().compare("DELETE") &&
+      c->getLocationConfig()->getAutoindex() == false) {
+    c->req_status_code_ = 301;
+    c->setRecvPhase(MESSAGE_BODY_COMPLETE);
+    return;
+  }
+
+  if (isAllowedMethod(c->getLocationConfig()) == false) {
+    c->req_status_code_ = 405;
+    c->setRecvPhase(MESSAGE_BODY_COMPLETE);
+    return;
+  }
+
+  if (c->getRequest().getMethod().compare("GET") && c->getRequest().getMethod().compare("HEAD") && c->getRequest().getMethod().compare("DELETE") &&
+      c->getRequest().getHeaderValue("Content-Length").empty() && !c->getRequest().getHeaderValue("Transfer-Encoding").compare("chunked")) {
+    c->setRecvPhase(MESSAGE_CHUNKED);
+    c->is_chunked_ = true;
+  } else if (c->getRequest().getMethod() == "GET" || c->getRequest().getMethod() == "DELETE") {
+    c->is_chunked_ = false;
+    c->getBodyBuf().clear();
+    c->setStringBufferContentLength(-1);
+    c->setRecvPhase(MESSAGE_BODY_COMPLETE);
+  } else if (c->is_chunked_ == true)
+    c->setRecvPhase(MESSAGE_BODY_COMPLETE);
+  else if (c->is_chunked_ == false && c->getStringBufferContentLength() != -1 &&
+           (c->getStringBufferContentLength() <= (int)c->getBodyBuf().size()))
+    c->setRecvPhase(MESSAGE_BODY_COMPLETE);
+  else
+    c->setRecvPhase(MESSAGE_BODY_INCOMING);
+  c->client_max_body_size = c->getLocationConfig()->getClientMaxBodySize();
+}
+
 /* UTILS */
 
-bool RequestHandler::isValidMethod(std::string const &method) {
-  int i;
-  i = 0;
-  while (method[i]) {
-    if (!isalpha(method[i]) && !isupper(method[i]))
-      return (false);
-    i++;
+void RequestHandler::setupUriStruct(ServerConfig *server, LocationConfig *location) {
+  std::string filepath;
+
+  filepath = location->getRoot();
+  if (location->getRoot() != server->getRoot()) {
+    if (!request_->getPath().substr(location->getUri().length()).empty()) {
+      if (*(location->getUri().rbegin()) == '/')
+        filepath.append(request_->getPath().substr(location->getUri().length() - 1));
+      else
+        filepath.append(request_->getPath().substr(location->getUri().length()));
+    } else
+      filepath.append("/");
+  } else {
+    filepath.append(request_->getPath());
   }
-  return (true);
-}
 
-int RequestHandler::checkHttpVersionErrorCode(std::string const &http_version) {
-  if (http_version.compare(0, 5, "HTTP/") != 0)
-    return (400);  // 400 Bad request
-  else if (!http_version.compare(5, 3, "1.1") || !http_version.compare(5, 3, "1.0"))
-    return (NOT_SET);
-  return (505);
-}
-
-std::vector<std::string> RequestHandler::splitByDelimiter(std::string const &str, char delimiter) {
-  std::vector<std::string> vc;
-  std::stringstream ss(str);
-  std::string temp;
-
-  while (getline(ss, temp, delimiter)) {
-    if (temp.compare(""))
-      vc.push_back(temp);
-  }
-  return vc;
+  request_->setFilePath(filepath);
 }
 
 bool RequestHandler::isHostHeaderExist(void) {
@@ -305,95 +373,6 @@ void RequestHandler::applyReturnDirectiveStatusCode(Connection *c) {
   c->req_status_code_ = c->getLocationConfig()->getReturnCode();
 }
 
-bool RequestHandler::handleChunked(Connection *c) {
-  size_t pos;
-
-  while ((pos = request_->getMsg().find(CRLF)) != std::string::npos) {
-    if (c->chunked_checker_ == STR_SIZE) {
-      if ((pos = request_->getMsg().find(CRLF)) != std::string::npos) {
-        if (c->client_max_body_size < c->getBodyBuf().length()) {
-          c->getBodyBuf().clear();
-          c->req_status_code_ = 413;
-          c->setRecvPhase(MESSAGE_BODY_COMPLETE);
-          c->is_chunked_ = false;
-          return true;
-        }
-        c->chunked_str_size_ = (size_t)strtoul(request_->getMsg().substr(0, pos).c_str(), NULL, 16);
-        if (c->req_status_code_ != NOT_SET && c->chunked_str_size_ != 0)
-          return false;
-        if (c->chunked_str_size_ == 0) {
-          for (size_t i = 0; i < pos; ++i) {
-            if (request_->getMsg()[i] != '0') {
-              if (c->req_status_code_ == NOT_SET) {
-                c->getBodyBuf().clear();
-                c->req_status_code_ = 400;
-                c->setRecvPhase(MESSAGE_BODY_COMPLETE);
-                c->is_chunked_ = false;
-                return true;
-              }
-              else
-                return false;
-            }
-          }
-        }
-        request_->getMsg().erase(0, pos + 2);
-        if (c->chunked_str_size_ == 0)
-          c->chunked_checker_ = END;
-        else
-          c->chunked_checker_ = STR;
-      }
-    }
-    if (c->chunked_checker_ == STR) {
-      // 조건문 확인 부탁드립니다
-      if (request_->getMsg().size() >= (c->chunked_str_size_ + 2) && !request_->getMsg().compare(c->chunked_str_size_, 2, CRLF)) {
-        c->appendBodyBuf((char *)request_->getMsg().c_str(), c->chunked_str_size_);
-        request_->getMsg().erase(0, c->chunked_str_size_ + CRLF_LEN);
-        c->chunked_checker_ = STR_SIZE;
-      }
-      if (request_->getMsg().size() >= c->chunked_str_size_ + 4) {
-        c->getBodyBuf().clear();
-        c->req_status_code_ = 400;
-        c->setRecvPhase(MESSAGE_BODY_COMPLETE);
-        return true;
-      }
-    }
-    if (c->chunked_checker_ == END) {
-      if ((pos = request_->getMsg().find(CRLF)) == 0) {
-        request_->getMsg().clear();
-        if (c->req_status_code_ != NOT_SET) {
-          c->setRecvPhase(MESSAGE_START_LINE_INCOMPLETE);
-          c->req_status_code_ = NOT_SET;
-        } else
-          c->setRecvPhase(MESSAGE_BODY_COMPLETE);
-
-        c->is_chunked_ = false;
-        c->chunked_checker_ = STR_SIZE;
-      } else if (pos != std::string::npos)
-        request_->getMsg().erase(0, pos + CRLF_LEN);
-    }
-  }
-  return true;
-}
-
-void RequestHandler::setupUriStruct(ServerConfig *server, LocationConfig *location) {
-  std::string filepath;
-
-  filepath = location->getRoot();
-  if (location->getRoot() != server->getRoot()) {
-    if (!request_->getPath().substr(location->getUri().length()).empty()) {
-      if (*(location->getUri().rbegin()) == '/')
-        filepath.append(request_->getPath().substr(location->getUri().length() - 1));
-      else
-        filepath.append(request_->getPath().substr(location->getUri().length()));
-    } else
-      filepath.append("/");
-  } else {
-    filepath.append(request_->getPath());
-  }
-
-  request_->setFilePath(filepath);
-}
-
 void RequestHandler::findIndexForGetWhenOnlySlash(LocationConfig *location) {
   std::vector<std::string>::const_iterator it_index;
   std::string temp;
@@ -414,6 +393,39 @@ bool RequestHandler::isFileExist(const std::string &path) {
     return (false);
   }
   return (true);
+}
+
+/* STATIC FUNCTIONS */
+
+bool RequestHandler::isValidMethod(std::string const &method) {
+  int i;
+  i = 0;
+  while (method[i]) {
+    if (!isalpha(method[i]) && !isupper(method[i]))
+      return (false);
+    i++;
+  }
+  return (true);
+}
+
+int RequestHandler::checkHttpVersionErrorCode(std::string const &http_version) {
+  if (http_version.compare(0, 5, "HTTP/") != 0)
+    return (400);  // 400 Bad request
+  else if (!http_version.compare(5, 3, "1.1") || !http_version.compare(5, 3, "1.0"))
+    return (NOT_SET);
+  return (505);
+}
+
+std::vector<std::string> RequestHandler::splitByDelimiter(std::string const &str, char delimiter) {
+  std::vector<std::string> vc;
+  std::stringstream ss(str);
+  std::string temp;
+
+  while (getline(ss, temp, delimiter)) {
+    if (temp.compare(""))
+      vc.push_back(temp);
+  }
+  return vc;
 }
 
 }  // namespace ft

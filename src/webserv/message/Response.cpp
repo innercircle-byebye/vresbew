@@ -2,7 +2,7 @@
 
 namespace ft {
 Response::Response() {
-  status_code_ = NOT_SET;
+  this->status_code_ = NOT_SET;
   this->http_version_ = "HTTP/1.1";
   this->initHeaders();
 }
@@ -12,13 +12,13 @@ Response::~Response() {
 }
 
 void Response::clear() {
-  status_code_ = NOT_SET;
-  status_message_.clear();
+  this->status_code_ = NOT_SET;
+  this->status_message_.clear();
 
-  headers_.clear();
+  this->headers_.clear();
   this->initHeaders();
 
-  header_msg_.clear();
+  this->header_msg_.clear();
 }
 
 void Response::initHeaders() {
@@ -46,7 +46,6 @@ void Response::setStatusCode(int status_code) { status_code_ = status_code; }
 void Response::setStatusMessage(std::string status_message) { status_message_ = status_message; }
 void Response::setHttpVersion(std::string http_version) { http_version_ = http_version; }
 void Response::setHeader(std::string key, std::string value) { headers_[key] = value; }
-void Response::setHeaderMsg(std::string header_msg) { header_msg_ = header_msg; }
 
 void Response::setConnectionHeaderByStatusCode(int status_code) {
   if (status_code == 200 ||

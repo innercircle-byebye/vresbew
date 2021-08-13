@@ -71,9 +71,9 @@ void CgiHandler::initCgiChild(Connection *c) {
     ssize_t write_len_ = 0;
     bool write_end = false;
     bool read_end = false;
-    size_t size = c->getBodyBuf().size();
-    for (size_t i = 0; i < size; i += BUF_SIZE - 1) {
-      size_t j = std::min(size, BUF_SIZE + i - 1);
+    ssize_t size = c->getBodyBuf().size();
+    for (ssize_t i = 0; i < size; i += BUF_SIZE - 1) {
+      ssize_t j = std::min(size, BUF_SIZE + i - 1);
       if (write_end == false) {
         write_len_ = write(c->writepipe[1], c->getBodyBuf().substr(i, j).c_str(), j - i);
         std::cout << "write_len:[" << write_len_ << "]" << std::endl;

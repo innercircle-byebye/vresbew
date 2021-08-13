@@ -16,6 +16,8 @@ Connection::Connection()
   is_chunked_ = false;
   send_len = 0;
   client_max_body_size = -1;
+  serverconfig_ = NULL;
+  locationconfig_ = NULL;
 }
 
 Connection::~Connection() {}
@@ -66,6 +68,8 @@ void Connection::clear() {
   temp.clear();
   send_len = 0;
   client_max_body_size = -1;
+  serverconfig_ = NULL;
+  locationconfig_ = NULL;
 }
 
 void Connection::clearAtChunked() {
@@ -86,7 +90,7 @@ void Connection::appendBodyBuf(char *buffer, size_t size) {
   body_buf_.append(buffer, size);
 }
 
-void  Connection::process_read_event(Kqueue *kq, SocketManager *sm) {
+void Connection::process_read_event(Kqueue *kq, SocketManager *sm) {
   if (this->listen_) {
     Connection *conn = this->eventAccept(sm);  // throw
     kq->kqueueSetEvent(conn, EVFILT_READ, EV_ADD);
@@ -94,7 +98,7 @@ void  Connection::process_read_event(Kqueue *kq, SocketManager *sm) {
     ssize_t recv_len = recv(this->fd_, this->buffer_, BUF_SIZE - 1, 0);
     if (strchr(this->buffer_, ctrl_c[0])) {
       sm->closeConnection(this);
-      return ;
+      return;
     }
     if (this->recv_phase_ == MESSAGE_START_LINE_INCOMPLETE ||
         this->recv_phase_ == MESSAGE_START_LINE_COMPLETE ||
@@ -135,7 +139,7 @@ void Connection::process_write_event(Kqueue *kq, SocketManager *sm) {
     if (!this->response_.getHeaderValue("Connection").compare("close") ||
         !this->request_.getHttpVersion().compare("HTTP/1.0")) {
       sm->closeConnection(this);
-      return ;
+      return;
     }
     if (this->send_len >= this->response_.getHeaderMsg().size()) {
       kq->kqueueSetEvent(this, EVFILT_WRITE, EV_DELETE);
@@ -147,12 +151,11 @@ void Connection::process_write_event(Kqueue *kq, SocketManager *sm) {
     if (!this->response_.getHeaderValue("Connection").compare("close") ||
         !this->request_.getHttpVersion().compare("HTTP/1.0")) {
       sm->closeConnection(this);
-      return ;
+      return;
     }
     if (is_chunked_)
       this->recv_phase_ = MESSAGE_CHUNKED;
-    else
-    {
+    else {
       this->recv_phase_ = MESSAGE_START_LINE_INCOMPLETE;
       this->req_status_code_ = NOT_SET;
     }
@@ -163,7 +166,6 @@ void Connection::process_write_event(Kqueue *kq, SocketManager *sm) {
   memset(this->buffer_, 0, BUF_SIZE);
 }
 
-
 /* SETTER */
 void Connection::setListen(bool listen) { listen_ = listen; }
 void Connection::setNext(Connection *next) { next_ = next; }
@@ -172,7 +174,17 @@ void Connection::setType(int type) { type_ = type; }
 void Connection::setListening(Listening *listening) { listening_ = listening; }
 void Connection::setSockaddrToConnectPort(in_port_t port) { sockaddr_to_connect_.sin_port = port; }
 void Connection::setSockaddrToConnectIP(in_addr_t ipaddr) { sockaddr_to_connect_.sin_addr.s_addr = ipaddr; }
+
 void Connection::setHttpConfig(HttpConfig *httpconfig) { httpconfig_ = httpconfig; }
+void Connection::setServerConfig(const std::string &host_header) {
+  serverconfig_ = httpconfig_->getServerConfig(sockaddr_to_connect_.sin_port,
+                                               sockaddr_to_connect_.sin_addr.s_addr,
+                                               host_header);
+}
+void Connection::setLocationConfig(const std::string &path) {
+  locationconfig_ = serverconfig_->getLocationConfig(path);
+}
+
 void Connection::setStringBufferContentLength(int string_buffer_content_length) {
   string_buffer_content_length_ = string_buffer_content_length;
 }
@@ -186,7 +198,9 @@ socket_t Connection::getFd() const { return fd_; }
 Request &Connection::getRequest() { return request_; }
 Response &Connection::getResponse() { return response_; }
 HttpConfig *Connection::getHttpConfig() { return httpconfig_; }
-struct sockaddr_in &Connection::getSockaddrToConnect() { return sockaddr_to_connect_; }
+struct sockaddr_in &Connection::getSockaddrToConnect() {
+  return sockaddr_to_connect_;
+}
 int Connection::getRecvPhase() const { return recv_phase_; }
 int Connection::getStringBufferContentLength() const { return string_buffer_content_length_; }
 std::string &Connection::getBodyBuf() { return (body_buf_); }

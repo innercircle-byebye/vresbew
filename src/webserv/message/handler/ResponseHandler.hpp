@@ -24,7 +24,7 @@ namespace ft {
 
 class ResponseHandler {
   Response *response_;
-  ServerConfig *server_config_;
+  LocationConfig *location_config_;
   std::string *body_buf_;
 
   struct stat stat_buffer_;
@@ -34,9 +34,9 @@ class ResponseHandler {
   ~ResponseHandler();
 
   void setResponse(Response *response, std::string *msg_body_buf);
-  void setServerConfig(HttpConfig *http_config, struct sockaddr_in &addr, const std::string &host);
+  void setLocationConfig(LocationConfig *location_config);
   void executeMethod(Request &request);
-  void setServerNameHeader(LocationConfig *location);
+  void setServerNameHeader(void);
   void setDefaultHeader(Connection *c, Request &request);
   void makeResponseMsg();
   void makeResponseHeader();

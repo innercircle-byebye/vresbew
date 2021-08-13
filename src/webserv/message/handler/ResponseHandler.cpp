@@ -15,23 +15,23 @@ void ResponseHandler::setResponse(Response *response, std::string *body_buf) {
   body_buf_ = body_buf;
 }
 
-void ResponseHandler::setServerConfig(HttpConfig *http_config, struct sockaddr_in &addr, const std::string &host) {
-  this->server_config_ = http_config->getServerConfig(addr.sin_port, addr.sin_addr.s_addr, host);
+void ResponseHandler::setLocationConfig(LocationConfig *location_config) {
+  this->location_config_ = location_config;
 }
 
-void ResponseHandler::setServerNameHeader(LocationConfig *location) {
-  response_->setHeader("Server", location->getProgramName());
+void ResponseHandler::setServerNameHeader(void) {
+  response_->setHeader("Server", location_config_->getProgramName());
 }
 
 void ResponseHandler::executeMethod(Request &request) {
-  LocationConfig *location = this->server_config_->getLocationConfig(request.getPath());
   stat(request.getFilePath().c_str(), &this->stat_buffer_);
+
   if (request.getMethod() == "GET" || request.getMethod() == "HEAD")
-    processGetAndHeaderMethod(request, location);
+    processGetAndHeaderMethod(request, location_config_);
   else if (request.getMethod() == "PUT")
     processPutMethod(request);
   else if (request.getMethod() == "POST")
-    processPostMethod(request, location);
+    processPostMethod(request, location_config_);
   else if (request.getMethod() == "DELETE")
     processDeleteMethod(request);
 }
@@ -268,13 +268,6 @@ void ResponseHandler::processDeleteMethod(Request &request) {
 }
 
 // ***********blocks for setResponseFields end*************** //
-
-std::string ResponseHandler::getAccessPath(const std::string &uri) {
-  LocationConfig *location = this->server_config_->getLocationConfig(uri);
-  std::string path;
-  path = location->getRoot() + uri;
-  return (path);
-}
 
 bool ResponseHandler::isFileExist(const std::string &path) {
   if (stat(path.c_str(), &this->stat_buffer_) < 0) {

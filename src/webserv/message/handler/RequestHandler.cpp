@@ -256,7 +256,7 @@ std::vector<std::string> RequestHandler::splitByDelimiter(std::string const &str
   return vc;
 }
 
-bool RequestHandler::isHostHeaderExist() {
+bool RequestHandler::isHostHeaderExist(void) {
   if (request_->getHttpVersion().compare("HTTP/1.1") == 0 &&
       !request_->getHeaderValue("Host").empty()) {
     return (true);
@@ -266,8 +266,7 @@ bool RequestHandler::isHostHeaderExist() {
   return (false);
 }
 
-bool RequestHandler::isUriFileExist(LocationConfig *location) {
-  (void)location;
+bool RequestHandler::isUriFileExist(void) {
   struct stat stat_buffer_;
 
   if (stat(request_->getFilePath().c_str(), &stat_buffer_) < 0) {
@@ -276,8 +275,7 @@ bool RequestHandler::isUriFileExist(LocationConfig *location) {
   return (true);
 }
 
-bool RequestHandler::isUriDirectory(LocationConfig *location) {
-  (void)location;
+bool RequestHandler::isUriDirectory(void) {
   struct stat stat_buffer_;
 
   stat(request_->getFilePath().c_str(), &stat_buffer_);

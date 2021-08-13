@@ -60,14 +60,14 @@ void MessageHandler::checkRequestHeader(Connection *c) {
     }
   }
 
-  if (request_handler_.isUriFileExist(c->getLocationConfig()) == false &&
+  if (request_handler_.isUriFileExist() == false &&
       c->getRequest().getMethod() != "PUT" && c->getRequest().getMethod() != "POST") {
     c->req_status_code_ = 404;
     c->setRecvPhase(MESSAGE_BODY_COMPLETE);
     return;
   }
 
-  if (request_handler_.isUriDirectory(c->getLocationConfig()) == true &&
+  if (request_handler_.isUriDirectory() == true &&
       c->getRequest().getMethod().compare("DELETE") &&
       c->getLocationConfig()->getAutoindex() == false) {
     c->req_status_code_ = 301;
@@ -131,8 +131,8 @@ void MessageHandler::executeServerSide(Connection *c) {
   request_handler_.setRequest(&c->getRequest());
 
   response_handler_.setResponse(&c->getResponse(), &c->getBodyBuf());
-  response_handler_.setServerConfig(c->getHttpConfig(), c->getSockaddrToConnect(), c->getRequest().getHeaderValue("Host"));
-  response_handler_.setServerNameHeader(c->getLocationConfig());
+  response_handler_.setLocationConfig(c->getLocationConfig());
+  response_handler_.setServerNameHeader();
 
   if (c->req_status_code_ != NOT_SET) {
     response_handler_.setStatusLineWithCode(c->req_status_code_);

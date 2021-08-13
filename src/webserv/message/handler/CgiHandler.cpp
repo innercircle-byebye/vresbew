@@ -53,21 +53,103 @@ void CgiHandler::initCgiChild(Connection *c) {
 
   if (c->getBodyBuf().size() == 0) {
     close(c->writepipe[1]);
-    read(c->readpipe[0], c->buffer_, BUF_SIZE - 1);
-    c->temp.append(c->buffer_);
+    ssize_t read_len_1_;
+    while ((read_len_1_ = read(c->readpipe[0], c->buffer_, BUF_SIZE - 1)) != 0) {
+      if (read_len_1_ == -1) {
+        close(c->readpipe[0]);
+        close(c->readpipe[1]);
+        close(c->writepipe[0]);
+        close(c->writepipe[1]);
+        c->req_status_code_ = 503;
+        c->setRecvPhase(MESSAGE_BODY_COMPLETE);
+        return;
+      }
+      c->temp.append(c->buffer_);
+    }
   } else {
-    size_t size = c->getBodyBuf().size();
-    for (size_t i = 0; i < size; i += BUF_SIZE - 1) {
-      size_t j = std::min(size, BUF_SIZE + i - 1);
-      write(c->writepipe[1], c->getBodyBuf().substr(i, j).c_str(), j - i);
-      if (i == 0) {
-        read(c->readpipe[0], c->buffer_, BUF_SIZE - 1);
+    ssize_t read_len_2_ = 0;
+    ssize_t write_len_ = 0;
+    bool write_end = false;
+    bool read_end = false;
+    ssize_t size = c->getBodyBuf().size();
+    for (ssize_t i = 0; i < size; i += BUF_SIZE - 1) {
+      ssize_t j = std::min(size, BUF_SIZE + i - 1);
+      if (write_end == false) {
+        write_len_ = write(c->writepipe[1], &(c->getBodyBuf()[i]), j - i);
+        // std::cout << "write_len:[" << write_len_ << "]" << std::endl;
+        if (write_len_ == -1) {
+          // std::cout << "aaaa" << std::endl;
+          close(c->readpipe[0]);
+          close(c->readpipe[1]);
+          close(c->writepipe[0]);
+          close(c->writepipe[1]);
+          c->req_status_code_ = 503;
+          c->setRecvPhase(MESSAGE_BODY_COMPLETE);
+          return;
+        } else if (write_len_ == 0) {
+          write_end = true;
+        }
+      }
+      if (write_len_ == (ssize_t)c->getBodyBuf().size()) {
+        while ((read_len_2_ = read(c->readpipe[0], c->buffer_, BUF_SIZE - 1)) != 0) {
+          if (read_len_2_ == -1) {
+            close(c->readpipe[0]);
+            close(c->readpipe[1]);
+            close(c->writepipe[0]);
+            close(c->writepipe[1]);
+            c->req_status_code_ = 503;
+            c->setRecvPhase(MESSAGE_BODY_COMPLETE);
+            return;
+          }
+          c->temp.append(c->buffer_);
+          memset(c->buffer_, 0, BUF_SIZE);
+        }
+        break;
+      } else {
+        if (i == 0) {
+          read_len_2_ = read(c->readpipe[0], c->buffer_, BUF_SIZE - 1);
+          if (read_len_2_ == -1) {
+            close(c->readpipe[0]);
+            close(c->readpipe[1]);
+            close(c->writepipe[0]);
+            close(c->writepipe[1]);
+            c->req_status_code_ = 503;
+            c->setRecvPhase(MESSAGE_BODY_COMPLETE);
+            return;
+          }
+          c->temp.append(c->buffer_);
+          memset(c->buffer_, 0, BUF_SIZE);
+          if (read_len_2_ == 0) {
+            read_end = true;
+          }
+        }
+        if (read_end == false) {
+          read_len_2_ = read(c->readpipe[0], c->buffer_, BUF_SIZE - 1);
+          // std::cout << "read_len_2:[" << read_len_2_ << "]" << std::endl;
+          if (read_len_2_ == -1) {
+            close(c->readpipe[0]);
+            close(c->readpipe[1]);
+            close(c->writepipe[0]);
+            close(c->writepipe[1]);
+            c->req_status_code_ = 503;
+            c->setRecvPhase(MESSAGE_BODY_COMPLETE);
+            return;
+          }
+          if (read_len_2_ == 0)
+            read_end = true;
+        }
+        if (read_end != write_end) {
+          close(c->readpipe[0]);
+          close(c->readpipe[1]);
+          close(c->writepipe[0]);
+          close(c->writepipe[1]);
+          c->req_status_code_ = 503;
+          c->setRecvPhase(MESSAGE_BODY_COMPLETE);
+          return;
+        }
         c->temp.append(c->buffer_);
         memset(c->buffer_, 0, BUF_SIZE);
       }
-      read(c->readpipe[0], c->buffer_, BUF_SIZE - 1);
-      c->temp.append(c->buffer_);
-      memset(c->buffer_, 0, BUF_SIZE);
     }
     c->setStringBufferContentLength(-1);
     c->getBodyBuf().clear();
@@ -165,28 +247,11 @@ char **CgiHandler::setCommand(std::string command, std::string path) {
   return (return_value);
 }
 
-void CgiHandler::receiveCgiBody(Connection *c) {
-  size_t nbytes;
-  if (c->getRecvPhase() == MESSAGE_CGI_COMPLETE) {
-    while ((nbytes = read(c->readpipe[0], c->buffer_, BUF_SIZE - 1))) {
-      c->appendBodyBuf(c->buffer_);
-      memset(c->buffer_, 0, nbytes);
-    }
-    close(c->readpipe[0]);
-    close(c->readpipe[1]);
-    close(c->writepipe[0]);
-    close(c->writepipe[1]);
-    wait(NULL);
-  }
-}
-
 void CgiHandler::setupCgiMessage(Connection *c) {
   if (c->req_status_code_ == NOT_SET && !c->getResponse().getHeaderValue("X-Powered-By").compare("PHP/8.0.7")) {
     c->req_status_code_ = 200;
     MessageHandler::response_handler_.setStatusLineWithCode(200);
   }
-  if (c->getRequest().getHeaderValue("Content-Length").empty())
-    c->getResponse().setHeader("Content-Length", SSTR(c->temp.size()));
 
   MessageHandler::response_handler_.setDefaultHeader(c, c->getRequest());
   c->getResponse().setHeader("Content-Length", SSTR(c->temp.size()));
@@ -195,7 +260,6 @@ void CgiHandler::setupCgiMessage(Connection *c) {
   if (!c->temp.empty())
     c->getResponse().getHeaderMsg().append(c->temp);
 
-  c->send_len = 0;
   close(c->readpipe[0]);
   close(c->readpipe[1]);
   close(c->writepipe[0]);

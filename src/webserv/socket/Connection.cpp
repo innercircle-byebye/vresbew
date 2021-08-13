@@ -18,6 +18,7 @@ Connection::Connection()
   client_max_body_size = -1;
   serverconfig_ = NULL;
   locationconfig_ = NULL;
+  cgi_pid = -1;
 }
 
 Connection::~Connection() {}
@@ -70,6 +71,7 @@ void Connection::clear() {
   client_max_body_size = -1;
   serverconfig_ = NULL;
   locationconfig_ = NULL;
+  cgi_pid = -1;
 }
 
 void Connection::clearAtChunked() {

@@ -81,6 +81,7 @@ ServerConfig *HttpConfig::getServerConfig(in_port_t port, in_addr_t ip_addr, std
   for (std::vector<ServerConfig *>::iterator it = server_list->begin(); it != server_list->end(); it++) {
     if ((*it)->isMatchServerName(server_name)) {
       server_ptr = *it;
+      return server_ptr;
     }
   }
 

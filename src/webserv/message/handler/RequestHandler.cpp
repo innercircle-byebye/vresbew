@@ -237,6 +237,11 @@ void RequestHandler::checkRequestHeader(Connection *c) {
 
   if (!c->getRequest().getHeaderValue("Content-Length").empty()) {
     c->setStringBufferContentLength(stoi(c->getRequest().getHeaderValue("Content-Length")));
+    if (static_cast<size_t>(c->getStringBufferContentLength()) > c->client_max_body_size) {
+      c->req_status_code_ = 413;
+      c->setRecvPhase(MESSAGE_BODY_COMPLETE);
+      return;
+    }
     if (!c->getRequest().getMsg().empty())
       c->setBodyBuf(c->getRequest().getMsg());
   } else if (c->getRequest().getMethod().compare("HEAD") && c->getRequest().getMethod().compare("GET") && c->getRequest().getMethod().compare("DELETE"))

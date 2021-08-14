@@ -249,7 +249,7 @@ char **CgiHandler::setCommand(std::string command, std::string path) {
 }
 
 void CgiHandler::setupCgiMessage(Connection *c) {
-  if (c->req_status_code_ == NOT_SET && !c->getResponse().getHeaderValue("X-Powered-By").compare("PHP/8.0.7")) {
+  if (c->req_status_code_ == NOT_SET && c->getResponse().getHeaderValue("X-Powered-By").find("PHP/") != std::string::npos) {
     c->req_status_code_ = 200;
     MessageHandler::response_handler_.setStatusLineWithCode(200);
   }

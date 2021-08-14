@@ -232,7 +232,7 @@ void RequestHandler::checkRequestHeader(Connection *c) {
   //t_uri uri_struct 전체 셋업하는 부분으로...
   setupUriStruct(c->getServerConfig(), c->getLocationConfig());
 
-  if (c->req_status_code_ != NULL) {
+  if (c->req_status_code_ != NOT_SET) {
     c->setRecvPhase(MESSAGE_BODY_COMPLETE);
     return;
   }

@@ -74,7 +74,6 @@ bool MessageHandler::handleChunked(Connection *c) {
       }
     }
     if (c->chunked_checker_ == STR) {
-      // 조건문 확인 부탁드립니다
       if (c->getRequest().getMsg().size() >= (c->chunked_str_size_ + 2) && !c->getRequest().getMsg().compare(c->chunked_str_size_, 2, CRLF)) {
         c->appendBodyBuf((char *)c->getRequest().getMsg().c_str(), c->chunked_str_size_);
         c->getRequest().getMsg().erase(0, c->chunked_str_size_ + CRLF_LEN);

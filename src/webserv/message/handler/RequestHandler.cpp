@@ -258,7 +258,8 @@ void RequestHandler::checkRequestHeader(Connection *c) {
     c->setRecvPhase(MESSAGE_BODY_COMPLETE);
     return;
   }
-  if (*(c->getRequest().getFilePath().rbegin()) == '/') {
+  if (*(c->getRequest().getFilePath().rbegin()) == '/' &&
+      c->getRequest().getMethod().compare("DELETE")) {
     findIndexForGetWhenOnlySlash(c->getLocationConfig());
     if (*(c->getRequest().getFilePath().rbegin()) == '/' &&
         c->getLocationConfig()->getAutoindex() == false) {
@@ -287,6 +288,21 @@ void RequestHandler::checkRequestHeader(Connection *c) {
     c->req_status_code_ = 405;
     c->setRecvPhase(MESSAGE_BODY_COMPLETE);
     return;
+  }
+
+  if (c->getRequest().getMethod() == "DELETE") {
+    struct stat stat_buffer_temp;
+    stat(c->getRequest().getFilePath().c_str(), &stat_buffer_temp);
+    if (S_ISDIR(stat_buffer_temp.st_mode) && *(c->getRequest().getFilePath().rbegin()) != '/') {
+      c->req_status_code_ = 409;
+      c->setRecvPhase(MESSAGE_BODY_COMPLETE);
+      return;
+    }
+    else if (c->getRequest().getPath() == "/") {
+      c->req_status_code_ = 403;
+      c->setRecvPhase(MESSAGE_BODY_COMPLETE);
+      return;
+    }
   }
 
   if (c->getRequest().getMethod().compare("GET") && c->getRequest().getMethod().compare("HEAD") && c->getRequest().getMethod().compare("DELETE") &&

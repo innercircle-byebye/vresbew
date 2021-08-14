@@ -30,12 +30,11 @@ void ResponseHandler::setDefaultHeader(Connection *c, Request &request) {
 
   response_->setHeader("Date", Time::getCurrentDate());
 
-  if (response_->getStatusCode() > 299) {  // TODO: 조건 다시 확인
+  if (response_->getStatusCode() > 299) {
     response_->setHeader("Content-Type", "text/html");
   } else {
     size_t extension_len;
     if ((extension_len = request.getPath().find('.')) != std::string::npos) {
-      // TODO: string 안 만들고...
       std::string temp = request.getPath().substr(extension_len, request.getPath().size());
       response_->setHeader("Content-Type", MimeType::of(temp));
     }

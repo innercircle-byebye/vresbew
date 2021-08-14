@@ -4,9 +4,7 @@ namespace ft {
 
 void CgiHandler::initCgiChild(Connection *c) {
   std::string cgi_output_temp;
-  // TODO: 실패 예외처리
   pipe(c->writepipe);
-  // TODO: 실패 예외처리
   pipe(c->readpipe);
 
   char **cgi_command;
@@ -208,7 +206,7 @@ char **CgiHandler::setEnviron(Connection *c) {
     env_set["CONTENT_TYPE"] = c->getRequest().getHeaderValue("Content-Type");
     env_set["GATEWAY_INTERFACE"] = "CGI/1.1";
     env_set["PATH_TRANSLATED"] = c->getRequest().getFilePath();
-    env_set["REMOTE_ADDR"] = "127.0.0.1";  // TODO: ip주소 받아오는 부분 찾기
+    env_set["REMOTE_ADDR"] = "127.0.0.1";
     env_set["REQUEST_URI"] = c->getRequest().getUri();
     env_set["HTTP_HOST"] = c->getRequest().getHeaderValue("Host");
     env_set["SERVER_PORT"] = SSTR(ntohs(c->getSockaddrToConnect().sin_port));

@@ -21,7 +21,9 @@ void MessageHandler::handleRequestHeader(Connection *c) {
 
 void MessageHandler::handleRequestBody(Connection *c) {
   if (c->is_chunked_ == false) {
-    if ((size_t)c->getStringBufferContentLength() <= strlen(c->buffer_)) {
+    if ((ssize_t)c->getStringBufferContentLength() == stoi(c->getRequest().getHeaderValue("Content-Length")) && !strcmp("\r\n", c->buffer_))
+      return;
+    else if ((size_t)c->getStringBufferContentLength() <= strlen(c->buffer_)) {
       c->appendBodyBuf(c->buffer_, c->getStringBufferContentLength());
       c->setStringBufferContentLength(-1);
       c->setRecvPhase(MESSAGE_BODY_COMPLETE);

@@ -2,7 +2,9 @@
 
 namespace ft {
 
-Request::Request(): uri_("/") {}
+Request::Request(): uri_("/") {
+  uri_struct_.path_ = "/";
+}
 
 Request::~Request() {
   this->clear();
@@ -17,7 +19,7 @@ void Request::clear() {
   uri_struct_.schema_.clear();
   uri_struct_.host_.clear();
   uri_struct_.port_.clear();
-  uri_struct_.path_.clear();
+  uri_struct_.path_ = "/";
   uri_struct_.filepath_.clear();
   uri_struct_.query_string_.clear();
   http_version_.clear();

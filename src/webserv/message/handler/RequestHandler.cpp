@@ -50,11 +50,11 @@ void RequestHandler::parseStartLine(Connection *c) {
   std::vector<std::string> start_line_split = RequestHandler::splitByDelimiter(start_line, SPACE);
 
   if ((c->req_status_code_ = (start_line_split.size() == 3) ? NOT_SET : 400) != NOT_SET) {
-    c->setRecvPhase(MESSAGE_BODY_COMPLETE);
+    c->setRecvPhase(MESSAGE_HEADER_COMPLETE);
     return;
   }
   if ((c->req_status_code_ = (RequestHandler::isValidMethod(start_line_split[0])) ? NOT_SET : 400) != NOT_SET) {
-    c->setRecvPhase(MESSAGE_BODY_COMPLETE);
+    c->setRecvPhase(MESSAGE_HEADER_COMPLETE);
     return;
   }
 
@@ -63,12 +63,12 @@ void RequestHandler::parseStartLine(Connection *c) {
   start_line_split[1].append(" ");
 
   if ((c->req_status_code_ = (parseUri(start_line_split[1]) == PARSE_VALID_URI) ? NOT_SET : 400) != NOT_SET) {
-    c->setRecvPhase(MESSAGE_BODY_COMPLETE);
+    c->setRecvPhase(MESSAGE_HEADER_COMPLETE);
     return;
   }
 
   if ((c->req_status_code_ = checkHttpVersionErrorCode(start_line_split[2])) != NOT_SET) {
-    c->setRecvPhase(MESSAGE_BODY_COMPLETE);
+    c->setRecvPhase(MESSAGE_HEADER_COMPLETE);
     return;
   }
 
@@ -195,7 +195,7 @@ void RequestHandler::parseHeaderLines(Connection *c) {
   while ((pos = header_lines.find(CRLF)) != std::string::npos) {
     std::string one_header_line = header_lines.substr(0, pos);
     if ((c->req_status_code_ = this->parseHeaderLine(one_header_line)) != NOT_SET) {
-      c->setRecvPhase(MESSAGE_BODY_COMPLETE);
+      c->setRecvPhase(MESSAGE_HEADER_COMPLETE);
       return;
     }
     header_lines.erase(0, pos + CRLF_LEN);
@@ -231,6 +231,11 @@ void RequestHandler::checkRequestHeader(Connection *c) {
 
   //t_uri uri_struct 전체 셋업하는 부분으로...
   setupUriStruct(c->getServerConfig(), c->getLocationConfig());
+
+  if (c->req_status_code_ != NULL) {
+    c->setRecvPhase(MESSAGE_BODY_COMPLETE);
+    return;
+  }
 
   //client_max_body_size 셋업
   c->client_max_body_size = c->getLocationConfig()->getClientMaxBodySize();
@@ -297,8 +302,7 @@ void RequestHandler::checkRequestHeader(Connection *c) {
       c->req_status_code_ = 409;
       c->setRecvPhase(MESSAGE_BODY_COMPLETE);
       return;
-    }
-    else if (c->getRequest().getPath() == "/") {
+    } else if (c->getRequest().getPath() == "/") {
       c->req_status_code_ = 403;
       c->setRecvPhase(MESSAGE_BODY_COMPLETE);
       return;

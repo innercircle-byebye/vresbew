@@ -168,9 +168,6 @@ void CgiHandler::handleCgiHeader(Connection *c) {
     while ((pos = cgi_output_response_header.find(CRLF)) != std::string::npos) {
       std::string one_header_line = cgi_output_response_header.substr(0, pos);
       std::vector<std::string> key_and_value = MessageHandler::request_handler_.splitByDelimiter(one_header_line, SPACE);
-      // @sungyongcho: 저는 CGI 실행파일을 믿습니다...
-      // if (key_and_value.size() != 2)  // 400 Bad Request
-      //   ;
       std::string key, value;
       key = key_and_value[0].erase(key_and_value[0].size() - 1);
       value = key_and_value[1];
@@ -247,7 +244,7 @@ char **CgiHandler::setCommand(std::string command, std::string path) {
 }
 
 void CgiHandler::setupCgiMessage(Connection *c) {
-  if (c->req_status_code_ == NOT_SET && !c->getResponse().getHeaderValue("X-Powered-By").compare("PHP/8.0.7")) {
+  if (c->req_status_code_ == NOT_SET && c->getResponse().getHeaderValue("X-Powered-By").find("PHP/") != std::string::npos) {
     c->req_status_code_ = 200;
     MessageHandler::response_handler_.setStatusLineWithCode(200);
   }

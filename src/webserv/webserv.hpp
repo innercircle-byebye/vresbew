@@ -56,11 +56,12 @@ typedef int socket_t;
 const char ctrl_c[CTRL_C_LIST] = {0xff, 0xf4, 0xfd, 0x06};
 
 namespace ft {
-class Kqueue;
-class SocketManager;
-class Listening;
-class Connection;
+  class Kqueue;
+  class SocketManager;
+  class Listening;
+  class Connection;
 
-const std::string err_levels[9] = {"", "emerge", "alert", "crit", "error", "warn", "notice", "info", "debug"};
+  const std::string err_levels[9] = {"", "emerge", "alert", "crit", "error", "warn", "notice", "info", "debug"};
+
 }  // namespace ft
 #endif

@@ -188,7 +188,7 @@ char **CgiHandler::setEnviron(Connection *c) {
     if (!c->getRequest().getHeaderValue("Content-Length").empty()) {
       env_set["CONTENT_LENGTH"] = c->getRequest().getHeaderValue("Content-Length");
     } else {
-      env_set["CONTENT_LENGTH"] = to_string(c->getBodyBuf().size());
+      env_set["CONTENT_LENGTH"] = SSTR(c->getBodyBuf().size());
     }
     if (!c->getRequest().getHeaderValue("X-Secret-Header-For-Test").empty())
       env_set["HTTP_X_SECRET_HEADER_FOR_TEST"] = c->getRequest().getHeaderValue("X-Secret-Header-For-Test");
@@ -206,7 +206,7 @@ char **CgiHandler::setEnviron(Connection *c) {
     env_set["REMOTE_ADDR"] = "127.0.0.1";
     env_set["REQUEST_URI"] = c->getRequest().getUri();
     env_set["HTTP_HOST"] = c->getRequest().getHeaderValue("Host");
-    env_set["SERVER_PORT"] = to_string(ntohs(c->getSockaddrToConnect().sin_port));
+    env_set["SERVER_PORT"] = SSTR(ntohs(c->getSockaddrToConnect().sin_port));
     env_set["SERVER_SOFTWARE"] = c->getLocationConfig()->getProgramName();
     env_set["SCRIPT_NAME"] = c->getLocationConfig()->getCgiPath();
   }
@@ -250,7 +250,7 @@ void CgiHandler::setupCgiMessage(Connection *c) {
   }
 
   MessageHandler::response_handler_.setDefaultHeader(c, c->getRequest());
-  c->getResponse().setHeader("Content-Length", to_string(c->temp.size()));
+  c->getResponse().setHeader("Content-Length", SSTR(c->temp.size()));
   MessageHandler::response_handler_.makeResponseHeader();
 
   if (!c->temp.empty())

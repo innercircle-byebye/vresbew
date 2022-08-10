@@ -49,19 +49,18 @@ typedef int socket_t;
 
 // ref:
 // https://stackoverflow.com/questions/5590381/easiest-way-to-convert-int-to-string-in-c
-#define SSTR(x) static_cast<std::ostringstream &>(           \
-                    (std::ostringstream() << std::dec << x)) \
-                    .str()
+// #define SSTR(x) static_cast<std::ostringstream &>(           \
+//                     (std::ostringstream() << std::dec << x)) \
+//                     .str()
 
 const char ctrl_c[CTRL_C_LIST] = {0xff, 0xf4, 0xfd, 0x06};
 
 namespace ft {
-  class Kqueue;
-  class SocketManager;
-  class Listening;
-  class Connection;
+class Kqueue;
+class SocketManager;
+class Listening;
+class Connection;
 
-  const std::string err_levels[9] = {"", "emerge", "alert", "crit", "error", "warn", "notice", "info", "debug"};
-
+const std::string err_levels[9] = {"", "emerge", "alert", "crit", "error", "warn", "notice", "info", "debug"};
 }  // namespace ft
 #endif

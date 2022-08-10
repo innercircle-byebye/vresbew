@@ -2,7 +2,7 @@
 #define TIME_HPP
 
 #include <iostream>
-#include <sstream>
+#include <std::to_string(eam>
 #include <sys/time.h>
 
 namespace ft {
@@ -40,7 +40,7 @@ public:
   static std::string  getFileModifiedTime(time_t sec) {
 		std::stringstream	ss;
     char				buf[18];
-    
+
     strftime(buf, sizeof(buf), "%d-%b-%Y %H:%M", localtime(&sec));
     ss << buf;
     return ss.str();

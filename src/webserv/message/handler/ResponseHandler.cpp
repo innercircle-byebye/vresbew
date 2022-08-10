@@ -26,7 +26,7 @@ void ResponseHandler::setServerNameHeader(void) {
 void ResponseHandler::setDefaultHeader(Connection *c, Request &request) {
   if (response_->getHeaderValue("Content-Length").empty())
     response_->setHeader("Content-Length",
-                         SSTR(this->body_buf_->size()));
+                         std::to_string((this->body_buf_->size()));
 
   response_->setHeader("Date", Time::getCurrentDate());
 
@@ -68,7 +68,7 @@ void ResponseHandler::makeResponseHeader() {
 void ResponseHandler::setResponseStatusLine() {
   response_->getHeaderMsg() += this->response_->getHttpVersion();
   response_->getHeaderMsg() += " ";
-  response_->getHeaderMsg() += SSTR(this->response_->getStatusCode());
+  response_->getHeaderMsg() += std::to_string((this->response_->getStatusCode());
   response_->getHeaderMsg() += " ";
   response_->getHeaderMsg() += this->response_->getStatusMessage();
   response_->getHeaderMsg() += "\r\n";
@@ -100,7 +100,7 @@ void ResponseHandler::setErrorBody(const std::string &error_page_directory_path)
   bool check_error_body = false;
 
   if (error_page_directory_path != "") {
-    std::string error_page_path = error_page_directory_path + "/" + SSTR(response_->getStatusCode()) + ".html";
+    std::string error_page_path = error_page_directory_path + "/" + std::to_string((response_->getStatusCode()) + ".html";
     struct stat stat_buff;
 
     if (stat(error_page_path.c_str(), &stat_buff) == 0 && S_ISREG(stat_buff.st_mode)) {
@@ -119,9 +119,9 @@ void ResponseHandler::setErrorBody(const std::string &error_page_directory_path)
 
 void ResponseHandler::setDefaultErrorBody() {
   body_buf_->append("<html>\r\n");
-  body_buf_->append("<head><title>" + SSTR(response_->getStatusCode()) + " " + StatusMessage::of(response_->getStatusCode()) + "</title></head>\r\n");
+  body_buf_->append("<head><title>" + std::to_string((response_->getStatusCode()) + " " + StatusMessage::of(response_->getStatusCode()) + "</title></head>\r\n");
   body_buf_->append("<body>\r\n");
-  body_buf_->append("<center><h1>" + SSTR(response_->getStatusCode()) + " " + StatusMessage::of(response_->getStatusCode()) + "</h1></center>\r\n");
+  body_buf_->append("<center><h1>" + std::to_string((response_->getStatusCode()) + " " + StatusMessage::of(response_->getStatusCode()) + "</h1></center>\r\n");
   body_buf_->append("<hr><center>" + response_->getHeaderValue("Server") + "</center>\r\n");
   body_buf_->append("</body>\r\n");
   body_buf_->append("</html>\r\n");
@@ -256,7 +256,7 @@ void ResponseHandler::setAutoindexBody(const std::string &uri, const std::string
       pathname += "/";
     ss << "<a href=\"" + pathname + "\">" + pathname + "</a>";
     ss << std::setw(70 - pathname.size()) << Time::getFileModifiedTime(this->stat_buffer_.st_mtime);
-    std::string filesize = (S_ISDIR(this->stat_buffer_.st_mode) ? "-" : SSTR(this->stat_buffer_.st_size));
+    std::string filesize = (S_ISDIR(this->stat_buffer_.st_mode) ? "-" : std::to_string((this->stat_buffer_.st_size));
     ss << std::right << std::setw(20) << filesize << CRLF;
   }
   ss << "</pre><hr></body>\r\n";
@@ -343,7 +343,7 @@ void ResponseHandler::createLocationHeaderFor201(Connection *c, Request &request
   if (request.getHost().empty())
     request.setHost(((strcmp(str, "127.0.0.1") == 0) ? "localhost" : str));
   if (request.getPort().empty())
-    request.setPort(SSTR(htons(c->getSockaddrToConnect().sin_port)));
+    request.setPort(std::to_string((htons(c->getSockaddrToConnect().sin_port)));
 
   full_uri = request.getSchema() + request.getHost() + ":" + request.getPort() + request.getPath();
   response_->setHeader("Location", full_uri);
